@@ -1,6 +1,7 @@
 import 'package:json_annotation/json_annotation.dart';
-part 'schema.g.dart';
 
+import 'session_update_converter.dart';
+import 'tool_call_content_converter.dart';
 part 'schema.g.dart';
 
 /// The role of a message sender.
@@ -777,6 +778,9 @@ class ToolCallLocation {
   factory ToolCallLocation.fromJson(Map<String, dynamic> json) =>
       _$ToolCallLocationFromJson(json);
 
+  Map<String, dynamic> toJson() => _$ToolCallLocationToJson(this);
+}
+
 /// A single entry in the execution plan.
 ///
 /// Represents a task or goal that the assistant intends to accomplish
@@ -798,6 +802,9 @@ class PlanEntry {
 
   factory PlanEntry.fromJson(Map<String, dynamic> json) =>
       _$PlanEntryFromJson(json);
+
+  Map<String, dynamic> toJson() => _$PlanEntryToJson(this);
+}
 
 
 /// The input specification for a command.
@@ -824,7 +831,7 @@ class AvailableCommand {
   final String description;
 
   /// Input for the command if required
-  final AvailableCommandInput? input;
+  final UnstructuredCommandInput? input;
 
   /// Command name (e.g., `create_plan`, `research_codebase`).
   final String name;
@@ -833,6 +840,9 @@ class AvailableCommand {
 
   factory AvailableCommand.fromJson(Map<String, dynamic> json) =>
       _$AvailableCommandFromJson(json);
+
+  Map<String, dynamic> toJson() => _$AvailableCommandToJson(this);
+}
 
 
 /// Notification containing a session update from the agent.
@@ -846,6 +856,7 @@ class SessionNotification {
   final String sessionId;
 
   /// The actual update content.
+  @SessionUpdateConverter()
   final SessionUpdate update;
 
   SessionNotification({required this.sessionId, required this.update});
@@ -897,6 +908,7 @@ abstract class SessionUpdate {}
 
 @JsonSerializable()
 class ToolCallSessionUpdate extends SessionUpdate {
+  @ToolCallContentConverter()
   final List<ToolCallContent>? content;
   final ToolKind? kind;
   final List<ToolCallLocation>? locations;
@@ -926,6 +938,7 @@ class ToolCallSessionUpdate extends SessionUpdate {
 
 @JsonSerializable()
 class ToolCallUpdateSessionUpdate extends SessionUpdate {
+  @ToolCallContentConverter()
   final List<ToolCallContent>? content;
   final ToolKind? kind;
   final List<ToolCallLocation>? locations;
@@ -990,17 +1003,6 @@ class CurrentModeUpdateSessionUpdate extends SessionUpdate {
   Map<String, dynamic> toJson() => _$CurrentModeUpdateSessionUpdateToJson(this);
 }
 
-
-
-  Map<String, dynamic> toJson() => _$AvailableCommandToJson(this);
-}
-
-  Map<String, dynamic> toJson() => _$PlanEntryToJson(this);
-}
-
-
-  Map<String, dynamic> toJson() => _$ToolCallLocationToJson(this);
-}
 
 
 
