@@ -12,7 +12,7 @@ This document breaks down the tasks required to build the Dart SDK for the Agent
     - **Description:** Add necessary dependencies to `pubspec.yaml`. This includes `json_annotation` for the main dependencies, and `json_serializable`, `build_runner`, `test`, and `lints` for the dev dependencies.
     - **Reference:** N/A (Dart ecosystem tooling)
 
-- [ ] **Task 1.3: Configure Linter**
+- [X] **Task 1.3: Configure Linter**
     - **Description:** Create an `analysis_options.yaml` file and configure it with a recommended set of lints, such as `package:lints/recommended.yaml`.
     - **Reference:** N/A (Dart ecosystem tooling)
 
