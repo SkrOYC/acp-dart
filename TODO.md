@@ -16,7 +16,7 @@ This document breaks down the tasks required to build the Dart SDK for the Agent
     - **Description:** Create an `analysis_options.yaml` file and configure it with a recommended set of lints, such as `package:lints/recommended.yaml`.
     - **Reference:** N/A (Dart ecosystem tooling)
 
-- [ ] **Task 1.4: Define Core Schema Types**
+- [X] **Task 1.4: Define Core Schema Types**
     - **Description:** In `lib/src/schema.dart`, define the basic enumerations and simple types from the ACP specification.
     - **Reference:** [`typescript/schema.ts`](https://github.com/zed-industries/agent-client-protocol/blob/main/typescript/schema.ts) (e.g., `Role`, `ToolKind`, `ToolCallStatus`).
 
