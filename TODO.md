@@ -4,11 +4,11 @@ This document breaks down the tasks required to build the Dart SDK for the Agent
 
 ## Phase 1: Project Setup & Schema Definition
 
-- [ ] **Task 1.1: Initialize Dart Project**
+- [X] **Task 1.1: Initialize Dart Project**
     - **Description:** Create a new Dart project named `acp_dart` and establish the standard directory structure (`lib`, `test`, `example`).
     - **Reference:** N/A (Standard Dart practice)
 
-- [ ] **Task 1.2: Configure Dependencies**
+- [X] **Task 1.2: Configure Dependencies**
     - **Description:** Add necessary dependencies to `pubspec.yaml`. This includes `json_annotation` for the main dependencies, and `json_serializable`, `build_runner`, `test`, and `lints` for the dev dependencies.
     - **Reference:** N/A (Dart ecosystem tooling)
 
