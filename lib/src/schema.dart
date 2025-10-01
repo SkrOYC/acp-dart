@@ -348,3 +348,298 @@ class KillTerminalCommandRequest {
 
   Map<String, dynamic> toJson() => _$KillTerminalCommandRequestToJson(this);
 }
+
+
+@JsonSerializable()
+class InitializeResponse {
+  final String protocolVersion;
+  final AgentCapabilities capabilities;
+
+  InitializeResponse({required this.protocolVersion, required this.capabilities});
+
+  factory InitializeResponse.fromJson(Map<String, dynamic> json) =>
+      _$InitializeResponseFromJson(json);
+
+  Map<String, dynamic> toJson() => _$InitializeResponseToJson(this);
+}
+
+@JsonSerializable()
+class AgentCapabilities {
+  final McpCapabilities? mcp;
+  final PromptCapabilities? prompt;
+  final bool loadSession;
+  final List<AuthMethod> auth;
+
+  AgentCapabilities({this.mcp, this.prompt, required this.loadSession, required this.auth});
+
+  factory AgentCapabilities.fromJson(Map<String, dynamic> json) =>
+      _$AgentCapabilitiesFromJson(json);
+
+  Map<String, dynamic> toJson() => _$AgentCapabilitiesToJson(this);
+}
+
+@JsonSerializable()
+class McpCapabilities {
+  final List<String> versions;
+
+  McpCapabilities({required this.versions});
+
+  factory McpCapabilities.fromJson(Map<String, dynamic> json) =>
+      _$McpCapabilitiesFromJson(json);
+
+  Map<String, dynamic> toJson() => _$McpCapabilitiesToJson(this);
+}
+
+@JsonSerializable()
+class PromptCapabilities {
+  final List<String> sessionModes;
+
+  PromptCapabilities({required this.sessionModes});
+
+  factory PromptCapabilities.fromJson(Map<String, dynamic> json) =>
+      _$PromptCapabilitiesFromJson(json);
+
+  Map<String, dynamic> toJson() => _$PromptCapabilitiesToJson(this);
+}
+
+@JsonSerializable()
+class AuthMethod {
+  final String method;
+  final String? description;
+
+  AuthMethod({required this.method, this.description});
+
+  factory AuthMethod.fromJson(Map<String, dynamic> json) =>
+      _$AuthMethodFromJson(json);
+
+  Map<String, dynamic> toJson() => _$AuthMethodToJson(this);
+}
+
+@JsonSerializable()
+class AuthenticateResponse {
+  AuthenticateResponse();
+
+  factory AuthenticateResponse.fromJson(Map<String, dynamic> json) =>
+      _$AuthenticateResponseFromJson(json);
+
+  Map<String, dynamic> toJson() => _$AuthenticateResponseToJson(this);
+}
+
+@JsonSerializable()
+class NewSessionResponse {
+  final String sessionId;
+  final SessionModeState modes;
+  final SessionModelState? models;
+
+  NewSessionResponse({required this.sessionId, required this.modes, this.models});
+
+  factory NewSessionResponse.fromJson(Map<String, dynamic> json) =>
+      _$NewSessionResponseFromJson(json);
+
+  Map<String, dynamic> toJson() => _$NewSessionResponseToJson(this);
+}
+
+@JsonSerializable()
+class SessionModeState {
+  final List<SessionMode> available;
+  final String current;
+
+  SessionModeState({required this.available, required this.current});
+
+  factory SessionModeState.fromJson(Map<String, dynamic> json) =>
+      _$SessionModeStateFromJson(json);
+
+  Map<String, dynamic> toJson() => _$SessionModeStateToJson(this);
+}
+
+@JsonSerializable()
+class SessionMode {
+  final String id;
+  final String name;
+  final String? description;
+
+  SessionMode({required this.id, required this.name, this.description});
+
+  factory SessionMode.fromJson(Map<String, dynamic> json) =>
+      _$SessionModeFromJson(json);
+
+  Map<String, dynamic> toJson() => _$SessionModeToJson(this);
+}
+
+@JsonSerializable()
+class SessionModelState {
+  final List<ModelInfo> available;
+  final String current;
+
+  SessionModelState({required this.available, required this.current});
+
+  factory SessionModelState.fromJson(Map<String, dynamic> json) =>
+      _$SessionModelStateFromJson(json);
+
+  Map<String, dynamic> toJson() => _$SessionModelStateToJson(this);
+}
+
+@JsonSerializable()
+class ModelInfo {
+  final String id;
+  final String name;
+  final String? description;
+
+  ModelInfo({required this.id, required this.name, this.description});
+
+  factory ModelInfo.fromJson(Map<String, dynamic> json) =>
+      _$ModelInfoFromJson(json);
+
+  Map<String, dynamic> toJson() => _$ModelInfoToJson(this);
+}
+
+@JsonSerializable()
+class LoadSessionResponse {
+  final String sessionId;
+  final SessionModeState modes;
+  final SessionModelState? models;
+  final List<ContentBlock> history;
+
+  LoadSessionResponse({required this.sessionId, required this.modes, this.models, required this.history});
+
+  factory LoadSessionResponse.fromJson(Map<String, dynamic> json) =>
+      _$LoadSessionResponseFromJson(json);
+
+  Map<String, dynamic> toJson() => _$LoadSessionResponseToJson(this);
+}
+
+@JsonSerializable()
+class SetSessionModeResponse {
+  SetSessionModeResponse();
+
+  factory SetSessionModeResponse.fromJson(Map<String, dynamic> json) =>
+      _$SetSessionModeResponseFromJson(json);
+
+  Map<String, dynamic> toJson() => _$SetSessionModeResponseToJson(this);
+}
+
+@JsonSerializable()
+class PromptResponse {
+  final bool done;
+
+  PromptResponse({required this.done});
+
+  factory PromptResponse.fromJson(Map<String, dynamic> json) =>
+      _$PromptResponseFromJson(json);
+
+  Map<String, dynamic> toJson() => _$PromptResponseToJson(this);
+}
+
+@JsonSerializable()
+class SetSessionModelResponse {
+  SetSessionModelResponse();
+
+  factory SetSessionModelResponse.fromJson(Map<String, dynamic> json) =>
+      _$SetSessionModelResponseFromJson(json);
+
+  Map<String, dynamic> toJson() => _$SetSessionModelResponseToJson(this);
+}
+
+@JsonSerializable()
+class WriteTextFileResponse {
+  WriteTextFileResponse();
+
+  factory WriteTextFileResponse.fromJson(Map<String, dynamic> json) =>
+      _$WriteTextFileResponseFromJson(json);
+
+  Map<String, dynamic> toJson() => _$WriteTextFileResponseToJson(this);
+}
+
+@JsonSerializable()
+class ReadTextFileResponse {
+  final String content;
+
+  ReadTextFileResponse({required this.content});
+
+  factory ReadTextFileResponse.fromJson(Map<String, dynamic> json) =>
+      _$ReadTextFileResponseFromJson(json);
+
+  Map<String, dynamic> toJson() => _$ReadTextFileResponseToJson(this);
+}
+
+@JsonSerializable()
+class RequestPermissionResponse {
+  final String optionId;
+
+  RequestPermissionResponse({required this.optionId});
+
+  factory RequestPermissionResponse.fromJson(Map<String, dynamic> json) =>
+      _$RequestPermissionResponseFromJson(json);
+
+  Map<String, dynamic> toJson() => _$RequestPermissionResponseToJson(this);
+}
+
+@JsonSerializable()
+class CreateTerminalResponse {
+  final String terminalId;
+
+  CreateTerminalResponse({required this.terminalId});
+
+  factory CreateTerminalResponse.fromJson(Map<String, dynamic> json) =>
+      _$CreateTerminalResponseFromJson(json);
+
+  Map<String, dynamic> toJson() => _$CreateTerminalResponseToJson(this);
+}
+
+@JsonSerializable()
+class TerminalOutputResponse {
+  final String? stdout;
+  final String? stderr;
+  final TerminalExitStatus? exitStatus;
+
+  TerminalOutputResponse({this.stdout, this.stderr, this.exitStatus});
+
+  factory TerminalOutputResponse.fromJson(Map<String, dynamic> json) =>
+      _$TerminalOutputResponseFromJson(json);
+
+  Map<String, dynamic> toJson() => _$TerminalOutputResponseToJson(this);
+}
+
+@JsonSerializable()
+class TerminalExitStatus {
+  final int code;
+
+  TerminalExitStatus({required this.code});
+
+  factory TerminalExitStatus.fromJson(Map<String, dynamic> json) =>
+      _$TerminalExitStatusFromJson(json);
+
+  Map<String, dynamic> toJson() => _$TerminalExitStatusToJson(this);
+}
+
+@JsonSerializable()
+class ReleaseTerminalResponse {
+  ReleaseTerminalResponse();
+
+  factory ReleaseTerminalResponse.fromJson(Map<String, dynamic> json) =>
+      _$ReleaseTerminalResponseFromJson(json);
+
+  Map<String, dynamic> toJson() => _$ReleaseTerminalResponseToJson(this);
+}
+
+@JsonSerializable()
+class WaitForTerminalExitResponse {
+  final int exitCode;
+
+  WaitForTerminalExitResponse({required this.exitCode});
+
+  factory WaitForTerminalExitResponse.fromJson(Map<String, dynamic> json) =>
+      _$WaitForTerminalExitResponseFromJson(json);
+
+  Map<String, dynamic> toJson() => _$WaitForTerminalExitResponseToJson(this);
+}
+
+@JsonSerializable()
+class KillTerminalResponse {
+  KillTerminalResponse();
+
+  factory KillTerminalResponse.fromJson(Map<String, dynamic> json) =>
+      _$KillTerminalResponseFromJson(json);
+
+  Map<String, dynamic> toJson() => _$KillTerminalResponseToJson(this);
+}
