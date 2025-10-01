@@ -20,7 +20,7 @@ This document breaks down the tasks required to build the Dart SDK for the Agent
     - **Description:** In `lib/src/schema.dart`, define the basic enumerations and simple types from the ACP specification.
     - **Reference:** [`typescript/schema.ts`](https://github.com/zed-industries/agent-client-protocol/blob/main/typescript/schema.ts) (e.g., `Role`, `ToolKind`, `ToolCallStatus`).
 
-- [ ] **Task 1.5: Implement Request Schemas**
+- [X] **Task 1.5: Implement Request Schemas**
     - **Description:** Implement all ACP request classes in `lib/src/schema.dart` with `@JsonSerializable` annotations.
     - **Reference:** [`typescript/schema.ts`](https://github.com/zed-industries/agent-client-protocol/blob/main/typescript/schema.ts) (e.g., `InitializeRequest`, `NewSessionRequest`, `PromptRequest`).
 
