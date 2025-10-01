@@ -1,4 +1,5 @@
 import 'package:json_annotation/json_annotation.dart';
+part 'schema.g.dart';
 
 part 'schema.g.dart';
 
@@ -643,3 +644,367 @@ class KillTerminalResponse {
 
   Map<String, dynamic> toJson() => _$KillTerminalResponseToJson(this);
 }
+
+
+/// Notification to cancel ongoing operations for a session.
+///
+/// See protocol docs: [Cancellation](https://agentclientprotocol.com/protocol/prompt-turn#cancellation)
+@JsonSerializable()
+class CancelNotification {
+  /// The ID of the session to cancel operations for.
+  final String sessionId;
+
+  CancelNotification({required this.sessionId});
+
+  factory CancelNotification.fromJson(Map<String, dynamic> json) =>
+      _$CancelNotificationFromJson(json);
+
+  Map<String, dynamic> toJson() => _$CancelNotificationToJson(this);
+}
+
+
+/// Optional annotations for the client. The client can use annotations to inform how objects are used or displayed
+@JsonSerializable()
+class Annotations {
+  final List<Role>? audience;
+  final String? lastModified;
+  final double? priority;
+
+  Annotations({this.audience, this.lastModified, this.priority});
+
+  factory Annotations.fromJson(Map<String, dynamic> json) =>
+      _$AnnotationsFromJson(json);
+
+  Map<String, dynamic> toJson() => _$AnnotationsToJson(this);
+}
+
+/// Text-based resource contents.
+@JsonSerializable()
+class TextResourceContents {
+  final String? mimeType;
+  final String text;
+  final String uri;
+
+  TextResourceContents({this.mimeType, required this.text, required this.uri});
+
+  factory TextResourceContents.fromJson(Map<String, dynamic> json) =>
+      _$TextResourceContentsFromJson(json);
+
+  Map<String, dynamic> toJson() => _$TextResourceContentsToJson(this);
+}
+
+/// Binary resource contents.
+@JsonSerializable()
+class BlobResourceContents {
+  final String blob;
+  final String? mimeType;
+  final String uri;
+
+  BlobResourceContents({required this.blob, this.mimeType, required this.uri});
+
+  factory BlobResourceContents.fromJson(Map<String, dynamic> json) =>
+      _$BlobResourceContentsFromJson(json);
+
+  Map<String, dynamic> toJson() => _$BlobResourceContentsToJson(this);
+}
+
+/// Resource content that can be embedded in a message.
+abstract class EmbeddedResourceResource {}
+
+/// Content produced by a tool call.
+///
+/// Tool calls can produce different types of content including
+/// standard content blocks (text, images) or file diffs.
+///
+/// See protocol docs: [Content](https://agentclientprotocol.com/protocol/tool-calls#content)
+abstract class ToolCallContent {}
+
+
+@JsonSerializable()
+class ContentToolCallContent extends ToolCallContent {
+  final ContentBlock content;
+
+  ContentToolCallContent({required this.content});
+
+  factory ContentToolCallContent.fromJson(Map<String, dynamic> json) =>
+      _$ContentToolCallContentFromJson(json);
+
+  Map<String, dynamic> toJson() => _$ContentToolCallContentToJson(this);
+}
+
+@JsonSerializable()
+class DiffToolCallContent extends ToolCallContent {
+  final String newText;
+  final String? oldText;
+  final String path;
+
+  DiffToolCallContent({required this.newText, this.oldText, required this.path});
+
+  factory DiffToolCallContent.fromJson(Map<String, dynamic> json) =>
+      _$DiffToolCallContentFromJson(json);
+
+  Map<String, dynamic> toJson() => _$DiffToolCallContentToJson(this);
+}
+
+@JsonSerializable()
+class TerminalToolCallContent extends ToolCallContent {
+  final String terminalId;
+
+  TerminalToolCallContent({required this.terminalId});
+
+  factory TerminalToolCallContent.fromJson(Map<String, dynamic> json) =>
+      _$TerminalToolCallContentFromJson(json);
+
+  Map<String, dynamic> toJson() => _$TerminalToolCallContentToJson(this);
+}
+
+/// A file location being accessed or modified by a tool.
+///
+/// Enables clients to implement "follow-along" features that track
+/// which files the agent is working with in real-time.
+///
+/// See protocol docs: [Following the Agent](https://agentclientprotocol.com/protocol/tool-calls#following-the-agent)
+@JsonSerializable()
+class ToolCallLocation {
+  /// Optional line number within the file.
+  final int? line;
+
+  /// The file path being accessed or modified.
+  final String path;
+
+  ToolCallLocation({this.line, required this.path});
+
+  factory ToolCallLocation.fromJson(Map<String, dynamic> json) =>
+      _$ToolCallLocationFromJson(json);
+
+/// A single entry in the execution plan.
+///
+/// Represents a task or goal that the assistant intends to accomplish
+/// as part of fulfilling the user's request.
+/// See protocol docs: [Plan Entries](https://agentclientprotocol.com/protocol/agent-plan#plan-entries)
+@JsonSerializable()
+class PlanEntry {
+  /// Human-readable description of what this task aims to accomplish.
+  final String content;
+
+  /// The relative importance of this task.
+  /// Used to indicate which tasks are most critical to the overall goal.
+  final String priority;
+
+  /// Current execution status of this task.
+  final String status;
+
+  PlanEntry({required this.content, required this.priority, required this.status});
+
+  factory PlanEntry.fromJson(Map<String, dynamic> json) =>
+      _$PlanEntryFromJson(json);
+
+
+/// The input specification for a command.
+abstract class AvailableCommandInput {}
+
+/// All text that was typed after the command name is provided as input.
+@JsonSerializable()
+class UnstructuredCommandInput extends AvailableCommandInput {
+  /// A hint to display when the input hasn't been provided yet
+  final String hint;
+
+  UnstructuredCommandInput({required this.hint});
+
+  factory UnstructuredCommandInput.fromJson(Map<String, dynamic> json) =>
+      _$UnstructuredCommandInputFromJson(json);
+
+  Map<String, dynamic> toJson() => _$UnstructuredCommandInputToJson(this);
+}
+
+/// Information about a command.
+@JsonSerializable()
+class AvailableCommand {
+  /// Human-readable description of what the command does.
+  final String description;
+
+  /// Input for the command if required
+  final AvailableCommandInput? input;
+
+  /// Command name (e.g., `create_plan`, `research_codebase`).
+  final String name;
+
+  AvailableCommand({required this.description, this.input, required this.name});
+
+  factory AvailableCommand.fromJson(Map<String, dynamic> json) =>
+      _$AvailableCommandFromJson(json);
+
+
+/// Notification containing a session update from the agent.
+///
+/// Used to stream real-time progress and results during prompt processing.
+///
+/// See protocol docs: [Agent Reports Output](https://agentclientprotocol.com/protocol/prompt-turn#3-agent-reports-output)
+@JsonSerializable()
+class SessionNotification {
+  /// The ID of the session this update pertains to.
+  final String sessionId;
+
+  /// The actual update content.
+  final SessionUpdate update;
+
+  SessionNotification({required this.sessionId, required this.update});
+
+  factory SessionNotification.fromJson(Map<String, dynamic> json) =>
+      _$SessionNotificationFromJson(json);
+
+  Map<String, dynamic> toJson() => _$SessionNotificationToJson(this);
+}
+
+@JsonSerializable()
+class UserMessageChunkSessionUpdate extends SessionUpdate {
+  final ContentBlock content;
+
+  UserMessageChunkSessionUpdate({required this.content});
+
+  factory UserMessageChunkSessionUpdate.fromJson(Map<String, dynamic> json) =>
+      _$UserMessageChunkSessionUpdateFromJson(json);
+
+  Map<String, dynamic> toJson() => _$UserMessageChunkSessionUpdateToJson(this);
+}
+
+@JsonSerializable()
+class AgentMessageChunkSessionUpdate extends SessionUpdate {
+  final ContentBlock content;
+
+  AgentMessageChunkSessionUpdate({required this.content});
+
+  factory AgentMessageChunkSessionUpdate.fromJson(Map<String, dynamic> json) =>
+      _$AgentMessageChunkSessionUpdateFromJson(json);
+
+  Map<String, dynamic> toJson() => _$AgentMessageChunkSessionUpdateToJson(this);
+}
+
+@JsonSerializable()
+class AgentThoughtChunkSessionUpdate extends SessionUpdate {
+  final ContentBlock content;
+
+  AgentThoughtChunkSessionUpdate({required this.content});
+
+  factory AgentThoughtChunkSessionUpdate.fromJson(Map<String, dynamic> json) =>
+      _$AgentThoughtChunkSessionUpdateFromJson(json);
+
+  Map<String, dynamic> toJson() => _$AgentThoughtChunkSessionUpdateToJson(this);
+}
+
+
+abstract class SessionUpdate {}
+
+@JsonSerializable()
+class ToolCallSessionUpdate extends SessionUpdate {
+  final List<ToolCallContent>? content;
+  final ToolKind? kind;
+  final List<ToolCallLocation>? locations;
+  final Map<String, dynamic>? rawInput;
+  final Map<String, dynamic>? rawOutput;
+  final ToolCallStatus? status;
+  final String title;
+  final String toolCallId;
+
+  ToolCallSessionUpdate(
+      {this.content,
+      this.kind,
+      this.locations,
+      this.rawInput,
+      this.rawOutput,
+      this.status,
+      required this.title,
+      required this.toolCallId});
+
+  factory ToolCallSessionUpdate.fromJson(Map<String, dynamic> json) =>
+      _$ToolCallSessionUpdateFromJson(json);
+
+  Map<String, dynamic> toJson() => _$ToolCallSessionUpdateToJson(this);
+}
+
+
+
+@JsonSerializable()
+class ToolCallUpdateSessionUpdate extends SessionUpdate {
+  final List<ToolCallContent>? content;
+  final ToolKind? kind;
+  final List<ToolCallLocation>? locations;
+  final Map<String, dynamic>? rawInput;
+  final Map<String, dynamic>? rawOutput;
+  final ToolCallStatus? status;
+  final String? title;
+  final String toolCallId;
+
+  ToolCallUpdateSessionUpdate(
+      {this.content,
+      this.kind,
+      this.locations,
+      this.rawInput,
+      this.rawOutput,
+      this.status,
+      this.title,
+      required this.toolCallId});
+
+  factory ToolCallUpdateSessionUpdate.fromJson(Map<String, dynamic> json) =>
+      _$ToolCallUpdateSessionUpdateFromJson(json);
+
+  Map<String, dynamic> toJson() => _$ToolCallUpdateSessionUpdateToJson(this);
+}
+
+
+@JsonSerializable()
+class PlanSessionUpdate extends SessionUpdate {
+  final List<PlanEntry> entries;
+
+  PlanSessionUpdate({required this.entries});
+
+  factory PlanSessionUpdate.fromJson(Map<String, dynamic> json) =>
+      _$PlanSessionUpdateFromJson(json);
+
+  Map<String, dynamic> toJson() => _$PlanSessionUpdateToJson(this);
+}
+
+@JsonSerializable()
+class AvailableCommandsUpdateSessionUpdate extends SessionUpdate {
+  final List<AvailableCommand> availableCommands;
+
+  AvailableCommandsUpdateSessionUpdate({required this.availableCommands});
+
+  factory AvailableCommandsUpdateSessionUpdate.fromJson(
+          Map<String, dynamic> json) =>
+      _$AvailableCommandsUpdateSessionUpdateFromJson(json);
+
+  Map<String, dynamic> toJson() =>
+      _$AvailableCommandsUpdateSessionUpdateToJson(this);
+}
+
+@JsonSerializable()
+class CurrentModeUpdateSessionUpdate extends SessionUpdate {
+  final String currentModeId;
+
+  CurrentModeUpdateSessionUpdate({required this.currentModeId});
+
+  factory CurrentModeUpdateSessionUpdate.fromJson(Map<String, dynamic> json) =>
+      _$CurrentModeUpdateSessionUpdateFromJson(json);
+
+  Map<String, dynamic> toJson() => _$CurrentModeUpdateSessionUpdateToJson(this);
+}
+
+
+
+  Map<String, dynamic> toJson() => _$AvailableCommandToJson(this);
+}
+
+  Map<String, dynamic> toJson() => _$PlanEntryToJson(this);
+}
+
+
+  Map<String, dynamic> toJson() => _$ToolCallLocationToJson(this);
+}
+
+
+
+
+
+
+

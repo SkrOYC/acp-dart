@@ -28,7 +28,7 @@ This document breaks down the tasks required to build the Dart SDK for the Agent
     - **Description:** Implement all ACP response classes in `lib/src/schema.dart` with `@JsonSerializable` annotations.
     - **Reference:** [`typescript/schema.ts`](https://github.com/zed-industries/agent-client-protocol/blob/main/typescript/schema.ts) (e.g., `InitializeResponse`, `NewSessionResponse`, `PromptResponse`).
 
-- [ ] **Task 1.7: Implement Notification Schemas**
+- [X] **Task 1.7: Implement Notification Schemas**
     - **Description:** Implement all ACP notification classes in `lib/src/schema.dart` with `@JsonSerializable` annotations.
     - **Reference:** [`typescript/schema.ts`](https://github.com/zed-industries/agent-client-protocol/blob/main/typescript/schema.ts) (e.g., `SessionNotification`, `CancelNotification`).
 
