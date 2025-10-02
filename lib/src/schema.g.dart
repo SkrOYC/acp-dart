@@ -150,6 +150,7 @@ TextContentBlock _$TextContentBlockFromJson(Map<String, dynamic> json) =>
           ? null
           : Annotations.fromJson(json['annotations'] as Map<String, dynamic>),
       text: json['text'] as String,
+      type: json['type'] as String? ?? 'text',
     );
 
 Map<String, dynamic> _$TextContentBlockToJson(TextContentBlock instance) =>
@@ -157,6 +158,7 @@ Map<String, dynamic> _$TextContentBlockToJson(TextContentBlock instance) =>
       '_meta': ?instance.meta,
       'annotations': instance.annotations,
       'text': instance.text,
+      'type': instance.type,
     };
 
 ImageContentBlock _$ImageContentBlockFromJson(Map<String, dynamic> json) =>
@@ -168,6 +170,7 @@ ImageContentBlock _$ImageContentBlockFromJson(Map<String, dynamic> json) =>
       data: json['data'] as String,
       mimeType: json['mimeType'] as String,
       uri: json['uri'] as String?,
+      type: json['type'] as String? ?? 'image',
     );
 
 Map<String, dynamic> _$ImageContentBlockToJson(ImageContentBlock instance) =>
@@ -177,6 +180,7 @@ Map<String, dynamic> _$ImageContentBlockToJson(ImageContentBlock instance) =>
       'data': instance.data,
       'mimeType': instance.mimeType,
       'uri': instance.uri,
+      'type': instance.type,
     };
 
 AudioContentBlock _$AudioContentBlockFromJson(Map<String, dynamic> json) =>
@@ -210,6 +214,7 @@ ResourceLinkContentBlock _$ResourceLinkContentBlockFromJson(
   size: (json['size'] as num?)?.toInt(),
   title: json['title'] as String?,
   uri: json['uri'] as String,
+  type: json['type'] as String? ?? 'resource_link',
 );
 
 Map<String, dynamic> _$ResourceLinkContentBlockToJson(
@@ -223,6 +228,7 @@ Map<String, dynamic> _$ResourceLinkContentBlockToJson(
   'size': instance.size,
   'title': instance.title,
   'uri': instance.uri,
+  'type': instance.type,
 };
 
 ResourceContentBlock _$ResourceContentBlockFromJson(
@@ -235,6 +241,7 @@ ResourceContentBlock _$ResourceContentBlockFromJson(
   resource: const EmbeddedResourceResourceConverter().fromJson(
     json['resource'] as Map<String, dynamic>,
   ),
+  type: json['type'] as String? ?? 'resource',
 );
 
 Map<String, dynamic> _$ResourceContentBlockToJson(
@@ -245,6 +252,7 @@ Map<String, dynamic> _$ResourceContentBlockToJson(
   'resource': const EmbeddedResourceResourceConverter().toJson(
     instance.resource,
   ),
+  'type': instance.type,
 };
 
 ToolCall _$ToolCallFromJson(Map<String, dynamic> json) => ToolCall();

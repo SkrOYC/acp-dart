@@ -275,15 +275,33 @@ class TextContentBlock extends ContentBlock {
   final Map<String, dynamic>? meta;
   final Annotations? annotations;
   final String text;
+  @JsonKey(name: 'type')
   final String type;
 
-  TextContentBlock({this.meta, this.annotations, required this.text})
-    : type = 'text';
+  TextContentBlock({
+    this.meta,
+    this.annotations,
+    required this.text,
+    this.type = 'text',
+  });
 
   factory TextContentBlock.fromJson(Map<String, dynamic> json) =>
       _$TextContentBlockFromJson(json);
 
   Map<String, dynamic> toJson() => _$TextContentBlockToJson(this);
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is TextContentBlock &&
+          runtimeType == other.runtimeType &&
+          meta == other.meta &&
+          annotations == other.annotations &&
+          text == other.text &&
+          type == other.type;
+
+  @override
+  int get hashCode => Object.hash(meta, annotations, text, type);
 }
 
 @JsonSerializable()
@@ -294,6 +312,7 @@ class ImageContentBlock extends ContentBlock {
   final String data;
   final String mimeType;
   final String? uri;
+  @JsonKey(name: 'type')
   final String type;
 
   ImageContentBlock({
@@ -302,12 +321,28 @@ class ImageContentBlock extends ContentBlock {
     required this.data,
     required this.mimeType,
     this.uri,
-  }) : type = 'image';
+    this.type = 'image',
+  });
 
   factory ImageContentBlock.fromJson(Map<String, dynamic> json) =>
       _$ImageContentBlockFromJson(json);
 
   Map<String, dynamic> toJson() => _$ImageContentBlockToJson(this);
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is ImageContentBlock &&
+          runtimeType == other.runtimeType &&
+          meta == other.meta &&
+          annotations == other.annotations &&
+          data == other.data &&
+          mimeType == other.mimeType &&
+          uri == other.uri &&
+          type == other.type;
+
+  @override
+  int get hashCode => Object.hash(meta, annotations, data, mimeType, uri, type);
 }
 
 @JsonSerializable()
@@ -343,6 +378,7 @@ class ResourceLinkContentBlock extends ContentBlock {
   final int? size;
   final String? title;
   final String uri;
+  @JsonKey(name: 'type')
   final String type;
 
   ResourceLinkContentBlock({
@@ -354,12 +390,41 @@ class ResourceLinkContentBlock extends ContentBlock {
     this.size,
     this.title,
     required this.uri,
-  }) : type = 'resource_link';
+    this.type = 'resource_link',
+  });
 
   factory ResourceLinkContentBlock.fromJson(Map<String, dynamic> json) =>
       _$ResourceLinkContentBlockFromJson(json);
 
   Map<String, dynamic> toJson() => _$ResourceLinkContentBlockToJson(this);
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is ResourceLinkContentBlock &&
+          runtimeType == other.runtimeType &&
+          meta == other.meta &&
+          annotations == other.annotations &&
+          description == other.description &&
+          mimeType == other.mimeType &&
+          name == other.name &&
+          size == other.size &&
+          title == other.title &&
+          uri == other.uri &&
+          type == other.type;
+
+  @override
+  int get hashCode => Object.hash(
+    meta,
+    annotations,
+    description,
+    mimeType,
+    name,
+    size,
+    title,
+    uri,
+    type,
+  );
 }
 
 @JsonSerializable()
@@ -369,15 +434,19 @@ class ResourceContentBlock extends ContentBlock {
   final Annotations? annotations;
   @EmbeddedResourceResourceConverter()
   final EmbeddedResourceResource resource;
+  @JsonKey(name: 'type')
   final String type;
 
-  ResourceContentBlock({this.meta, this.annotations, required this.resource})
-    : type = 'resource';
+  ResourceContentBlock({
+    this.meta,
+    this.annotations,
+    required this.resource,
+    this.type = 'resource',
+  });
 
   factory ResourceContentBlock.fromJson(Map<String, dynamic> json) =>
       _$ResourceContentBlockFromJson(json);
 
-  @override
   Map<String, dynamic> toJson() => _$ResourceContentBlockToJson(this);
 }
 
@@ -487,7 +556,6 @@ class ToolCallUpdate {
   factory ToolCallUpdate.fromJson(Map<String, dynamic> json) =>
       _$ToolCallUpdateFromJson(json);
 
-  @override
   Map<String, dynamic> toJson() => _$ToolCallUpdateToJson(this);
 }
 
@@ -742,7 +810,6 @@ class LoadSessionResponse {
   factory LoadSessionResponse.fromJson(Map<String, dynamic> json) =>
       _$LoadSessionResponseFromJson(json);
 
-  @override
   Map<String, dynamic> toJson() => _$LoadSessionResponseToJson(this);
 }
 
@@ -925,7 +992,6 @@ class TextResourceContents extends EmbeddedResourceResource {
   factory TextResourceContents.fromJson(Map<String, dynamic> json) =>
       _$TextResourceContentsFromJson(json);
 
-  @override
   Map<String, dynamic> toJson() => _$TextResourceContentsToJson(this);
 }
 
@@ -941,7 +1007,6 @@ class BlobResourceContents extends EmbeddedResourceResource {
   factory BlobResourceContents.fromJson(Map<String, dynamic> json) =>
       _$BlobResourceContentsFromJson(json);
 
-  @override
   Map<String, dynamic> toJson() => _$BlobResourceContentsToJson(this);
 }
 
@@ -966,7 +1031,6 @@ class ContentToolCallContent extends ToolCallContent {
   factory ContentToolCallContent.fromJson(Map<String, dynamic> json) =>
       _$ContentToolCallContentFromJson(json);
 
-  @override
   Map<String, dynamic> toJson() => _$ContentToolCallContentToJson(this);
 }
 
@@ -1120,7 +1184,6 @@ class UserMessageChunkSessionUpdate extends SessionUpdate {
   factory UserMessageChunkSessionUpdate.fromJson(Map<String, dynamic> json) =>
       _$UserMessageChunkSessionUpdateFromJson(json);
 
-  @override
   Map<String, dynamic> toJson() => _$UserMessageChunkSessionUpdateToJson(this);
 }
 
@@ -1134,7 +1197,6 @@ class AgentMessageChunkSessionUpdate extends SessionUpdate {
   factory AgentMessageChunkSessionUpdate.fromJson(Map<String, dynamic> json) =>
       _$AgentMessageChunkSessionUpdateFromJson(json);
 
-  @override
   Map<String, dynamic> toJson() => _$AgentMessageChunkSessionUpdateToJson(this);
 }
 
@@ -1148,7 +1210,6 @@ class AgentThoughtChunkSessionUpdate extends SessionUpdate {
   factory AgentThoughtChunkSessionUpdate.fromJson(Map<String, dynamic> json) =>
       _$AgentThoughtChunkSessionUpdateFromJson(json);
 
-  @override
   Map<String, dynamic> toJson() => _$AgentThoughtChunkSessionUpdateToJson(this);
 }
 
@@ -1180,7 +1241,6 @@ class ToolCallSessionUpdate extends SessionUpdate {
   factory ToolCallSessionUpdate.fromJson(Map<String, dynamic> json) =>
       _$ToolCallSessionUpdateFromJson(json);
 
-  @override
   Map<String, dynamic> toJson() => _$ToolCallSessionUpdateToJson(this);
 }
 
@@ -1210,7 +1270,6 @@ class ToolCallUpdateSessionUpdate extends SessionUpdate {
   factory ToolCallUpdateSessionUpdate.fromJson(Map<String, dynamic> json) =>
       _$ToolCallUpdateSessionUpdateFromJson(json);
 
-  @override
   Map<String, dynamic> toJson() => _$ToolCallUpdateSessionUpdateToJson(this);
 }
 
@@ -1223,7 +1282,6 @@ class PlanSessionUpdate extends SessionUpdate {
   factory PlanSessionUpdate.fromJson(Map<String, dynamic> json) =>
       _$PlanSessionUpdateFromJson(json);
 
-  @override
   Map<String, dynamic> toJson() => _$PlanSessionUpdateToJson(this);
 }
 
