@@ -42,7 +42,7 @@ This document breaks down the tasks required to build the Dart SDK for the Agent
 
 ## Phase 2: Core Implementation
 
-- [ ] **Task 2.1: Implement NDJSON Stream Transformer**
+- [X] **Task 2.1: Implement NDJSON Stream Transformer**
     - **Description:** In `lib/src/stream.dart`, implement the `ndJsonStream` transformer to handle newline-delimited JSON streams.
     - **Reference:** [`typescript/stream.ts`](https://github.com/zed-industries/agent-client-protocol/blob/main/typescript/stream.ts)
 
