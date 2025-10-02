@@ -70,8 +70,8 @@ This document breaks down the tasks required to build the Dart SDK for the Agent
     - **Description:** In `lib/src/acp.dart`, implement the `TerminalHandle` class.
     - **Reference:** [`typescript/acp.ts`](https://github.com/zed-industries/agent-client-protocol/blob/main/typescript/acp.ts) (see `TerminalHandle` class).
 
-- [ ] **Task 2.8: Write Core Logic Unit Tests**
-    - **Description:** In `test/acp_test.dart`, write unit tests for the `Connection`, `AgentSideConnection`, `ClientSideConnection`, and `ndJsonStream` transformer.
+- [X] **Task 2.8: Write Core Logic Unit Tests**
+    - **Description:** In `test/acp_test.dart`, write unit tests for the `Connection`, `AgentSideConnection`, `ClientSideConnection`, and `TerminalHandle` classes.
     - **Reference:** [`typescript/acp.test.ts`](https://github.com/zed-industries/agent-client-protocol/blob/main/typescript/acp.test.ts)
 
 ## Phase 3: Examples & Documentation

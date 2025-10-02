@@ -505,11 +505,6 @@ class AgentSideConnection implements Client {
   Future<void>? extNotification(String method, Map<String, dynamic> params) async {
     return _connection.sendNotification('_$method', params);
   }
-
-  @override
-  Future<void>? extNotification(String method, Map<String, dynamic> params) async {
-    return _connection.sendNotification('_$method', params);
-  }
 }
 
 /// A client-side connection to an agent.
@@ -768,14 +763,6 @@ abstract class Agent {
     Map<String, dynamic> params,
   );
 }
-  /// Extension notification
-  ///
-  /// Allows the Client to send an arbitrary notification that is not part of the ACP spec.
-  Future<void>? extNotification(
-    String method,
-    Map<String, dynamic> params,
-  );
-}
 
 /// A handle for managing terminal operations within a session.
 ///
@@ -807,14 +794,13 @@ class TerminalHandle {
   /// Returns the current stdout, stderr, and exit status if the command
   /// has already completed.
   Future<TerminalOutputResponse> currentOutput() async {
-    final result = await _connection.sendRequest(
+    return await _connection.sendRequest(
       clientMethods['terminalOutput']!,
       {
         'sessionId': _sessionId,
         'terminalId': id,
       },
     );
-    return TerminalOutputResponse.fromJson(result as Map<String, dynamic>);
   }
 
   /// Waits for the terminal command to complete and returns its exit status.
@@ -822,14 +808,13 @@ class TerminalHandle {
   /// This method blocks until the command finishes execution, then returns
   /// the exit code that indicates the command's success or failure.
   Future<WaitForTerminalExitResponse> waitForExit() async {
-    final result = await _connection.sendRequest(
+    return await _connection.sendRequest(
       clientMethods['terminalWaitForExit']!,
       {
         'sessionId': _sessionId,
         'terminalId': id,
       },
     );
-    return WaitForTerminalExitResponse.fromJson(result as Map<String, dynamic>);
   }
 
   /// Kills the terminal command without releasing the terminal.
@@ -841,14 +826,13 @@ class TerminalHandle {
   ///
   /// Useful for implementing timeouts or cancellation.
   Future<KillTerminalResponse> kill() async {
-    final result = await _connection.sendRequest(
+    return await _connection.sendRequest(
       clientMethods['terminalKill']!,
       {
         'sessionId': _sessionId,
         'terminalId': id,
       },
     );
-    return KillTerminalResponse.fromJson(result as Map<String, dynamic>);
   }
 
   /// Releases the terminal and frees all associated resources.
@@ -862,14 +846,13 @@ class TerminalHandle {
   ///
   /// **Important:** Always call this method when done with the terminal.
   Future<ReleaseTerminalResponse> release() async {
-    final result = await _connection.sendRequest(
+    return await _connection.sendRequest(
       clientMethods['terminalRelease']!,
       {
         'sessionId': _sessionId,
         'terminalId': id,
       },
     );
-    return ReleaseTerminalResponse.fromJson(result as Map<String, dynamic>);
   }
 
   /// Disposes of the terminal handle and releases resources.

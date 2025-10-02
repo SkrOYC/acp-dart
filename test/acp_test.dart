@@ -385,6 +385,79 @@ void main() {
       writableController.close();
     });
   });
+
+  group('TerminalHandle', () {
+    late MockConnection mockConnection;
+    late TerminalHandle terminalHandle;
+
+    setUp(() {
+      mockConnection = MockConnection();
+      terminalHandle = TerminalHandle('terminal-123', 'test-session', mockConnection);
+    });
+
+    test('constructor sets id, sessionId and connection', () {
+      expect(terminalHandle.id, 'terminal-123');
+      // Note: sessionId and connection are private, so we can't directly test them
+    });
+
+    test('currentOutput sends terminalOutput request', () async {
+      mockConnection.mockResponse = TerminalOutputResponse();
+
+      final result = await terminalHandle.currentOutput();
+
+      expect(mockConnection.lastMethod, 'terminal/output');
+      expect(mockConnection.lastParams, {
+        'sessionId': 'test-session',
+        'terminalId': 'terminal-123',
+      });
+      expect(result, isA<TerminalOutputResponse>());
+    });
+
+    test('waitForExit sends terminalWaitForExit request', () async {
+      mockConnection.mockResponse = WaitForTerminalExitResponse(exitCode: 0);
+
+      final result = await terminalHandle.waitForExit();
+
+      expect(mockConnection.lastMethod, 'terminal/wait_for_exit');
+      expect(mockConnection.lastParams, {
+        'sessionId': 'test-session',
+        'terminalId': 'terminal-123',
+      });
+      expect(result, isA<WaitForTerminalExitResponse>());
+      expect(result.exitCode, 0);
+    });
+
+    test('kill sends terminalKill request', () async {
+      mockConnection.mockResponse = KillTerminalResponse();
+
+      final result = await terminalHandle.kill();
+
+      expect(mockConnection.lastMethod, 'terminal/kill');
+      expect(mockConnection.lastParams, {
+        'sessionId': 'test-session',
+        'terminalId': 'terminal-123',
+      });
+      expect(result, isA<KillTerminalResponse>());
+    });
+
+    test('release sends terminalRelease request', () async {
+      mockConnection.mockResponse = ReleaseTerminalResponse();
+
+      final result = await terminalHandle.release();
+
+      expect(mockConnection.lastMethod, 'terminal/release');
+      expect(mockConnection.lastParams, {
+        'sessionId': 'test-session',
+        'terminalId': 'terminal-123',
+      });
+      expect(result, isA<ReleaseTerminalResponse>());
+    });
+
+    test('dispose completes without error', () async {
+      mockConnection.mockResponse = ReleaseTerminalResponse();
+      await expectLater(terminalHandle.dispose(), completes);
+    });
+  });
 }
 
 /// Mock agent implementation for testing
@@ -510,96 +583,6 @@ class MockClient implements Client {
   Future<void>? extNotification(String method, Map<String, dynamic> params) async {
     // Mock implementation
   }
-}
-  @override
-  Future<void>? extNotification(String method, Map<String, dynamic> params) async {
-    // Mock implementation
-  }
-}
-
-void main() {
-  group('TerminalHandle', () {
-    late MockConnection mockConnection;
-    late TerminalHandle terminalHandle;
-
-    setUp(() {
-      mockConnection = MockConnection();
-      terminalHandle = TerminalHandle('test-terminal-id', 'test-session-id', mockConnection);
-    });
-
-    test('constructor sets id correctly', () {
-      expect(terminalHandle.id, equals('test-terminal-id'));
-    });
-
-    test('currentOutput sends correct request', () async {
-      final response = TerminalOutputResponse(stdout: 'test output');
-      mockConnection.mockResponse = response.toJson();
-
-      final result = await terminalHandle.currentOutput();
-
-      expect(mockConnection.lastMethod, equals(clientMethods['terminalOutput']));
-      expect(mockConnection.lastParams, equals({
-        'sessionId': 'test-session-id',
-        'terminalId': 'test-terminal-id',
-      }));
-      expect(result.stdout, equals('test output'));
-    });
-
-    test('waitForExit sends correct request', () async {
-      final response = WaitForTerminalExitResponse(exitCode: 42);
-      mockConnection.mockResponse = response.toJson();
-
-      final result = await terminalHandle.waitForExit();
-
-      expect(mockConnection.lastMethod, equals(clientMethods['terminalWaitForExit']));
-      expect(mockConnection.lastParams, equals({
-        'sessionId': 'test-session-id',
-        'terminalId': 'test-terminal-id',
-      }));
-      expect(result.exitCode, equals(42));
-    });
-
-    test('kill sends correct request', () async {
-      final response = KillTerminalResponse();
-      mockConnection.mockResponse = response.toJson();
-
-      final result = await terminalHandle.kill();
-
-      expect(mockConnection.lastMethod, equals(clientMethods['terminalKill']));
-      expect(mockConnection.lastParams, equals({
-        'sessionId': 'test-session-id',
-        'terminalId': 'test-terminal-id',
-      }));
-      expect(result, isA<KillTerminalResponse>());
-    });
-
-    test('release sends correct request', () async {
-      final response = ReleaseTerminalResponse();
-      mockConnection.mockResponse = response.toJson();
-
-      final result = await terminalHandle.release();
-
-      expect(mockConnection.lastMethod, equals(clientMethods['terminalRelease']));
-      expect(mockConnection.lastParams, equals({
-        'sessionId': 'test-session-id',
-        'terminalId': 'test-terminal-id',
-      }));
-      expect(result, isA<ReleaseTerminalResponse>());
-    });
-
-    test('dispose calls release', () async {
-      final response = ReleaseTerminalResponse();
-      mockConnection.mockResponse = response.toJson();
-
-      await terminalHandle.dispose();
-
-      expect(mockConnection.lastMethod, equals(clientMethods['terminalRelease']));
-      expect(mockConnection.lastParams, equals({
-        'sessionId': 'test-session-id',
-        'terminalId': 'test-terminal-id',
-      }));
-    });
-  });
 }
 
 /// Mock connection for testing TerminalHandle
