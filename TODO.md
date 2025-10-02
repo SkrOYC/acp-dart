@@ -84,7 +84,7 @@ This document breaks down the tasks required to build the Dart SDK for the Agent
     - **Description:** In `example/client.dart`, implement a minimal client that spawns and communicates with the example agent.
     - **Reference:** [`typescript/examples/client.ts`](https://github.com/zed-industries/agent-client-protocol/blob/main/typescript/examples/client.ts)
 
-- [ ] **Task 3.3: Write `README.md`**
+- [x] **Task 3.3: Write `README.md`**
     - **Description:** Write the main `README.md` for the project, including an overview, installation instructions, and usage examples.
     - **Reference:** [`typescript/README.md`](https://github.com/zed-industries/agent-client-protocol/blob/main/typescript/README.md)
 

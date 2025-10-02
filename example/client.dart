@@ -161,9 +161,6 @@ class ExampleClient implements Client {
 }
 
 Future<void> main() async {
-  // Determine the path to the agent.dart file
-  final agentPath = 'dart run example/agent.dart';
-
   // Spawn the agent as a subprocess
   final agentProcess = await Process.start('dart', [
     'run',
