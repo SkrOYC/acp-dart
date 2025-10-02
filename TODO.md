@@ -46,7 +46,7 @@ This document breaks down the tasks required to build the Dart SDK for the Agent
     - **Description:** In `lib/src/stream.dart`, implement the `ndJsonStream` transformer to handle newline-delimited JSON streams.
     - **Reference:** [`typescript/stream.ts`](https://github.com/zed-industries/agent-client-protocol/blob/main/typescript/stream.ts)
 
-- [ ] **Task 2.2: Implement `RequestError` Class**
+- [X] **Task 2.2: Implement `RequestError` Class**
     - **Description:** In `lib/src/acp.dart`, implement the `RequestError` class for handling JSON-RPC errors.
     - **Reference:** [`typescript/acp.ts`](https://github.com/zed-industries/agent-client-protocol/blob/main/typescript/acp.ts) (see `RequestError` class).
 
