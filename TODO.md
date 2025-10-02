@@ -80,7 +80,7 @@ This document breaks down the tasks required to build the Dart SDK for the Agent
     - **Description:** In `example/agent.dart`, implement a minimal agent using the SDK.
     - **Reference:** [`typescript/examples/agent.ts`](https://github.com/zed-industries/agent-client-protocol/blob/main/typescript/examples/agent.ts)
 
-- [ ] **Task 3.2: Create Example Client**
+- [x] **Task 3.2: Create Example Client**
     - **Description:** In `example/client.dart`, implement a minimal client that spawns and communicates with the example agent.
     - **Reference:** [`typescript/examples/client.ts`](https://github.com/zed-industries/agent-client-protocol/blob/main/typescript/examples/client.ts)
 
