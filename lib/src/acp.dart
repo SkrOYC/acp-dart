@@ -2,6 +2,7 @@
 
 import 'dart:async';
 
+import 'package:acp_dart/src/schema.dart';
 import 'package:acp_dart/src/stream.dart';
 class ErrorResponse {
   final int code;
@@ -243,4 +244,230 @@ class Connection {
     });
     return _writeQueue;
   }
+}
+
+/// Abstract base class defining the Client interface for ACP connections.
+///
+/// Clients implement this interface to handle requests from agents, including
+/// file system operations, permission requests, terminal management, and
+/// session updates.
+abstract class Client {
+  /// Requests permission from the user for a tool call operation.
+  ///
+  /// Called by the agent when it needs user authorization before executing
+  /// a potentially sensitive operation. The client should present the options
+  /// to the user and return their decision.
+  ///
+  /// If the client cancels the prompt turn via `session/cancel`, it MUST
+  /// respond to this request with `RequestPermissionOutcome::Cancelled`.
+  Future<RequestPermissionResponse> requestPermission(
+    RequestPermissionRequest params,
+  );
+
+  /// Handles session update notifications from the agent.
+  ///
+  /// This is a notification endpoint (no response expected) that receives
+  /// real-time updates about session progress, including message chunks,
+  /// tool calls, and execution plans.
+  ///
+  /// Note: Clients SHOULD continue accepting tool call updates even after
+  /// sending a `session/cancel` notification, as the agent may send final
+  /// updates before responding with the cancelled stop reason.
+  Future<void> sessionUpdate(SessionNotification params);
+
+  /// Writes content to a text file in the client's file system.
+  ///
+  /// Only available if the client advertises the `fs.writeTextFile` capability.
+  /// Allows the agent to create or modify files within the client's environment.
+  Future<WriteTextFileResponse> writeTextFile(
+    WriteTextFileRequest params,
+  );
+
+  /// Reads content from a text file in the client's file system.
+  ///
+  /// Only available if the client advertises the `fs.readTextFile` capability.
+  /// Allows the agent to access file contents within the client's environment.
+  Future<ReadTextFileResponse> readTextFile(
+    ReadTextFileRequest params,
+  );
+
+  /// Creates a new terminal to execute a command.
+  ///
+  /// Only available if the `terminal` capability is set to `true`.
+  ///
+  /// The Agent must call `releaseTerminal` when done with the terminal
+  /// to free resources.
+  Future<CreateTerminalResponse>? createTerminal(
+    CreateTerminalRequest params,
+  );
+
+  /// Gets the current output and exit status of a terminal.
+  ///
+  /// Returns immediately without waiting for the command to complete.
+  /// If the command has already exited, the exit status is included.
+  Future<TerminalOutputResponse>? terminalOutput(
+    TerminalOutputRequest params,
+  );
+
+  /// Releases a terminal and frees all associated resources.
+  ///
+  /// The command is killed if it hasn't exited yet. After release,
+  /// the terminal ID becomes invalid for all other terminal methods.
+  ///
+  /// Tool calls that already contain the terminal ID continue to
+  /// display its output.
+  Future<ReleaseTerminalResponse?>? releaseTerminal(
+    ReleaseTerminalRequest params,
+  );
+
+  /// Waits for a terminal command to exit and returns its exit status.
+  ///
+  /// This method returns once the command completes, providing the
+  /// exit code and/or signal that terminated the process.
+  Future<WaitForTerminalExitResponse>? waitForTerminalExit(
+    WaitForTerminalExitRequest params,
+  );
+
+  /// Kills a terminal command without releasing the terminal.
+  ///
+  /// While `releaseTerminal` also kills the command, this method keeps
+  /// the terminal ID valid so it can be used with other methods.
+  ///
+  /// Useful for implementing command timeouts that terminate the command
+  /// and then retrieve the final output.
+  ///
+  /// Note: Call `releaseTerminal` when the terminal is no longer needed.
+  Future<KillTerminalResponse?>? killTerminal(
+    KillTerminalCommandRequest params,
+  );
+
+  /// Extension method
+  ///
+  /// Allows the Agent to send an arbitrary request that is not part of the ACP spec.
+  ///
+  /// To help avoid conflicts, it's a good practice to prefix extension
+  /// methods with a unique identifier such as domain name.
+  Future<Map<String, dynamic>>? extMethod(
+    String method,
+    Map<String, dynamic> params,
+  );
+
+  /// Extension notification
+  ///
+  /// Allows the Agent to send an arbitrary notification that is not part of the ACP spec.
+  Future<void>? extNotification(
+    String method,
+    Map<String, dynamic> params,
+  );
+}
+
+/// Abstract base class defining the Agent interface for ACP connections.
+///
+/// Agents implement this interface to handle requests from clients, including
+/// initialization, session management, authentication, and prompt processing.
+abstract class Agent {
+  /// Establishes the connection with a client and negotiates protocol capabilities.
+  ///
+  /// This method is called once at the beginning of the connection to:
+  /// - Negotiate the protocol version to use
+  /// - Exchange capability information between client and agent
+  /// - Determine available authentication methods
+  ///
+  /// The agent should respond with its supported protocol version and capabilities.
+  Future<InitializeResponse> initialize(
+    InitializeRequest params,
+  );
+
+  /// Creates a new conversation session with the agent.
+  ///
+  /// Sessions represent independent conversation contexts with their own history and state.
+  ///
+  /// The agent should:
+  /// - Create a new session context
+  /// - Connect to any specified MCP servers
+  /// - Return a unique session ID for future requests
+  ///
+  /// May return an `auth_required` error if the agent requires authentication.
+  Future<NewSessionResponse> newSession(
+    NewSessionRequest params,
+  );
+
+  /// Loads an existing session to resume a previous conversation.
+  ///
+  /// This method is only available if the agent advertises the `loadSession` capability.
+  ///
+  /// The agent should:
+  /// - Restore the session context and conversation history
+  /// - Connect to the specified MCP servers
+  /// - Stream the entire conversation history back to the client via notifications
+  Future<LoadSessionResponse>? loadSession(
+    LoadSessionRequest params,
+  );
+
+  /// Sets the operational mode for a session.
+  ///
+  /// Allows switching between different agent modes (e.g., "ask", "architect", "code")
+  /// that affect system prompts, tool availability, and permission behaviors.
+  ///
+  /// The mode must be one of the modes advertised in `availableModes` during session
+  /// creation or loading. Agents may also change modes autonomously and notify the
+  /// client via `current_mode_update` notifications.
+  ///
+  /// This method can be called at any time during a session, whether the Agent is
+  /// idle or actively generating a turn.
+  Future<SetSessionModeResponse?>? setSessionMode(
+    SetSessionModeRequest params,
+  );
+
+  /// Authenticates the client using the specified authentication method.
+  ///
+  /// Called when the agent requires authentication before allowing session creation.
+  /// The client provides the authentication method ID that was advertised during initialization.
+  ///
+  /// After successful authentication, the client can proceed to create sessions with
+  /// `newSession` without receiving an `auth_required` error.
+  Future<AuthenticateResponse?>? authenticate(
+    AuthenticateRequest params,
+  );
+
+  /// Processes a user prompt within a session.
+  ///
+  /// This method handles the whole lifecycle of a prompt:
+  /// - Receives user messages with optional context (files, images, etc.)
+  /// - Processes the prompt using language models
+  /// - Reports language model content and tool calls to the Clients
+  /// - Requests permission to run tools
+  /// - Executes any requested tool calls
+  /// - Returns when the turn is complete with a stop reason
+  Future<PromptResponse> prompt(PromptRequest params);
+
+  /// Cancels ongoing operations for a session.
+  ///
+  /// This is a notification sent by the client to cancel an ongoing prompt turn.
+  ///
+  /// Upon receiving this notification, the Agent SHOULD:
+  /// - Stop all language model requests as soon as possible
+  /// - Abort all tool call invocations in progress
+  /// - Send any pending `session/update` notifications
+  /// - Respond to the original `session/prompt` request with `StopReason::Cancelled`
+  Future<void> cancel(CancelNotification params);
+
+  /// Extension method
+  ///
+  /// Allows the Client to send an arbitrary request that is not part of the ACP spec.
+  ///
+  /// To help avoid conflicts, it's a good practice to prefix extension
+  /// methods with a unique identifier such as domain name.
+  Future<Map<String, dynamic>>? extMethod(
+    String method,
+    Map<String, dynamic> params,
+  );
+
+  /// Extension notification
+  ///
+  /// Allows the Client to send an arbitrary notification that is not part of the ACP spec.
+  Future<void>? extNotification(
+    String method,
+    Map<String, dynamic> params,
+  );
 }

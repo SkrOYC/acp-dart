@@ -54,9 +54,9 @@ This document breaks down the tasks required to build the Dart SDK for the Agent
     - **Description:** In `lib/src/acp.dart`, implement the base `Connection` class to manage the JSON-RPC communication.
     - **Reference:** [`typescript/acp.ts`](https://github.com/zed-industries/agent-client-protocol/blob/main/typescript/acp.ts) (see `Connection` class).
 
-- [ ] **Task 2.4: Define `Agent` and `Client` Interfaces**
-    - **Description:** In `lib/src/acp.dart`, define the `Agent` and `Client` abstract classes (interfaces).
-    - **Reference:** [`typescript/acp.ts`](https://github.com/zed-industries/agent-client-protocol/blob/main/typescript/acp.ts) (see `Agent` and `Client` interfaces).
+- [X] **Task 2.4: Define `Agent` and `Client` Interfaces**
+  - **Description:** In `lib/src/acp.dart`, define the `Agent` and `Client` abstract classes (interfaces).
+  - **Reference:** [`typescript/acp.ts`](https://github.com/zed-industries/agent-client-protocol/blob/main/typescript/acp.ts) (see `Agent` and `Client` interfaces).
 
 - [ ] **Task 2.5: Implement `AgentSideConnection`**
     - **Description:** In `lib/src/acp.dart`, implement the `AgentSideConnection` class.
