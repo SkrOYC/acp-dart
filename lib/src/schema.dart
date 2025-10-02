@@ -4,7 +4,6 @@ import 'session_update_converter.dart';
 import 'tool_call_content_converter.dart';
 part 'schema.g.dart';
 
-
 /// The sender or recipient of messages and data in a conversation.
 ///
 /// Roles help identify whether content originated from the user, the AI assistant,
@@ -53,7 +52,8 @@ enum ToolKind {
   fetch,
 
   /// Tools that change the agent's operational mode
-  switch_mode,
+  @JsonValue('switch_mode')
+  switchMode,
 
   /// Tools that don't fit other categories
   other,
@@ -71,7 +71,8 @@ enum ToolCallStatus {
   pending,
 
   /// Tool call is currently executing
-  in_progress,
+  @JsonValue('in_progress')
+  inProgress,
 
   /// Tool call completed successfully
   completed,
@@ -109,7 +110,10 @@ class FileSystemCapability {
   final bool readTextFile;
   final bool writeTextFile;
 
-  FileSystemCapability({required this.readTextFile, required this.writeTextFile});
+  FileSystemCapability({
+    required this.readTextFile,
+    required this.writeTextFile,
+  });
 
   factory FileSystemCapability.fromJson(Map<String, dynamic> json) =>
       _$FileSystemCapabilityFromJson(json);
@@ -150,7 +154,12 @@ class McpServer {
   final bool tls;
   final List<HttpHeader>? headers;
 
-  McpServer({required this.host, required this.port, required this.tls, this.headers});
+  McpServer({
+    required this.host,
+    required this.port,
+    required this.tls,
+    this.headers,
+  });
 
   factory McpServer.fromJson(Map<String, dynamic> json) =>
       _$McpServerFromJson(json);
@@ -178,8 +187,7 @@ class Stdio {
 
   Stdio({required this.command, this.env});
 
-  factory Stdio.fromJson(Map<String, dynamic> json) =>
-      _$StdioFromJson(json);
+  factory Stdio.fromJson(Map<String, dynamic> json) => _$StdioFromJson(json);
 
   Map<String, dynamic> toJson() => _$StdioToJson(this);
 }
@@ -314,7 +322,11 @@ class RequestPermissionRequest {
   final List<PermissionOption> options;
   final ToolCallUpdate toolCall;
 
-  RequestPermissionRequest({required this.question, required this.options, required this.toolCall});
+  RequestPermissionRequest({
+    required this.question,
+    required this.options,
+    required this.toolCall,
+  });
 
   factory RequestPermissionRequest.fromJson(Map<String, dynamic> json) =>
       _$RequestPermissionRequestFromJson(json);
@@ -426,13 +438,15 @@ class KillTerminalCommandRequest {
   Map<String, dynamic> toJson() => _$KillTerminalCommandRequestToJson(this);
 }
 
-
 @JsonSerializable()
 class InitializeResponse {
   final String protocolVersion;
   final AgentCapabilities capabilities;
 
-  InitializeResponse({required this.protocolVersion, required this.capabilities});
+  InitializeResponse({
+    required this.protocolVersion,
+    required this.capabilities,
+  });
 
   factory InitializeResponse.fromJson(Map<String, dynamic> json) =>
       _$InitializeResponseFromJson(json);
@@ -447,7 +461,12 @@ class AgentCapabilities {
   final bool loadSession;
   final List<AuthMethod> auth;
 
-  AgentCapabilities({this.mcp, this.prompt, required this.loadSession, required this.auth});
+  AgentCapabilities({
+    this.mcp,
+    this.prompt,
+    required this.loadSession,
+    required this.auth,
+  });
 
   factory AgentCapabilities.fromJson(Map<String, dynamic> json) =>
       _$AgentCapabilitiesFromJson(json);
@@ -508,7 +527,11 @@ class NewSessionResponse {
   final SessionModeState modes;
   final SessionModelState? models;
 
-  NewSessionResponse({required this.sessionId, required this.modes, this.models});
+  NewSessionResponse({
+    required this.sessionId,
+    required this.modes,
+    this.models,
+  });
 
   factory NewSessionResponse.fromJson(Map<String, dynamic> json) =>
       _$NewSessionResponseFromJson(json);
@@ -577,7 +600,12 @@ class LoadSessionResponse {
   final SessionModelState? models;
   final List<ContentBlock> history;
 
-  LoadSessionResponse({required this.sessionId, required this.modes, this.models, required this.history});
+  LoadSessionResponse({
+    required this.sessionId,
+    required this.modes,
+    this.models,
+    required this.history,
+  });
 
   factory LoadSessionResponse.fromJson(Map<String, dynamic> json) =>
       _$LoadSessionResponseFromJson(json);
@@ -721,7 +749,6 @@ class KillTerminalResponse {
   Map<String, dynamic> toJson() => _$KillTerminalResponseToJson(this);
 }
 
-
 /// Notification to cancel ongoing operations for a session.
 ///
 /// See protocol docs: [Cancellation](https://agentclientprotocol.com/protocol/prompt-turn#cancellation)
@@ -737,7 +764,6 @@ class CancelNotification {
 
   Map<String, dynamic> toJson() => _$CancelNotificationToJson(this);
 }
-
 
 /// Optional annotations for the client. The client can use annotations to inform how objects are used or displayed
 @JsonSerializable()
@@ -795,7 +821,6 @@ abstract class EmbeddedResourceResource {}
 /// See protocol docs: [Content](https://agentclientprotocol.com/protocol/tool-calls#content)
 abstract class ToolCallContent {}
 
-
 @JsonSerializable()
 class ContentToolCallContent extends ToolCallContent {
   final ContentBlock content;
@@ -814,7 +839,11 @@ class DiffToolCallContent extends ToolCallContent {
   final String? oldText;
   final String path;
 
-  DiffToolCallContent({required this.newText, this.oldText, required this.path});
+  DiffToolCallContent({
+    required this.newText,
+    this.oldText,
+    required this.path,
+  });
 
   factory DiffToolCallContent.fromJson(Map<String, dynamic> json) =>
       _$DiffToolCallContentFromJson(json);
@@ -873,14 +902,17 @@ class PlanEntry {
   /// Current execution status of this task.
   final String status;
 
-  PlanEntry({required this.content, required this.priority, required this.status});
+  PlanEntry({
+    required this.content,
+    required this.priority,
+    required this.status,
+  });
 
   factory PlanEntry.fromJson(Map<String, dynamic> json) =>
       _$PlanEntryFromJson(json);
 
   Map<String, dynamic> toJson() => _$PlanEntryToJson(this);
 }
-
 
 /// The input specification for a command.
 abstract class AvailableCommandInput {}
@@ -918,7 +950,6 @@ class AvailableCommand {
 
   Map<String, dynamic> toJson() => _$AvailableCommandToJson(this);
 }
-
 
 /// Notification containing a session update from the agent.
 ///
@@ -978,7 +1009,6 @@ class AgentThoughtChunkSessionUpdate extends SessionUpdate {
   Map<String, dynamic> toJson() => _$AgentThoughtChunkSessionUpdateToJson(this);
 }
 
-
 abstract class SessionUpdate {}
 
 @JsonSerializable()
@@ -993,23 +1023,22 @@ class ToolCallSessionUpdate extends SessionUpdate {
   final String title;
   final String toolCallId;
 
-  ToolCallSessionUpdate(
-      {this.content,
-      this.kind,
-      this.locations,
-      this.rawInput,
-      this.rawOutput,
-      this.status,
-      required this.title,
-      required this.toolCallId});
+  ToolCallSessionUpdate({
+    this.content,
+    this.kind,
+    this.locations,
+    this.rawInput,
+    this.rawOutput,
+    this.status,
+    required this.title,
+    required this.toolCallId,
+  });
 
   factory ToolCallSessionUpdate.fromJson(Map<String, dynamic> json) =>
       _$ToolCallSessionUpdateFromJson(json);
 
   Map<String, dynamic> toJson() => _$ToolCallSessionUpdateToJson(this);
 }
-
-
 
 @JsonSerializable()
 class ToolCallUpdateSessionUpdate extends SessionUpdate {
@@ -1023,22 +1052,22 @@ class ToolCallUpdateSessionUpdate extends SessionUpdate {
   final String? title;
   final String toolCallId;
 
-  ToolCallUpdateSessionUpdate(
-      {this.content,
-      this.kind,
-      this.locations,
-      this.rawInput,
-      this.rawOutput,
-      this.status,
-      this.title,
-      required this.toolCallId});
+  ToolCallUpdateSessionUpdate({
+    this.content,
+    this.kind,
+    this.locations,
+    this.rawInput,
+    this.rawOutput,
+    this.status,
+    this.title,
+    required this.toolCallId,
+  });
 
   factory ToolCallUpdateSessionUpdate.fromJson(Map<String, dynamic> json) =>
       _$ToolCallUpdateSessionUpdateFromJson(json);
 
   Map<String, dynamic> toJson() => _$ToolCallUpdateSessionUpdateToJson(this);
 }
-
 
 @JsonSerializable()
 class PlanSessionUpdate extends SessionUpdate {
@@ -1059,8 +1088,8 @@ class AvailableCommandsUpdateSessionUpdate extends SessionUpdate {
   AvailableCommandsUpdateSessionUpdate({required this.availableCommands});
 
   factory AvailableCommandsUpdateSessionUpdate.fromJson(
-          Map<String, dynamic> json) =>
-      _$AvailableCommandsUpdateSessionUpdateFromJson(json);
+    Map<String, dynamic> json,
+  ) => _$AvailableCommandsUpdateSessionUpdateFromJson(json);
 
   Map<String, dynamic> toJson() =>
       _$AvailableCommandsUpdateSessionUpdateToJson(this);
@@ -1102,11 +1131,3 @@ const clientMethods = {
   'terminalRelease': 'terminal/release',
   'terminalWaitForExit': 'terminal/wait_for_exit',
 };
-
-
-
-
-
-
-
-

@@ -19,7 +19,7 @@
 ///
 /// For detailed protocol information, see: https://agentclientprotocol.com/
 
-library acp_dart;
+library;
 
 export 'src/acp.dart'
     show

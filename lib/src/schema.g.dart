@@ -753,13 +753,13 @@ const _$ToolKindEnumMap = {
   ToolKind.execute: 'execute',
   ToolKind.think: 'think',
   ToolKind.fetch: 'fetch',
-  ToolKind.switch_mode: 'switch_mode',
+  ToolKind.switchMode: 'switch_mode',
   ToolKind.other: 'other',
 };
 
 const _$ToolCallStatusEnumMap = {
   ToolCallStatus.pending: 'pending',
-  ToolCallStatus.in_progress: 'in_progress',
+  ToolCallStatus.inProgress: 'in_progress',
   ToolCallStatus.completed: 'completed',
   ToolCallStatus.failed: 'failed',
 };
