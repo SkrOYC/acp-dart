@@ -1003,6 +1003,31 @@ class CurrentModeUpdateSessionUpdate extends SessionUpdate {
   Map<String, dynamic> toJson() => _$CurrentModeUpdateSessionUpdateToJson(this);
 }
 
+/// Protocol method constants for agent-side requests
+const agentMethods = {
+  'authenticate': 'authenticate',
+  'initialize': 'initialize',
+  'modelSelect': 'session/set_model',
+  'sessionCancel': 'session/cancel',
+  'sessionLoad': 'session/load',
+  'sessionNew': 'session/new',
+  'sessionPrompt': 'session/prompt',
+  'sessionSetMode': 'session/set_mode',
+};
+
+/// Protocol method constants for client-side requests
+const clientMethods = {
+  'fsReadTextFile': 'fs/read_text_file',
+  'fsWriteTextFile': 'fs/write_text_file',
+  'sessionRequestPermission': 'session/request_permission',
+  'sessionUpdate': 'session/update',
+  'terminalCreate': 'terminal/create',
+  'terminalKill': 'terminal/kill',
+  'terminalOutput': 'terminal/output',
+  'terminalRelease': 'terminal/release',
+  'terminalWaitForExit': 'terminal/wait_for_exit',
+};
+
 
 
 

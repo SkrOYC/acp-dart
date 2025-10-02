@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:acp_dart/src/acp.dart';
+import 'package:acp_dart/src/schema.dart';
 import 'package:acp_dart/src/stream.dart';
 import 'package:test/test.dart';
 
@@ -300,4 +301,113 @@ void main() {
       await writableController.close();
     });
   });
+
+  group('AgentSideConnection', () {
+    test('constructor creates connection with agent', () {
+      final readableController = StreamController<Map<String, dynamic>>();
+      final writableController = StreamController<Map<String, dynamic>>();
+      final acpStream = AcpStream(
+        readable: readableController.stream,
+        writable: writableController.sink,
+      );
+
+      final agentSideConnection = AgentSideConnection(
+        (conn) => MockAgent(),
+        acpStream,
+      );
+
+      // Verify the connection was created
+      expect(agentSideConnection, isNotNull);
+
+      readableController.close();
+      writableController.close();
+    });
+
+    test('implements Client interface', () {
+      final readableController = StreamController<Map<String, dynamic>>();
+      final writableController = StreamController<Map<String, dynamic>>();
+      final acpStream = AcpStream(
+        readable: readableController.stream,
+        writable: writableController.sink,
+      );
+
+      final agentSideConnection = AgentSideConnection(
+        (conn) => MockAgent(),
+        acpStream,
+      );
+
+      // Verify it implements Client interface
+      expect(agentSideConnection, isA<Client>());
+
+      readableController.close();
+      writableController.close();
+    });
+  });
+}
+
+/// Mock agent implementation for testing
+class MockAgent implements Agent {
+  @override
+  Future<InitializeResponse> initialize(InitializeRequest params) async {
+    return InitializeResponse(
+      protocolVersion: '1',
+      capabilities: AgentCapabilities(
+        loadSession: true,
+        auth: [],
+      ),
+    );
+  }
+
+  @override
+  Future<NewSessionResponse> newSession(NewSessionRequest params) async {
+    return NewSessionResponse(
+      sessionId: 'test-session',
+      modes: SessionModeState(
+        available: [SessionMode(id: 'code', name: 'Code')],
+        current: 'code',
+      ),
+    );
+  }
+
+  @override
+  Future<LoadSessionResponse>? loadSession(LoadSessionRequest params) async {
+    return LoadSessionResponse(
+      sessionId: params.sessionId,
+      modes: SessionModeState(
+        available: [SessionMode(id: 'code', name: 'Code')],
+        current: 'code',
+      ),
+      history: [],
+    );
+  }
+
+  @override
+  Future<SetSessionModeResponse?>? setSessionMode(SetSessionModeRequest params) async {
+    return SetSessionModeResponse();
+  }
+
+  @override
+  Future<AuthenticateResponse?>? authenticate(AuthenticateRequest params) async {
+    return AuthenticateResponse();
+  }
+
+  @override
+  Future<PromptResponse> prompt(PromptRequest params) async {
+    return PromptResponse(done: true);
+  }
+
+  @override
+  Future<void> cancel(CancelNotification params) async {
+    // Mock implementation
+  }
+
+  @override
+  Future<Map<String, dynamic>>? extMethod(String method, Map<String, dynamic> params) async {
+    return {'result': 'mock'};
+  }
+
+  @override
+  Future<void>? extNotification(String method, Map<String, dynamic> params) async {
+    // Mock implementation
+  }
 }

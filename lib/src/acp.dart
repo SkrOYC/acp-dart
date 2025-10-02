@@ -361,6 +361,152 @@ abstract class Client {
   );
 }
 
+/// An agent-side connection to a client.
+///
+/// This class provides the agent's view of an ACP connection, allowing
+/// agents to communicate with clients. It implements the Client interface
+/// to provide methods for requesting permissions, accessing the file system,
+/// and sending session updates.
+class AgentSideConnection implements Client {
+  late final Connection _connection;
+
+  /// Creates a new agent-side connection to a client.
+  ///
+  /// This establishes the communication channel from the agent's perspective
+  /// following the ACP specification.
+  ///
+  /// [toAgent] - A function that creates an Agent handler to process incoming client requests
+  /// [stream] - The bidirectional message stream for communication. Typically created using
+  ///            ndJsonStream for stdio-based connections.
+  AgentSideConnection(Agent Function(AgentSideConnection) toAgent, AcpStream stream) {
+    final agent = toAgent(this);
+
+    Future<dynamic> requestHandler(String method, dynamic params) async {
+      switch (method) {
+        case 'initialize':
+          final validatedParams = InitializeRequest.fromJson(params as Map<String, dynamic>);
+          return agent.initialize(validatedParams);
+        case 'session/new':
+          final validatedParams = NewSessionRequest.fromJson(params as Map<String, dynamic>);
+          return agent.newSession(validatedParams);
+        case 'session/load':
+          if (agent.loadSession == null) {
+            throw RequestError.methodNotFound(method);
+          }
+          final validatedParams = LoadSessionRequest.fromJson(params as Map<String, dynamic>);
+          return agent.loadSession!(validatedParams);
+        case 'session/set_mode':
+          if (agent.setSessionMode == null) {
+            throw RequestError.methodNotFound(method);
+          }
+          final validatedParams = SetSessionModeRequest.fromJson(params as Map<String, dynamic>);
+          final result = await agent.setSessionMode!(validatedParams);
+          return result ?? {};
+        case 'authenticate':
+          if (agent.authenticate == null) {
+            throw RequestError.methodNotFound(method);
+          }
+          final validatedParams = AuthenticateRequest.fromJson(params as Map<String, dynamic>);
+          final result = await agent.authenticate!(validatedParams);
+          return result ?? {};
+        case 'session/prompt':
+          final validatedParams = PromptRequest.fromJson(params as Map<String, dynamic>);
+          return agent.prompt(validatedParams);
+        default:
+          if (method.startsWith('_')) {
+            if (agent.extMethod == null) {
+              throw RequestError.methodNotFound(method);
+            }
+            return agent.extMethod!(method.substring(1), params as Map<String, dynamic>);
+          }
+          throw RequestError.methodNotFound(method);
+      }
+    }
+
+    Future<void> notificationHandler(String method, dynamic params) async {
+      switch (method) {
+        case 'session/cancel':
+          final validatedParams = CancelNotification.fromJson(params as Map<String, dynamic>);
+          return agent.cancel(validatedParams);
+        default:
+          if (method.startsWith('_')) {
+            if (agent.extNotification == null) {
+              return;
+            }
+            return agent.extNotification!(method.substring(1), params as Map<String, dynamic>);
+          }
+          throw RequestError.methodNotFound(method);
+      }
+    }
+
+    _connection = Connection(requestHandler, notificationHandler, stream);
+  }
+
+  @override
+  Future<void> sessionUpdate(SessionNotification params) async {
+    return _connection.sendNotification(clientMethods['sessionUpdate']!, params.toJson());
+  }
+
+  @override
+  Future<RequestPermissionResponse> requestPermission(RequestPermissionRequest params) async {
+    final result = await _connection.sendRequest(clientMethods['sessionRequestPermission']!, params.toJson());
+    return RequestPermissionResponse.fromJson(result as Map<String, dynamic>);
+  }
+
+  @override
+  Future<ReadTextFileResponse> readTextFile(ReadTextFileRequest params) async {
+    final result = await _connection.sendRequest(clientMethods['fsReadTextFile']!, params.toJson());
+    return ReadTextFileResponse.fromJson(result as Map<String, dynamic>);
+  }
+
+  @override
+  Future<WriteTextFileResponse> writeTextFile(WriteTextFileRequest params) async {
+    final result = await _connection.sendRequest(clientMethods['fsWriteTextFile']!, params.toJson());
+    return WriteTextFileResponse.fromJson(result as Map<String, dynamic>);
+  }
+
+  @override
+  Future<CreateTerminalResponse>? createTerminal(CreateTerminalRequest params) async {
+    final result = await _connection.sendRequest(clientMethods['terminalCreate']!, params.toJson());
+    return CreateTerminalResponse.fromJson(result as Map<String, dynamic>);
+  }
+
+  @override
+  Future<TerminalOutputResponse>? terminalOutput(TerminalOutputRequest params) async {
+    final result = await _connection.sendRequest(clientMethods['terminalOutput']!, params.toJson());
+    return TerminalOutputResponse.fromJson(result as Map<String, dynamic>);
+  }
+
+  @override
+  Future<ReleaseTerminalResponse?>? releaseTerminal(ReleaseTerminalRequest params) async {
+    final result = await _connection.sendRequest(clientMethods['terminalRelease']!, params.toJson());
+    return ReleaseTerminalResponse.fromJson(result as Map<String, dynamic>);
+  }
+
+  @override
+  Future<WaitForTerminalExitResponse>? waitForTerminalExit(WaitForTerminalExitRequest params) async {
+    final result = await _connection.sendRequest(clientMethods['terminalWaitForExit']!, params.toJson());
+    return WaitForTerminalExitResponse.fromJson(result as Map<String, dynamic>);
+  }
+
+  @override
+  Future<KillTerminalResponse?>? killTerminal(KillTerminalCommandRequest params) async {
+    final result = await _connection.sendRequest(clientMethods['terminalKill']!, params.toJson());
+    return KillTerminalResponse.fromJson(result as Map<String, dynamic>);
+  }
+
+  @override
+  Future<Map<String, dynamic>>? extMethod(String method, Map<String, dynamic> params) async {
+    final result = await _connection.sendRequest('_$method', params);
+    return result as Map<String, dynamic>;
+  }
+
+  @override
+  Future<void>? extNotification(String method, Map<String, dynamic> params) async {
+    return _connection.sendNotification('_$method', params);
+  }
+}
+
 /// Abstract base class defining the Agent interface for ACP connections.
 ///
 /// Agents implement this interface to handle requests from clients, including
