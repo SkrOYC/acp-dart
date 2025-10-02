@@ -343,6 +343,48 @@ void main() {
       writableController.close();
     });
   });
+
+  group('ClientSideConnection', () {
+    test('constructor creates connection with client', () {
+      final readableController = StreamController<Map<String, dynamic>>();
+      final writableController = StreamController<Map<String, dynamic>>();
+      final acpStream = AcpStream(
+        readable: readableController.stream,
+        writable: writableController.sink,
+      );
+
+      final clientSideConnection = ClientSideConnection(
+        (conn) => MockClient(),
+        acpStream,
+      );
+
+      // Verify the connection was created
+      expect(clientSideConnection, isNotNull);
+
+      readableController.close();
+      writableController.close();
+    });
+
+    test('implements Agent interface', () {
+      final readableController = StreamController<Map<String, dynamic>>();
+      final writableController = StreamController<Map<String, dynamic>>();
+      final acpStream = AcpStream(
+        readable: readableController.stream,
+        writable: writableController.sink,
+      );
+
+      final clientSideConnection = ClientSideConnection(
+        (conn) => MockClient(),
+        acpStream,
+      );
+
+      // Verify it implements Agent interface
+      expect(clientSideConnection, isA<Agent>());
+
+      readableController.close();
+      writableController.close();
+    });
+  });
 }
 
 /// Mock agent implementation for testing
@@ -399,6 +441,64 @@ class MockAgent implements Agent {
   @override
   Future<void> cancel(CancelNotification params) async {
     // Mock implementation
+  }
+
+  @override
+  Future<Map<String, dynamic>>? extMethod(String method, Map<String, dynamic> params) async {
+    return {'result': 'mock'};
+  }
+
+  @override
+  Future<void>? extNotification(String method, Map<String, dynamic> params) async {
+    // Mock implementation
+  }
+}
+
+/// Mock client implementation for testing
+class MockClient implements Client {
+  @override
+  Future<RequestPermissionResponse> requestPermission(RequestPermissionRequest params) async {
+    return RequestPermissionResponse(optionId: 'yes');
+  }
+
+  @override
+  Future<void> sessionUpdate(SessionNotification params) async {
+    // Mock implementation
+  }
+
+  @override
+  Future<WriteTextFileResponse> writeTextFile(WriteTextFileRequest params) async {
+    return WriteTextFileResponse();
+  }
+
+  @override
+  Future<ReadTextFileResponse> readTextFile(ReadTextFileRequest params) async {
+    return ReadTextFileResponse(content: 'mock content');
+  }
+
+  @override
+  Future<CreateTerminalResponse>? createTerminal(CreateTerminalRequest params) async {
+    return CreateTerminalResponse(terminalId: 'mock-terminal');
+  }
+
+  @override
+  Future<TerminalOutputResponse>? terminalOutput(TerminalOutputRequest params) async {
+    return TerminalOutputResponse();
+  }
+
+  @override
+  Future<ReleaseTerminalResponse?>? releaseTerminal(ReleaseTerminalRequest params) async {
+    return ReleaseTerminalResponse();
+  }
+
+  @override
+  Future<WaitForTerminalExitResponse>? waitForTerminalExit(WaitForTerminalExitRequest params) async {
+    return WaitForTerminalExitResponse(exitCode: 0);
+  }
+
+  @override
+  Future<KillTerminalResponse?>? killTerminal(KillTerminalCommandRequest params) async {
+    return KillTerminalResponse();
   }
 
   @override
