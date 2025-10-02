@@ -76,7 +76,7 @@ This document breaks down the tasks required to build the Dart SDK for the Agent
 
 ## Phase 3: Examples & Documentation
 
-- [ ] **Task 3.1: Create Example Agent**
+- [X] **Task 3.1: Create Example Agent**
     - **Description:** In `example/agent.dart`, implement a minimal agent using the SDK.
     - **Reference:** [`typescript/examples/agent.ts`](https://github.com/zed-industries/agent-client-protocol/blob/main/typescript/examples/agent.ts)
 
