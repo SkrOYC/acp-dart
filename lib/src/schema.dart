@@ -1,5 +1,7 @@
 import 'package:json_annotation/json_annotation.dart';
 
+import 'content_block_converter.dart';
+import 'embedded_resource_converter.dart';
 import 'session_update_converter.dart';
 import 'tool_call_content_converter.dart';
 part 'schema.g.dart';
@@ -231,10 +233,14 @@ class SetSessionModeRequest {
 
 @JsonSerializable()
 class PromptRequest {
+  /// The ID of the session this prompt belongs to
+  final String sessionId;
+
   /// Optional plain text prompt (deprecated in favor of content)
   final String? text;
 
   /// Structured content blocks representing the user's message
+  @ContentBlockConverter()
   final List<ContentBlock>? content;
 
   /// Tools available for the agent to use during this prompt
@@ -247,7 +253,7 @@ class PromptRequest {
   /// stop reason and any generated content or tool calls.
   ///
   /// See protocol docs: [User Message](https://agentclientprotocol.com/protocol/prompt-turn#1-user-message)
-  PromptRequest({this.text, this.content, this.tools});
+  PromptRequest({required this.sessionId, this.text, this.content, this.tools});
 
   factory PromptRequest.fromJson(Map<String, dynamic> json) =>
       _$PromptRequestFromJson(json);
@@ -255,17 +261,124 @@ class PromptRequest {
   Map<String, dynamic> toJson() => _$PromptRequestToJson(this);
 }
 
+/// Content produced by a user or agent.
+///
+/// This structure is compatible with the Model Context Protocol (MCP), enabling
+/// agents to seamlessly forward content from MCP tool outputs without transformation.
+///
+/// See protocol docs: [Content](https://agentclientprotocol.com/protocol/content)
+abstract class ContentBlock {}
+
 @JsonSerializable()
-class ContentBlock {
-  // This class is complex and has many different forms.
-  // I will need to refer to the TypeScript schema to implement this correctly.
-  // For now, I will leave it empty and come back to it later.
-  ContentBlock();
+class TextContentBlock extends ContentBlock {
+  @JsonKey(name: '_meta', includeIfNull: false)
+  final Map<String, dynamic>? meta;
+  final Annotations? annotations;
+  final String text;
+  final String type;
 
-  factory ContentBlock.fromJson(Map<String, dynamic> json) =>
-      _$ContentBlockFromJson(json);
+  TextContentBlock({this.meta, this.annotations, required this.text})
+    : type = 'text';
 
-  Map<String, dynamic> toJson() => _$ContentBlockToJson(this);
+  factory TextContentBlock.fromJson(Map<String, dynamic> json) =>
+      _$TextContentBlockFromJson(json);
+
+  Map<String, dynamic> toJson() => _$TextContentBlockToJson(this);
+}
+
+@JsonSerializable()
+class ImageContentBlock extends ContentBlock {
+  @JsonKey(name: '_meta', includeIfNull: false)
+  final Map<String, dynamic>? meta;
+  final Annotations? annotations;
+  final String data;
+  final String mimeType;
+  final String? uri;
+  final String type;
+
+  ImageContentBlock({
+    this.meta,
+    this.annotations,
+    required this.data,
+    required this.mimeType,
+    this.uri,
+  }) : type = 'image';
+
+  factory ImageContentBlock.fromJson(Map<String, dynamic> json) =>
+      _$ImageContentBlockFromJson(json);
+
+  Map<String, dynamic> toJson() => _$ImageContentBlockToJson(this);
+}
+
+@JsonSerializable()
+class AudioContentBlock extends ContentBlock {
+  @JsonKey(name: '_meta', includeIfNull: false)
+  final Map<String, dynamic>? meta;
+  final Annotations? annotations;
+  final String data;
+  final String mimeType;
+  final String type;
+
+  AudioContentBlock({
+    this.meta,
+    this.annotations,
+    required this.data,
+    required this.mimeType,
+  }) : type = 'audio';
+
+  factory AudioContentBlock.fromJson(Map<String, dynamic> json) =>
+      _$AudioContentBlockFromJson(json);
+
+  Map<String, dynamic> toJson() => _$AudioContentBlockToJson(this);
+}
+
+@JsonSerializable()
+class ResourceLinkContentBlock extends ContentBlock {
+  @JsonKey(name: '_meta', includeIfNull: false)
+  final Map<String, dynamic>? meta;
+  final Annotations? annotations;
+  final String? description;
+  final String? mimeType;
+  final String name;
+  final int? size;
+  final String? title;
+  final String uri;
+  final String type;
+
+  ResourceLinkContentBlock({
+    this.meta,
+    this.annotations,
+    this.description,
+    this.mimeType,
+    required this.name,
+    this.size,
+    this.title,
+    required this.uri,
+  }) : type = 'resource_link';
+
+  factory ResourceLinkContentBlock.fromJson(Map<String, dynamic> json) =>
+      _$ResourceLinkContentBlockFromJson(json);
+
+  Map<String, dynamic> toJson() => _$ResourceLinkContentBlockToJson(this);
+}
+
+@JsonSerializable()
+class ResourceContentBlock extends ContentBlock {
+  @JsonKey(name: '_meta', includeIfNull: false)
+  final Map<String, dynamic>? meta;
+  final Annotations? annotations;
+  @EmbeddedResourceResourceConverter()
+  final EmbeddedResourceResource resource;
+  final String type;
+
+  ResourceContentBlock({this.meta, this.annotations, required this.resource})
+    : type = 'resource';
+
+  factory ResourceContentBlock.fromJson(Map<String, dynamic> json) =>
+      _$ResourceContentBlockFromJson(json);
+
+  @override
+  Map<String, dynamic> toJson() => _$ResourceContentBlockToJson(this);
 }
 
 @JsonSerializable()
@@ -350,13 +463,31 @@ class PermissionOption {
 
 @JsonSerializable()
 class ToolCallUpdate {
-  // This class is complex and depends on ToolCall.
-  // I will leave it empty for now.
-  ToolCallUpdate();
+  @ToolCallContentConverter()
+  final List<ToolCallContent>? content;
+  final ToolKind? kind;
+  final List<ToolCallLocation>? locations;
+  final Map<String, dynamic>? rawInput;
+  final Map<String, dynamic>? rawOutput;
+  final ToolCallStatus? status;
+  final String? title;
+  final String toolCallId;
+
+  ToolCallUpdate({
+    this.content,
+    this.kind,
+    this.locations,
+    this.rawInput,
+    this.rawOutput,
+    this.status,
+    this.title,
+    required this.toolCallId,
+  });
 
   factory ToolCallUpdate.fromJson(Map<String, dynamic> json) =>
       _$ToolCallUpdateFromJson(json);
 
+  @override
   Map<String, dynamic> toJson() => _$ToolCallUpdateToJson(this);
 }
 
@@ -598,6 +729,7 @@ class LoadSessionResponse {
   final String sessionId;
   final SessionModeState modes;
   final SessionModelState? models;
+  @ContentBlockConverter()
   final List<ContentBlock> history;
 
   LoadSessionResponse({
@@ -610,6 +742,7 @@ class LoadSessionResponse {
   factory LoadSessionResponse.fromJson(Map<String, dynamic> json) =>
       _$LoadSessionResponseFromJson(json);
 
+  @override
   Map<String, dynamic> toJson() => _$LoadSessionResponseToJson(this);
 }
 
@@ -782,7 +915,7 @@ class Annotations {
 
 /// Text-based resource contents.
 @JsonSerializable()
-class TextResourceContents {
+class TextResourceContents extends EmbeddedResourceResource {
   final String? mimeType;
   final String text;
   final String uri;
@@ -792,12 +925,13 @@ class TextResourceContents {
   factory TextResourceContents.fromJson(Map<String, dynamic> json) =>
       _$TextResourceContentsFromJson(json);
 
+  @override
   Map<String, dynamic> toJson() => _$TextResourceContentsToJson(this);
 }
 
 /// Binary resource contents.
 @JsonSerializable()
-class BlobResourceContents {
+class BlobResourceContents extends EmbeddedResourceResource {
   final String blob;
   final String? mimeType;
   final String uri;
@@ -807,6 +941,7 @@ class BlobResourceContents {
   factory BlobResourceContents.fromJson(Map<String, dynamic> json) =>
       _$BlobResourceContentsFromJson(json);
 
+  @override
   Map<String, dynamic> toJson() => _$BlobResourceContentsToJson(this);
 }
 
@@ -823,6 +958,7 @@ abstract class ToolCallContent {}
 
 @JsonSerializable()
 class ContentToolCallContent extends ToolCallContent {
+  @ContentBlockConverter()
   final ContentBlock content;
 
   ContentToolCallContent({required this.content});
@@ -830,6 +966,7 @@ class ContentToolCallContent extends ToolCallContent {
   factory ContentToolCallContent.fromJson(Map<String, dynamic> json) =>
       _$ContentToolCallContentFromJson(json);
 
+  @override
   Map<String, dynamic> toJson() => _$ContentToolCallContentToJson(this);
 }
 
@@ -975,6 +1112,7 @@ class SessionNotification {
 
 @JsonSerializable()
 class UserMessageChunkSessionUpdate extends SessionUpdate {
+  @ContentBlockConverter()
   final ContentBlock content;
 
   UserMessageChunkSessionUpdate({required this.content});
@@ -982,11 +1120,13 @@ class UserMessageChunkSessionUpdate extends SessionUpdate {
   factory UserMessageChunkSessionUpdate.fromJson(Map<String, dynamic> json) =>
       _$UserMessageChunkSessionUpdateFromJson(json);
 
+  @override
   Map<String, dynamic> toJson() => _$UserMessageChunkSessionUpdateToJson(this);
 }
 
 @JsonSerializable()
 class AgentMessageChunkSessionUpdate extends SessionUpdate {
+  @ContentBlockConverter()
   final ContentBlock content;
 
   AgentMessageChunkSessionUpdate({required this.content});
@@ -994,11 +1134,13 @@ class AgentMessageChunkSessionUpdate extends SessionUpdate {
   factory AgentMessageChunkSessionUpdate.fromJson(Map<String, dynamic> json) =>
       _$AgentMessageChunkSessionUpdateFromJson(json);
 
+  @override
   Map<String, dynamic> toJson() => _$AgentMessageChunkSessionUpdateToJson(this);
 }
 
 @JsonSerializable()
 class AgentThoughtChunkSessionUpdate extends SessionUpdate {
+  @ContentBlockConverter()
   final ContentBlock content;
 
   AgentThoughtChunkSessionUpdate({required this.content});
@@ -1006,6 +1148,7 @@ class AgentThoughtChunkSessionUpdate extends SessionUpdate {
   factory AgentThoughtChunkSessionUpdate.fromJson(Map<String, dynamic> json) =>
       _$AgentThoughtChunkSessionUpdateFromJson(json);
 
+  @override
   Map<String, dynamic> toJson() => _$AgentThoughtChunkSessionUpdateToJson(this);
 }
 
@@ -1037,6 +1180,7 @@ class ToolCallSessionUpdate extends SessionUpdate {
   factory ToolCallSessionUpdate.fromJson(Map<String, dynamic> json) =>
       _$ToolCallSessionUpdateFromJson(json);
 
+  @override
   Map<String, dynamic> toJson() => _$ToolCallSessionUpdateToJson(this);
 }
 
@@ -1066,6 +1210,7 @@ class ToolCallUpdateSessionUpdate extends SessionUpdate {
   factory ToolCallUpdateSessionUpdate.fromJson(Map<String, dynamic> json) =>
       _$ToolCallUpdateSessionUpdateFromJson(json);
 
+  @override
   Map<String, dynamic> toJson() => _$ToolCallUpdateSessionUpdateToJson(this);
 }
 
@@ -1078,6 +1223,7 @@ class PlanSessionUpdate extends SessionUpdate {
   factory PlanSessionUpdate.fromJson(Map<String, dynamic> json) =>
       _$PlanSessionUpdateFromJson(json);
 
+  @override
   Map<String, dynamic> toJson() => _$PlanSessionUpdateToJson(this);
 }
 

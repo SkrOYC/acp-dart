@@ -8,21 +8,23 @@ void main() {
     test('InitializeRequest can be serialized and deserialized', () {
       final original = InitializeRequest(
         capabilities: ClientCapabilities(
-          fs: FileSystemCapability(
-            readTextFile: true,
-            writeTextFile: true,
-          ),
+          fs: FileSystemCapability(readTextFile: true, writeTextFile: true),
         ),
       );
 
       final json = jsonEncode(original.toJson());
-      final decoded =
-          InitializeRequest.fromJson(jsonDecode(json) as Map<String, dynamic>);
+      final decoded = InitializeRequest.fromJson(
+        jsonDecode(json) as Map<String, dynamic>,
+      );
 
-      expect(decoded.capabilities.fs?.readTextFile,
-          original.capabilities.fs?.readTextFile);
-      expect(decoded.capabilities.fs?.writeTextFile,
-          original.capabilities.fs?.writeTextFile);
+      expect(
+        decoded.capabilities.fs?.readTextFile,
+        original.capabilities.fs?.readTextFile,
+      );
+      expect(
+        decoded.capabilities.fs?.writeTextFile,
+        original.capabilities.fs?.writeTextFile,
+      );
     });
 
     test('InitializeResponse can be serialized and deserialized', () {
@@ -38,16 +40,26 @@ void main() {
 
       final json = jsonEncode(original.toJson());
       final decoded = InitializeResponse.fromJson(
-          jsonDecode(json) as Map<String, dynamic>);
+        jsonDecode(json) as Map<String, dynamic>,
+      );
 
       expect(decoded.protocolVersion, original.protocolVersion);
-      expect(decoded.capabilities.mcp?.versions,
-          original.capabilities.mcp?.versions);
-      expect(decoded.capabilities.prompt?.sessionModes.first,
-          original.capabilities.prompt?.sessionModes.first);
-      expect(decoded.capabilities.loadSession, original.capabilities.loadSession);
-      expect(decoded.capabilities.auth.first.method,
-          original.capabilities.auth.first.method);
+      expect(
+        decoded.capabilities.mcp?.versions,
+        original.capabilities.mcp?.versions,
+      );
+      expect(
+        decoded.capabilities.prompt?.sessionModes.first,
+        original.capabilities.prompt?.sessionModes.first,
+      );
+      expect(
+        decoded.capabilities.loadSession,
+        original.capabilities.loadSession,
+      );
+      expect(
+        decoded.capabilities.auth.first.method,
+        original.capabilities.auth.first.method,
+      );
     });
 
     test('AuthenticateRequest can be serialized and deserialized', () {
@@ -58,7 +70,8 @@ void main() {
 
       final json = jsonEncode(original.toJson());
       final decoded = AuthenticateRequest.fromJson(
-          jsonDecode(json) as Map<String, dynamic>);
+        jsonDecode(json) as Map<String, dynamic>,
+      );
 
       expect(decoded.method, original.method);
       expect(decoded.token, original.token);
@@ -69,7 +82,8 @@ void main() {
 
       final json = jsonEncode(original.toJson());
       final decoded = AuthenticateResponse.fromJson(
-          jsonDecode(json) as Map<String, dynamic>);
+        jsonDecode(json) as Map<String, dynamic>,
+      );
 
       expect(decoded, isA<AuthenticateResponse>());
     });
@@ -90,12 +104,16 @@ void main() {
 
       final json = jsonEncode(original.toJson());
       final decoded = NewSessionRequest.fromJson(
-          jsonDecode(json) as Map<String, dynamic>);
+        jsonDecode(json) as Map<String, dynamic>,
+      );
 
       expect(decoded.mcp?.host, original.mcp?.host);
       expect(decoded.mcp?.port, original.mcp?.port);
       expect(decoded.mcp?.tls, original.mcp?.tls);
-      expect(decoded.mcp?.headers?.first.name, original.mcp?.headers?.first.name);
+      expect(
+        decoded.mcp?.headers?.first.name,
+        original.mcp?.headers?.first.name,
+      );
       expect(decoded.stdio?.command, original.stdio?.command);
       expect(decoded.stdio?.env?.first.name, original.stdio?.env?.first.name);
     });
@@ -105,7 +123,8 @@ void main() {
 
       final json = jsonEncode(original.toJson());
       final decoded = LoadSessionRequest.fromJson(
-          jsonDecode(json) as Map<String, dynamic>);
+        jsonDecode(json) as Map<String, dynamic>,
+      );
 
       expect(decoded.sessionId, original.sessionId);
     });
@@ -115,7 +134,8 @@ void main() {
 
       final json = jsonEncode(original.toJson());
       final decoded = SetSessionModeRequest.fromJson(
-          jsonDecode(json) as Map<String, dynamic>);
+        jsonDecode(json) as Map<String, dynamic>,
+      );
 
       expect(decoded.mode, original.mode);
     });
@@ -125,17 +145,22 @@ void main() {
 
       final json = jsonEncode(original.toJson());
       final decoded = SetSessionModelRequest.fromJson(
-          jsonDecode(json) as Map<String, dynamic>);
+        jsonDecode(json) as Map<String, dynamic>,
+      );
 
       expect(decoded.model, original.model);
     });
 
     test('WriteTextFileRequest can be serialized and deserialized', () {
-      final original = WriteTextFileRequest(path: '/test/file.txt', content: 'Hello World');
+      final original = WriteTextFileRequest(
+        path: '/test/file.txt',
+        content: 'Hello World',
+      );
 
       final json = jsonEncode(original.toJson());
       final decoded = WriteTextFileRequest.fromJson(
-          jsonDecode(json) as Map<String, dynamic>);
+        jsonDecode(json) as Map<String, dynamic>,
+      );
 
       expect(decoded.path, original.path);
       expect(decoded.content, original.content);
@@ -146,7 +171,8 @@ void main() {
 
       final json = jsonEncode(original.toJson());
       final decoded = ReadTextFileRequest.fromJson(
-          jsonDecode(json) as Map<String, dynamic>);
+        jsonDecode(json) as Map<String, dynamic>,
+      );
 
       expect(decoded.path, original.path);
     });
@@ -161,7 +187,8 @@ void main() {
 
       final json = jsonEncode(original.toJson());
       final decoded = CreateTerminalRequest.fromJson(
-          jsonDecode(json) as Map<String, dynamic>);
+        jsonDecode(json) as Map<String, dynamic>,
+      );
 
       expect(decoded.command, original.command);
       expect(decoded.args, original.args);
@@ -184,12 +211,19 @@ void main() {
 
       final json = jsonEncode(original.toJson());
       final decoded = NewSessionResponse.fromJson(
-          jsonDecode(json) as Map<String, dynamic>);
+        jsonDecode(json) as Map<String, dynamic>,
+      );
 
       expect(decoded.sessionId, original.sessionId);
-      expect(decoded.modes.available.first.id, original.modes.available.first.id);
+      expect(
+        decoded.modes.available.first.id,
+        original.modes.available.first.id,
+      );
       expect(decoded.modes.current, original.modes.current);
-      expect(decoded.models?.available.first.id, original.models?.available.first.id);
+      expect(
+        decoded.models?.available.first.id,
+        original.models?.available.first.id,
+      );
       expect(decoded.models?.current, original.models?.current);
     });
 
@@ -198,7 +232,8 @@ void main() {
 
       final json = jsonEncode(original.toJson());
       final decoded = ReadTextFileResponse.fromJson(
-          jsonDecode(json) as Map<String, dynamic>);
+        jsonDecode(json) as Map<String, dynamic>,
+      );
 
       expect(decoded.content, original.content);
     });
@@ -208,24 +243,49 @@ void main() {
 
       final json = jsonEncode(original.toJson());
       final decoded = CreateTerminalResponse.fromJson(
-          jsonDecode(json) as Map<String, dynamic>);
+        jsonDecode(json) as Map<String, dynamic>,
+      );
 
       expect(decoded.terminalId, original.terminalId);
+    });
+
+    test('PromptRequest can be serialized and deserialized', () {
+      final original = PromptRequest(
+        sessionId: 'test-session-id',
+        text: 'Hello, agent!',
+        content: [TextContentBlock(text: 'Hello, agent!')],
+      );
+
+      final json = jsonEncode(original.toJson());
+      final decoded = PromptRequest.fromJson(
+        jsonDecode(json) as Map<String, dynamic>,
+      );
+
+      expect(decoded.sessionId, original.sessionId);
+      expect(decoded.text, original.text);
+      expect(decoded.content, original.content);
     });
 
     test('RequestPermissionRequest can be serialized and deserialized', () {
       final original = RequestPermissionRequest(
         question: 'Allow file access?',
         options: [
-          PermissionOption(id: 'yes', title: 'Yes', description: 'Grant access'),
+          PermissionOption(
+            id: 'yes',
+            title: 'Yes',
+            description: 'Grant access',
+          ),
           PermissionOption(id: 'no', title: 'No'),
         ],
-        toolCall: ToolCallUpdate(), // Placeholder, since it's empty
+        toolCall: ToolCallUpdate(
+          toolCallId: 'test-call',
+        ), // Placeholder with required toolCallId
       );
 
       final json = jsonEncode(original.toJson());
       final decoded = RequestPermissionRequest.fromJson(
-          jsonDecode(json) as Map<String, dynamic>);
+        jsonDecode(json) as Map<String, dynamic>,
+      );
 
       expect(decoded.question, original.question);
       expect(decoded.options.length, original.options.length);
@@ -241,7 +301,8 @@ void main() {
 
       final json = jsonEncode(original.toJson());
       final decoded = TerminalOutputResponse.fromJson(
-          jsonDecode(json) as Map<String, dynamic>);
+        jsonDecode(json) as Map<String, dynamic>,
+      );
 
       expect(decoded.stdout, original.stdout);
       expect(decoded.stderr, original.stderr);
@@ -253,7 +314,8 @@ void main() {
 
       final json = jsonEncode(original.toJson());
       final decoded = CancelNotification.fromJson(
-          jsonDecode(json) as Map<String, dynamic>);
+        jsonDecode(json) as Map<String, dynamic>,
+      );
 
       expect(decoded.sessionId, original.sessionId);
     });
@@ -267,7 +329,8 @@ void main() {
 
       final json = jsonEncode(original.toJson());
       final decoded = DiffToolCallContent.fromJson(
-          jsonDecode(json) as Map<String, dynamic>);
+        jsonDecode(json) as Map<String, dynamic>,
+      );
 
       expect(decoded.newText, original.newText);
       expect(decoded.oldText, original.oldText);
@@ -279,7 +342,8 @@ void main() {
 
       final json = jsonEncode(original.toJson());
       final decoded = TerminalToolCallContent.fromJson(
-          jsonDecode(json) as Map<String, dynamic>);
+        jsonDecode(json) as Map<String, dynamic>,
+      );
 
       expect(decoded.terminalId, original.terminalId);
     });
@@ -289,7 +353,8 @@ void main() {
 
       final json = jsonEncode(original.toJson());
       final decoded = WriteTextFileResponse.fromJson(
-          jsonDecode(json) as Map<String, dynamic>);
+        jsonDecode(json) as Map<String, dynamic>,
+      );
 
       expect(decoded, isA<WriteTextFileResponse>());
     });
@@ -299,7 +364,8 @@ void main() {
 
       final json = jsonEncode(original.toJson());
       final decoded = RequestPermissionResponse.fromJson(
-          jsonDecode(json) as Map<String, dynamic>);
+        jsonDecode(json) as Map<String, dynamic>,
+      );
 
       expect(decoded.optionId, original.optionId);
     });
@@ -309,7 +375,8 @@ void main() {
 
       final json = jsonEncode(original.toJson());
       final decoded = ReleaseTerminalResponse.fromJson(
-          jsonDecode(json) as Map<String, dynamic>);
+        jsonDecode(json) as Map<String, dynamic>,
+      );
 
       expect(decoded, isA<ReleaseTerminalResponse>());
     });
@@ -319,7 +386,8 @@ void main() {
 
       final json = jsonEncode(original.toJson());
       final decoded = WaitForTerminalExitResponse.fromJson(
-          jsonDecode(json) as Map<String, dynamic>);
+        jsonDecode(json) as Map<String, dynamic>,
+      );
 
       expect(decoded.exitCode, original.exitCode);
     });
@@ -329,7 +397,8 @@ void main() {
 
       final json = jsonEncode(original.toJson());
       final decoded = KillTerminalResponse.fromJson(
-          jsonDecode(json) as Map<String, dynamic>);
+        jsonDecode(json) as Map<String, dynamic>,
+      );
 
       expect(decoded, isA<KillTerminalResponse>());
     });

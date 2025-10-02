@@ -119,9 +119,14 @@ Map<String, dynamic> _$SetSessionModeRequestToJson(
 
 PromptRequest _$PromptRequestFromJson(Map<String, dynamic> json) =>
     PromptRequest(
+      sessionId: json['sessionId'] as String,
       text: json['text'] as String?,
       content: (json['content'] as List<dynamic>?)
-          ?.map((e) => ContentBlock.fromJson(e as Map<String, dynamic>))
+          ?.map(
+            (e) => const ContentBlockConverter().fromJson(
+              e as Map<String, dynamic>,
+            ),
+          )
           .toList(),
       tools: (json['tools'] as List<dynamic>?)
           ?.map((e) => ToolCall.fromJson(e as Map<String, dynamic>))
@@ -130,16 +135,117 @@ PromptRequest _$PromptRequestFromJson(Map<String, dynamic> json) =>
 
 Map<String, dynamic> _$PromptRequestToJson(PromptRequest instance) =>
     <String, dynamic>{
+      'sessionId': instance.sessionId,
       'text': instance.text,
-      'content': instance.content,
+      'content': instance.content
+          ?.map(const ContentBlockConverter().toJson)
+          .toList(),
       'tools': instance.tools,
     };
 
-ContentBlock _$ContentBlockFromJson(Map<String, dynamic> json) =>
-    ContentBlock();
+TextContentBlock _$TextContentBlockFromJson(Map<String, dynamic> json) =>
+    TextContentBlock(
+      meta: json['_meta'] as Map<String, dynamic>?,
+      annotations: json['annotations'] == null
+          ? null
+          : Annotations.fromJson(json['annotations'] as Map<String, dynamic>),
+      text: json['text'] as String,
+    );
 
-Map<String, dynamic> _$ContentBlockToJson(ContentBlock instance) =>
-    <String, dynamic>{};
+Map<String, dynamic> _$TextContentBlockToJson(TextContentBlock instance) =>
+    <String, dynamic>{
+      '_meta': ?instance.meta,
+      'annotations': instance.annotations,
+      'text': instance.text,
+    };
+
+ImageContentBlock _$ImageContentBlockFromJson(Map<String, dynamic> json) =>
+    ImageContentBlock(
+      meta: json['_meta'] as Map<String, dynamic>?,
+      annotations: json['annotations'] == null
+          ? null
+          : Annotations.fromJson(json['annotations'] as Map<String, dynamic>),
+      data: json['data'] as String,
+      mimeType: json['mimeType'] as String,
+      uri: json['uri'] as String?,
+    );
+
+Map<String, dynamic> _$ImageContentBlockToJson(ImageContentBlock instance) =>
+    <String, dynamic>{
+      '_meta': ?instance.meta,
+      'annotations': instance.annotations,
+      'data': instance.data,
+      'mimeType': instance.mimeType,
+      'uri': instance.uri,
+    };
+
+AudioContentBlock _$AudioContentBlockFromJson(Map<String, dynamic> json) =>
+    AudioContentBlock(
+      meta: json['_meta'] as Map<String, dynamic>?,
+      annotations: json['annotations'] == null
+          ? null
+          : Annotations.fromJson(json['annotations'] as Map<String, dynamic>),
+      data: json['data'] as String,
+      mimeType: json['mimeType'] as String,
+    );
+
+Map<String, dynamic> _$AudioContentBlockToJson(AudioContentBlock instance) =>
+    <String, dynamic>{
+      '_meta': ?instance.meta,
+      'annotations': instance.annotations,
+      'data': instance.data,
+      'mimeType': instance.mimeType,
+    };
+
+ResourceLinkContentBlock _$ResourceLinkContentBlockFromJson(
+  Map<String, dynamic> json,
+) => ResourceLinkContentBlock(
+  meta: json['_meta'] as Map<String, dynamic>?,
+  annotations: json['annotations'] == null
+      ? null
+      : Annotations.fromJson(json['annotations'] as Map<String, dynamic>),
+  description: json['description'] as String?,
+  mimeType: json['mimeType'] as String?,
+  name: json['name'] as String,
+  size: (json['size'] as num?)?.toInt(),
+  title: json['title'] as String?,
+  uri: json['uri'] as String,
+);
+
+Map<String, dynamic> _$ResourceLinkContentBlockToJson(
+  ResourceLinkContentBlock instance,
+) => <String, dynamic>{
+  '_meta': ?instance.meta,
+  'annotations': instance.annotations,
+  'description': instance.description,
+  'mimeType': instance.mimeType,
+  'name': instance.name,
+  'size': instance.size,
+  'title': instance.title,
+  'uri': instance.uri,
+};
+
+ResourceContentBlock _$ResourceContentBlockFromJson(
+  Map<String, dynamic> json,
+) => ResourceContentBlock(
+  meta: json['_meta'] as Map<String, dynamic>?,
+  annotations: json['annotations'] == null
+      ? null
+      : Annotations.fromJson(json['annotations'] as Map<String, dynamic>),
+  resource: const EmbeddedResourceResourceConverter().fromJson(
+    json['resource'] as Map<String, dynamic>,
+  ),
+);
+
+Map<String, dynamic> _$ResourceContentBlockToJson(
+  ResourceContentBlock instance,
+) => <String, dynamic>{
+  '_meta': ?instance.meta,
+  'annotations': instance.annotations,
+  'resource': const EmbeddedResourceResourceConverter().toJson(
+    instance.resource,
+  ),
+};
 
 ToolCall _$ToolCallFromJson(Map<String, dynamic> json) => ToolCall();
 
@@ -204,10 +310,58 @@ Map<String, dynamic> _$PermissionOptionToJson(PermissionOption instance) =>
     };
 
 ToolCallUpdate _$ToolCallUpdateFromJson(Map<String, dynamic> json) =>
-    ToolCallUpdate();
+    ToolCallUpdate(
+      content: (json['content'] as List<dynamic>?)
+          ?.map(
+            (e) => const ToolCallContentConverter().fromJson(
+              e as Map<String, dynamic>,
+            ),
+          )
+          .toList(),
+      kind: $enumDecodeNullable(_$ToolKindEnumMap, json['kind']),
+      locations: (json['locations'] as List<dynamic>?)
+          ?.map((e) => ToolCallLocation.fromJson(e as Map<String, dynamic>))
+          .toList(),
+      rawInput: json['rawInput'] as Map<String, dynamic>?,
+      rawOutput: json['rawOutput'] as Map<String, dynamic>?,
+      status: $enumDecodeNullable(_$ToolCallStatusEnumMap, json['status']),
+      title: json['title'] as String?,
+      toolCallId: json['toolCallId'] as String,
+    );
 
 Map<String, dynamic> _$ToolCallUpdateToJson(ToolCallUpdate instance) =>
-    <String, dynamic>{};
+    <String, dynamic>{
+      'content': instance.content
+          ?.map(const ToolCallContentConverter().toJson)
+          .toList(),
+      'kind': _$ToolKindEnumMap[instance.kind],
+      'locations': instance.locations,
+      'rawInput': instance.rawInput,
+      'rawOutput': instance.rawOutput,
+      'status': _$ToolCallStatusEnumMap[instance.status],
+      'title': instance.title,
+      'toolCallId': instance.toolCallId,
+    };
+
+const _$ToolKindEnumMap = {
+  ToolKind.read: 'read',
+  ToolKind.edit: 'edit',
+  ToolKind.delete: 'delete',
+  ToolKind.move: 'move',
+  ToolKind.search: 'search',
+  ToolKind.execute: 'execute',
+  ToolKind.think: 'think',
+  ToolKind.fetch: 'fetch',
+  ToolKind.switchMode: 'switch_mode',
+  ToolKind.other: 'other',
+};
+
+const _$ToolCallStatusEnumMap = {
+  ToolCallStatus.pending: 'pending',
+  ToolCallStatus.inProgress: 'in_progress',
+  ToolCallStatus.completed: 'completed',
+  ToolCallStatus.failed: 'failed',
+};
 
 CreateTerminalRequest _$CreateTerminalRequestFromJson(
   Map<String, dynamic> json,
@@ -413,7 +567,11 @@ LoadSessionResponse _$LoadSessionResponseFromJson(Map<String, dynamic> json) =>
           ? null
           : SessionModelState.fromJson(json['models'] as Map<String, dynamic>),
       history: (json['history'] as List<dynamic>)
-          .map((e) => ContentBlock.fromJson(e as Map<String, dynamic>))
+          .map(
+            (e) => const ContentBlockConverter().fromJson(
+              e as Map<String, dynamic>,
+            ),
+          )
           .toList(),
     );
 
@@ -423,7 +581,9 @@ Map<String, dynamic> _$LoadSessionResponseToJson(
   'sessionId': instance.sessionId,
   'modes': instance.modes,
   'models': instance.models,
-  'history': instance.history,
+  'history': instance.history
+      .map(const ContentBlockConverter().toJson)
+      .toList(),
 };
 
 SetSessionModeResponse _$SetSessionModeResponseFromJson(
@@ -586,12 +746,16 @@ Map<String, dynamic> _$BlobResourceContentsToJson(
 ContentToolCallContent _$ContentToolCallContentFromJson(
   Map<String, dynamic> json,
 ) => ContentToolCallContent(
-  content: ContentBlock.fromJson(json['content'] as Map<String, dynamic>),
+  content: const ContentBlockConverter().fromJson(
+    json['content'] as Map<String, dynamic>,
+  ),
 );
 
 Map<String, dynamic> _$ContentToolCallContentToJson(
   ContentToolCallContent instance,
-) => <String, dynamic>{'content': instance.content};
+) => <String, dynamic>{
+  'content': const ContentBlockConverter().toJson(instance.content),
+};
 
 DiffToolCallContent _$DiffToolCallContentFromJson(Map<String, dynamic> json) =>
     DiffToolCallContent(
@@ -681,32 +845,44 @@ Map<String, dynamic> _$SessionNotificationToJson(
 UserMessageChunkSessionUpdate _$UserMessageChunkSessionUpdateFromJson(
   Map<String, dynamic> json,
 ) => UserMessageChunkSessionUpdate(
-  content: ContentBlock.fromJson(json['content'] as Map<String, dynamic>),
+  content: const ContentBlockConverter().fromJson(
+    json['content'] as Map<String, dynamic>,
+  ),
 );
 
 Map<String, dynamic> _$UserMessageChunkSessionUpdateToJson(
   UserMessageChunkSessionUpdate instance,
-) => <String, dynamic>{'content': instance.content};
+) => <String, dynamic>{
+  'content': const ContentBlockConverter().toJson(instance.content),
+};
 
 AgentMessageChunkSessionUpdate _$AgentMessageChunkSessionUpdateFromJson(
   Map<String, dynamic> json,
 ) => AgentMessageChunkSessionUpdate(
-  content: ContentBlock.fromJson(json['content'] as Map<String, dynamic>),
+  content: const ContentBlockConverter().fromJson(
+    json['content'] as Map<String, dynamic>,
+  ),
 );
 
 Map<String, dynamic> _$AgentMessageChunkSessionUpdateToJson(
   AgentMessageChunkSessionUpdate instance,
-) => <String, dynamic>{'content': instance.content};
+) => <String, dynamic>{
+  'content': const ContentBlockConverter().toJson(instance.content),
+};
 
 AgentThoughtChunkSessionUpdate _$AgentThoughtChunkSessionUpdateFromJson(
   Map<String, dynamic> json,
 ) => AgentThoughtChunkSessionUpdate(
-  content: ContentBlock.fromJson(json['content'] as Map<String, dynamic>),
+  content: const ContentBlockConverter().fromJson(
+    json['content'] as Map<String, dynamic>,
+  ),
 );
 
 Map<String, dynamic> _$AgentThoughtChunkSessionUpdateToJson(
   AgentThoughtChunkSessionUpdate instance,
-) => <String, dynamic>{'content': instance.content};
+) => <String, dynamic>{
+  'content': const ContentBlockConverter().toJson(instance.content),
+};
 
 ToolCallSessionUpdate _$ToolCallSessionUpdateFromJson(
   Map<String, dynamic> json,
@@ -742,26 +918,6 @@ Map<String, dynamic> _$ToolCallSessionUpdateToJson(
   'status': _$ToolCallStatusEnumMap[instance.status],
   'title': instance.title,
   'toolCallId': instance.toolCallId,
-};
-
-const _$ToolKindEnumMap = {
-  ToolKind.read: 'read',
-  ToolKind.edit: 'edit',
-  ToolKind.delete: 'delete',
-  ToolKind.move: 'move',
-  ToolKind.search: 'search',
-  ToolKind.execute: 'execute',
-  ToolKind.think: 'think',
-  ToolKind.fetch: 'fetch',
-  ToolKind.switchMode: 'switch_mode',
-  ToolKind.other: 'other',
-};
-
-const _$ToolCallStatusEnumMap = {
-  ToolCallStatus.pending: 'pending',
-  ToolCallStatus.inProgress: 'in_progress',
-  ToolCallStatus.completed: 'completed',
-  ToolCallStatus.failed: 'failed',
 };
 
 ToolCallUpdateSessionUpdate _$ToolCallUpdateSessionUpdateFromJson(
