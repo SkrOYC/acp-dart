@@ -1,86 +1,243 @@
-# Research Summary: Creating a Dart SDK for the Agent Client Protocol (ACP)
+# Gap Analysis: Dart ACP SDK vs TypeScript Reference Implementation
 
-## 1. Overview
+## Executive Summary
 
-This document outlines the research and planning for creating a new Dart SDK for the Agent Client Protocol (ACP). The goal is to provide a robust and easy-to-use library for Dart developers to build ACP-compliant agents and clients. The plan is based on a thorough analysis of the existing TypeScript ACP implementation and research into the best practices and tools available in the Dart ecosystem.
+This gap analysis compares our Dart implementation of the Agent Client Protocol (ACP) against the official TypeScript reference implementation from Zed Industries. The analysis reveals strong architectural alignment with the reference, complete core functionality implementation, but significant gaps in examples, documentation, and project polish.
 
-## 2. Project Structure
+**Overall Assessment:** The Dart SDK is functionally complete and specification-compliant, representing a successful port of the ACP protocol. However, it lacks the examples and documentation needed for developer adoption.
 
-The project will follow the standard Dart package layout:
+## Methodology
 
+The analysis was conducted by:
+1. Exploring the TypeScript reference repository structure
+2. Comparing schema definitions between implementations
+3. Analyzing core ACP implementation classes and methods
+4. Evaluating stream handling mechanisms
+5. Examining example implementations
+6. Identifying missing features and potential over-engineering
+
+## Detailed Findings
+
+### 1. Project Structure Alignment
+
+**Reference Structure (TypeScript):**
 ```
-acp_dart/
-├── lib/
-│   ├── src/
-│   │   ├── acp.dart
-│   │   ├── schema.dart
-│   │   └── stream.dart
-│   └── acp_dart.dart
-├── test/
-│   ├── acp_test.dart
-│   └── schema_test.dart
-├── example/
-│   ├── agent.dart
-│   └── client.dart
-├── pubspec.yaml
-├── analysis_options.yaml
-└── README.md
+typescript/
+├── acp.ts (1284 lines) - Core implementation
+├── schema.ts (2447 lines) - Data structures
+├── stream.ts (87 lines) - NDJSON handling
+├── acp.test.ts (929 lines) - Comprehensive tests
+└── examples/
+    ├── agent.ts (275 lines) - Complete agent example
+    └── client.ts (166 lines) - Complete client example
 ```
 
-- **`lib/`**: The main source code of the library.
-- **`test/`**: Unit tests for the library.
-- **`example/`**: Example agent and client implementations.
-- **`pubspec.yaml`**: The package manifest, including dependencies.
-- **`analysis_options.yaml`**: Linter configuration.
-- **`README.md`**: Project documentation.
+**Our Structure (Dart):**
+```
+lib/src/
+├── acp.dart (865 lines) - Core implementation
+├── schema.dart (1038 lines) - Data structures
+├── stream.dart (97 lines) - NDJSON handling
+test/
+├── acp_test.dart (607 lines) - Comprehensive tests
+└── No examples directory
+```
 
-## 3. Core Components
+**Gap:** Missing examples directory with agent and client implementations.
 
-The SDK will be composed of the following core components, mirroring the structure of the TypeScript implementation:
+### 2. Schema Implementation Comparison
 
-### 3.1. Schema
+#### TypeScript Schema Features:
+- Uses TypeScript interfaces with Zod runtime validation
+- Comprehensive JSDoc documentation for all types
+- @internal annotations for implementation details
+- UNSTABLE markers for experimental features
+- Extensive protocol documentation links
 
--   **Description:** All ACP messages (requests, responses, notifications) will be defined as Dart classes. This will provide a strongly-typed API for developers.
--   **Implementation:** The `json_serializable` package will be used to automate the conversion of these Dart objects to and from JSON. Each class will be annotated with `@JsonSerializable()`, and the `build_runner` will be used to generate the necessary serialization/deserialization code. This approach will ensure that the Dart implementation is consistent with the ACP specification and easy to maintain.
+#### Dart Schema Features:
+- Uses classes with json_serializable annotations
+- Basic doc comments but limited detail
+- No @internal or UNSTABLE annotations
+- Same core types and structures
 
-### 3.2. Connections
+**Assessment:** Functionally equivalent but lacks documentation quality.
 
--   **Description:** The `AgentSideConnection` and `ClientSideConnection` classes will manage the communication logic for the agent and client, respectively. They will provide a high-level API for sending and receiving ACP messages.
--   **Implementation:** These classes will encapsulate the JSON-RPC communication over a stream. They will use the schema classes to serialize and deserialize messages.
+**Gap:** Missing comprehensive documentation and stability markers.
 
-### 3.3. Interfaces
+### 3. Core Implementation Comparison
 
--   **Description:** Abstract `Agent` and `Client` classes will define the methods that developers need to implement for their agents and clients. This will ensure that all agents and clients built with the SDK are compliant with the ACP specification.
--   **Implementation:** These will be abstract classes with methods corresponding to the ACP methods (e.g., `initialize`, `newSession`, `prompt`).
+#### Shared Classes:
+- `AgentSideConnection` / `ClientSideConnection`
+- `TerminalHandle`
+- `Connection` (base class)
+- `RequestError`
 
-### 3.4. Stream Handling
+#### Method Parity:
+- All ACP protocol methods implemented
+- Session management, file operations, terminal control
+- Authentication and permission handling
 
--   **Description:** A utility for handling newline-delimited JSON (NDJSON) streams will be implemented. This is the standard transport mechanism for ACP.
--   **Implementation:** This will be a Dart `StreamTransformer` that can be used to transform a raw byte stream into a stream of ACP messages.
+**Assessment:** Excellent alignment with reference implementation.
 
-## 4. Dependencies
+**Gap:** TypeScript has extensive JSDoc; Dart has minimal documentation.
 
-The following dependencies will be used:
+### 4. Stream Handling Comparison
 
--   **`json_annotation`**: Annotations for `json_serializable`.
--   **`json_serializable`**: (dev dependency) For generating JSON serialization/deserialization code.
--   **`build_runner`**: (dev dependency) For running code generators.
--   **`test`**: (dev dependency) For writing unit tests.
--   **`lints`**: (dev dependency) For code linting.
+#### TypeScript Stream Implementation:
+```typescript
+export function ndJsonStream(
+  output: WritableStream<Uint8Array>,
+  input: ReadableStream<Uint8Array>,
+): Stream
+```
+- Uses Web Streams API
+- Concise implementation (87 lines)
+- Direct stream transformation
 
-## 5. Development Plan
+#### Dart Stream Implementation:
+```dart
+AcpStream ndJsonStream(Stream<List<int>> input, StreamSink<List<int>> output)
+```
+- Uses Dart Stream API with StreamController
+- More verbose implementation (97 lines)
+- Custom `_NdJsonDecoder` class
 
-The development will proceed in the following phases:
+**Assessment:** Functionally equivalent but more complex in Dart.
 
-1.  **Project Setup:** Create the project structure and configure the dependencies.
-2.  **Schema Implementation:** Define all the ACP schema classes in Dart and generate the serialization code.
-3.  **Core Logic Implementation:** Implement the `Connection`, `AgentSideConnection`, `ClientSideConnection`, and `TerminalHandle` classes.
-4.  **Interface Definition:** Define the `Agent` and `Client` abstract classes.
-5.  **Stream Handling:** Implement the NDJSON stream transformer.
-6.  **Example Implementation:** Create the example agent and client.
-7.  **Testing:** Write comprehensive unit tests for all components.
-8.  **Documentation:** Write the `README.md` and API documentation.
+**Potential Over-engineering:** Dart implementation could be simplified to match TypeScript's approach.
 
-## 6. Conclusion
+### 5. Testing Coverage
 
-This plan provides a clear path forward for creating a high-quality Dart SDK for the Agent Client Protocol. By leveraging the existing TypeScript implementation and the best practices of the Dart ecosystem, we can create a library that is both powerful and easy to use.
+#### TypeScript Tests:
+- 929 lines of comprehensive tests
+- Covers all classes and methods
+- Mock implementations for testing
+
+#### Dart Tests:
+- 607 lines of tests
+- Covers core functionality
+- Mock classes present
+
+**Assessment:** Good test coverage in both, though TypeScript tests are more extensive.
+
+### 6. Examples Implementation
+
+#### TypeScript Examples:
+
+**Agent Example (275 lines):**
+- Complete `ExampleAgent` class implementing `acp.Agent`
+- Session management with abort controllers
+- Tool call simulation with permission requests
+- Real-time session updates
+- Proper error handling and cancellation
+
+**Client Example (166 lines):**
+- Complete `ExampleClient` class implementing `acp.Client`
+- Interactive permission handling with readline
+- Session update display formatting
+- Subprocess spawning of agent
+- Mock file operations
+
+#### Dart Examples:
+- **MISSING:** No example implementations exist
+
+**Critical Gap:** Complete absence of working examples demonstrating SDK usage.
+
+### 7. Documentation and Project Polish
+
+#### TypeScript Documentation:
+- Comprehensive README with usage examples
+- API documentation generation (typedoc.json)
+- Protocol documentation links throughout code
+- Clear installation and setup instructions
+
+#### Dart Documentation:
+- Generic template README
+- No API documentation generation
+- Limited inline documentation
+- Placeholder code in main library file
+
+**Critical Gaps:**
+- No proper README.md
+- No API documentation
+- Main library contains template code
+
+## Identified Gaps and Issues
+
+### High Priority Gaps:
+1. **Missing Example Agent** - No working example showing how to implement an ACP agent
+2. **Missing Example Client** - No working example showing how to implement an ACP client
+3. **Incomplete README** - Still contains generic Dart template text
+4. **No API Documentation** - Missing generated documentation for developers
+
+### Medium Priority Gaps:
+5. **Documentation Quality** - Limited doc comments compared to TypeScript's JSDoc
+6. **Main Library Cleanup** - Remove placeholder code from lib/acp_dart.dart
+
+### Low Priority Improvements:
+7. **Stream Simplification** - Consider simplifying stream implementation
+8. **Stability Markers** - Add annotations for internal/experimental APIs
+
+## Recommendations
+
+### Immediate Actions (Phase 3 Completion):
+1. **Implement Example Agent** - Port the TypeScript agent.ts to Dart
+2. **Implement Example Client** - Port the TypeScript client.ts to Dart
+3. **Write Comprehensive README** - Replace template with proper documentation
+4. **Generate API Documentation** - Set up dart doc generation
+
+### Code Quality Improvements:
+5. **Enhance Documentation** - Add detailed doc comments to all public APIs
+6. **Clean Up Main Library** - Export proper APIs instead of placeholder code
+7. **Consider Stream Refactor** - Evaluate simplifying stream implementation
+
+## Conclusion
+
+The Dart ACP SDK represents a technically sound implementation that faithfully follows the official TypeScript reference. The core protocol implementation is complete and functional, with comprehensive testing and proper architecture.
+
+However, the project cannot be considered production-ready for external developers due to the complete absence of examples and documentation. Completing Phase 3 tasks from the TODO.md will transform this into a fully usable SDK.
+
+## Post-Implementation Update: Medium Priority Gap Improvements
+
+Following the initial gap analysis, the following medium priority improvements have been implemented:
+
+### ✅ Completed Improvements
+
+#### 1. Main Library Cleanup
+- **Issue:** Main library file (`lib/acp_dart.dart`) contained placeholder code from Dart template
+- **Solution:** Replaced with proper library exports of all public ACP SDK APIs
+- **Impact:** Developers can now properly import and use the SDK without confusion
+
+#### 2. Documentation Quality Enhancement
+- **Issue:** Schema documentation was minimal compared to TypeScript reference
+- **Solution:** Added comprehensive doc comments to key enums and classes including:
+  - `Role` enum with detailed explanations and protocol links
+  - `ToolKind` and `ToolCallStatus` enums with usage guidance
+  - `PromptRequest` and `CreateTerminalRequest` classes with field documentation
+- **Impact:** Documentation now matches professional standards and provides clear guidance
+
+#### 3. Stream Implementation Review
+- **Issue:** Potential over-engineering in stream handling
+- **Solution:** Evaluated current implementation and confirmed it is appropriately designed for Dart's Stream API
+- **Impact:** Maintained robust NDJSON parsing with proper buffering and error recovery
+
+#### 4. Test Suite Maintenance
+- **Issue:** Placeholder test file causing build failures
+- **Solution:** Removed template test file, verified all remaining tests pass (57/57)
+- **Impact:** Clean test suite with 100% pass rate
+
+### Updated Gap Assessment
+
+**Remaining High Priority Gaps:**
+1. **Missing Example Agent** - No working example showing how to implement an ACP agent
+2. **Missing Example Client** - No working example showing how to implement an ACP client
+3. **Incomplete README** - Still contains generic Dart template text
+4. **No API Documentation** - Missing generated documentation for developers
+
+**Key Learnings:**
+- The core SDK architecture is sound and production-ready
+- Documentation improvements significantly enhance developer experience
+- Stream implementation complexity is justified for robust NDJSON handling
+- Test suite maintenance is crucial for reliable builds
+
+**Next Steps:** Prioritize implementing the example agent and client, then focus on documentation to enable developer adoption.
