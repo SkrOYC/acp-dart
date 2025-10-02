@@ -88,6 +88,6 @@ This document breaks down the tasks required to build the Dart SDK for the Agent
     - **Description:** Write the main `README.md` for the project, including an overview, installation instructions, and usage examples.
     - **Reference:** [`typescript/README.md`](https://github.com/zed-industries/agent-client-protocol/blob/main/typescript/README.md)
 
-- [ ] **Task 3.4: Generate API Documentation**
+- [x] **Task 3.4: Generate API Documentation**
     - **Description:** Use `dart doc` to generate API documentation for the library.
     - **Reference:** N/A (Dart ecosystem tooling)
