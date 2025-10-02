@@ -89,7 +89,7 @@ void main() {
           'code': -32602,
           'message': 'Invalid params',
           'data': {'field': 'required'},
-        }
+        },
       });
     });
 
@@ -109,16 +109,10 @@ void main() {
     });
 
     test('ErrorResponse without data serializes correctly', () {
-      final response = ErrorResponse(
-        code: -32603,
-        message: 'Internal error',
-      );
+      final response = ErrorResponse(code: -32603, message: 'Internal error');
 
       final json = response.toJson();
-      expect(json, {
-        'code': -32603,
-        'message': 'Internal error',
-      });
+      expect(json, {'code': -32603, 'message': 'Internal error'});
 
       final decoded = ErrorResponse.fromJson(json);
       expect(decoded.data, isNull);
@@ -141,7 +135,9 @@ void main() {
       );
 
       // Send a request
-      final future = connection.sendRequest<String>('test.method', {'param': 'value'});
+      final future = connection.sendRequest<String>('test.method', {
+        'param': 'value',
+      });
 
       // Simulate receiving the request and sending response
       await Future.delayed(Duration.zero); // Let the message be sent
@@ -211,6 +207,9 @@ void main() {
         (method, params) async => print('notification: $method'),
         acpStream,
       );
+      // ignore: unused_local_variable
+      final _ =
+          connection; // Connection is used for its side effects (message handlers)
 
       // Send a request message
       readableController.add({
@@ -245,6 +244,9 @@ void main() {
         (method, params) async => print('notification: $method'),
         acpStream,
       );
+      // ignore: unused_local_variable
+      final _ =
+          connection; // Connection is used for its side effects (message handlers)
 
       // Send a notification message
       readableController.add({
@@ -279,10 +281,14 @@ void main() {
       );
 
       final errorConnection = Connection(
-        (method, params) async => throw RequestError.methodNotFound('bad.method'),
+        (method, params) async =>
+            throw RequestError.methodNotFound('bad.method'),
         (method, params) async {},
         acpStream,
       );
+      // ignore: unused_local_variable
+      final _ =
+          errorConnection; // Connection is used for its side effects (message handlers)
 
       // Send a request that will error
       readableController.add({
@@ -392,7 +398,11 @@ void main() {
 
     setUp(() {
       mockConnection = MockConnection();
-      terminalHandle = TerminalHandle('terminal-123', 'test-session', mockConnection);
+      terminalHandle = TerminalHandle(
+        'terminal-123',
+        'test-session',
+        mockConnection,
+      );
     });
 
     test('constructor sets id, sessionId and connection', () {
@@ -466,10 +476,7 @@ class MockAgent implements Agent {
   Future<InitializeResponse> initialize(InitializeRequest params) async {
     return InitializeResponse(
       protocolVersion: '1',
-      capabilities: AgentCapabilities(
-        loadSession: true,
-        auth: [],
-      ),
+      capabilities: AgentCapabilities(loadSession: true, auth: []),
     );
   }
 
@@ -497,12 +504,16 @@ class MockAgent implements Agent {
   }
 
   @override
-  Future<SetSessionModeResponse?>? setSessionMode(SetSessionModeRequest params) async {
+  Future<SetSessionModeResponse?>? setSessionMode(
+    SetSessionModeRequest params,
+  ) async {
     return SetSessionModeResponse();
   }
 
   @override
-  Future<AuthenticateResponse?>? authenticate(AuthenticateRequest params) async {
+  Future<AuthenticateResponse?>? authenticate(
+    AuthenticateRequest params,
+  ) async {
     return AuthenticateResponse();
   }
 
@@ -517,12 +528,18 @@ class MockAgent implements Agent {
   }
 
   @override
-  Future<Map<String, dynamic>>? extMethod(String method, Map<String, dynamic> params) async {
+  Future<Map<String, dynamic>>? extMethod(
+    String method,
+    Map<String, dynamic> params,
+  ) async {
     return {'result': 'mock'};
   }
 
   @override
-  Future<void>? extNotification(String method, Map<String, dynamic> params) async {
+  Future<void>? extNotification(
+    String method,
+    Map<String, dynamic> params,
+  ) async {
     // Mock implementation
   }
 }
@@ -530,7 +547,9 @@ class MockAgent implements Agent {
 /// Mock client implementation for testing
 class MockClient implements Client {
   @override
-  Future<RequestPermissionResponse> requestPermission(RequestPermissionRequest params) async {
+  Future<RequestPermissionResponse> requestPermission(
+    RequestPermissionRequest params,
+  ) async {
     return RequestPermissionResponse(optionId: 'yes');
   }
 
@@ -540,7 +559,9 @@ class MockClient implements Client {
   }
 
   @override
-  Future<WriteTextFileResponse> writeTextFile(WriteTextFileRequest params) async {
+  Future<WriteTextFileResponse> writeTextFile(
+    WriteTextFileRequest params,
+  ) async {
     return WriteTextFileResponse();
   }
 
@@ -550,37 +571,53 @@ class MockClient implements Client {
   }
 
   @override
-  Future<CreateTerminalResponse>? createTerminal(CreateTerminalRequest params) async {
+  Future<CreateTerminalResponse>? createTerminal(
+    CreateTerminalRequest params,
+  ) async {
     return CreateTerminalResponse(terminalId: 'mock-terminal');
   }
 
   @override
-  Future<TerminalOutputResponse>? terminalOutput(TerminalOutputRequest params) async {
+  Future<TerminalOutputResponse>? terminalOutput(
+    TerminalOutputRequest params,
+  ) async {
     return TerminalOutputResponse();
   }
 
   @override
-  Future<ReleaseTerminalResponse?>? releaseTerminal(ReleaseTerminalRequest params) async {
+  Future<ReleaseTerminalResponse?>? releaseTerminal(
+    ReleaseTerminalRequest params,
+  ) async {
     return ReleaseTerminalResponse();
   }
 
   @override
-  Future<WaitForTerminalExitResponse>? waitForTerminalExit(WaitForTerminalExitRequest params) async {
+  Future<WaitForTerminalExitResponse>? waitForTerminalExit(
+    WaitForTerminalExitRequest params,
+  ) async {
     return WaitForTerminalExitResponse(exitCode: 0);
   }
 
   @override
-  Future<KillTerminalResponse?>? killTerminal(KillTerminalCommandRequest params) async {
+  Future<KillTerminalResponse?>? killTerminal(
+    KillTerminalCommandRequest params,
+  ) async {
     return KillTerminalResponse();
   }
 
   @override
-  Future<Map<String, dynamic>>? extMethod(String method, Map<String, dynamic> params) async {
+  Future<Map<String, dynamic>>? extMethod(
+    String method,
+    Map<String, dynamic> params,
+  ) async {
     return {'result': 'mock'};
   }
 
   @override
-  Future<void>? extNotification(String method, Map<String, dynamic> params) async {
+  Future<void>? extNotification(
+    String method,
+    Map<String, dynamic> params,
+  ) async {
     // Mock implementation
   }
 }

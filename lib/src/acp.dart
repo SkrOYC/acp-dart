@@ -189,7 +189,7 @@ class Connection {
 
     try {
       final result = await _requestHandler(method, params);
-      _sendMessage({'jsonrpc': '2.0', 'id': id, 'result': result ?? null});
+      _sendMessage({'jsonrpc': '2.0', 'id': id, 'result': result});
     } catch (error) {
       late Map<String, dynamic> errorResponse;
       if (error is RequestError) {
@@ -384,30 +384,25 @@ class AgentSideConnection implements Client {
           );
           return agent.newSession(validatedParams);
         case 'session/load':
-          if (agent.loadSession == null) {
-            throw RequestError.methodNotFound(method);
-          }
           final validatedParams = LoadSessionRequest.fromJson(
             params as Map<String, dynamic>,
           );
-          return agent.loadSession!(validatedParams);
-        case 'session/set_mode':
-          if (agent.setSessionMode == null) {
+          final result = await agent.loadSession(validatedParams);
+          if (result == null) {
             throw RequestError.methodNotFound(method);
           }
+          return result;
+        case 'session/set_mode':
           final validatedParams = SetSessionModeRequest.fromJson(
             params as Map<String, dynamic>,
           );
-          final result = await agent.setSessionMode!(validatedParams);
+          final result = await agent.setSessionMode(validatedParams);
           return result ?? {};
         case 'authenticate':
-          if (agent.authenticate == null) {
-            throw RequestError.methodNotFound(method);
-          }
           final validatedParams = AuthenticateRequest.fromJson(
             params as Map<String, dynamic>,
           );
-          final result = await agent.authenticate!(validatedParams);
+          final result = await agent.authenticate(validatedParams);
           return result ?? {};
         case 'session/prompt':
           final validatedParams = PromptRequest.fromJson(
@@ -416,13 +411,14 @@ class AgentSideConnection implements Client {
           return agent.prompt(validatedParams);
         default:
           if (method.startsWith('_')) {
-            if (agent.extMethod == null) {
-              throw RequestError.methodNotFound(method);
-            }
-            return agent.extMethod!(
+            final result = await agent.extMethod(
               method.substring(1),
               params as Map<String, dynamic>,
             );
+            if (result == null) {
+              throw RequestError.methodNotFound(method);
+            }
+            return result;
           }
           throw RequestError.methodNotFound(method);
       }
@@ -437,10 +433,7 @@ class AgentSideConnection implements Client {
           return agent.cancel(validatedParams);
         default:
           if (method.startsWith('_')) {
-            if (agent.extNotification == null) {
-              return;
-            }
-            return agent.extNotification!(
+            await agent.extNotification(
               method.substring(1),
               params as Map<String, dynamic>,
             );
@@ -605,56 +598,54 @@ class ClientSideConnection implements Agent {
           );
           return client.requestPermission(validatedParams);
         case 'terminal/create':
-          if (client.createTerminal == null) {
-            throw RequestError.methodNotFound(method);
-          }
           final validatedParams = CreateTerminalRequest.fromJson(
             params as Map<String, dynamic>,
           );
-          return client.createTerminal!(validatedParams);
-        case 'terminal/output':
-          if (client.terminalOutput == null) {
+          final result = await client.createTerminal(validatedParams);
+          if (result == null) {
             throw RequestError.methodNotFound(method);
           }
+          return result;
+        case 'terminal/output':
           final validatedParams = TerminalOutputRequest.fromJson(
             params as Map<String, dynamic>,
           );
-          return client.terminalOutput!(validatedParams);
-        case 'terminal/release':
-          if (client.releaseTerminal == null) {
+          final result = await client.terminalOutput(validatedParams);
+          if (result == null) {
             throw RequestError.methodNotFound(method);
           }
+          return result;
+        case 'terminal/release':
           final validatedParams = ReleaseTerminalRequest.fromJson(
             params as Map<String, dynamic>,
           );
-          final result = await client.releaseTerminal!(validatedParams);
+          final result = await client.releaseTerminal(validatedParams);
           return result ?? {};
         case 'terminal/wait_for_exit':
-          if (client.waitForTerminalExit == null) {
-            throw RequestError.methodNotFound(method);
-          }
           final validatedParams = WaitForTerminalExitRequest.fromJson(
             params as Map<String, dynamic>,
           );
-          return client.waitForTerminalExit!(validatedParams);
-        case 'terminal/kill':
-          if (client.killTerminal == null) {
+          final result = await client.waitForTerminalExit(validatedParams);
+          if (result == null) {
             throw RequestError.methodNotFound(method);
           }
+          return result;
+        case 'terminal/kill':
           final validatedParams = KillTerminalCommandRequest.fromJson(
             params as Map<String, dynamic>,
           );
-          final result = await client.killTerminal!(validatedParams);
+          final result = await client.killTerminal(validatedParams);
           return result ?? {};
         default:
           if (method.startsWith('_')) {
-            if (client.extMethod == null) {
-              throw RequestError.methodNotFound(method);
-            }
-            return client.extMethod!(
+            final result = await client.extMethod(
               method.substring(1),
               params as Map<String, dynamic>,
             );
+            if (result == null) {
+              throw RequestError.methodNotFound(method);
+            }
+            return result;
           }
           throw RequestError.methodNotFound(method);
       }
@@ -669,10 +660,7 @@ class ClientSideConnection implements Agent {
           return client.sessionUpdate(validatedParams);
         default:
           if (method.startsWith('_')) {
-            if (client.extNotification == null) {
-              return;
-            }
-            return client.extNotification!(
+            await client.extNotification(
               method.substring(1),
               params as Map<String, dynamic>,
             );
