@@ -36,7 +36,7 @@ This document breaks down the tasks required to build the Dart SDK for the Agent
     - **Description:** Run `dart run build_runner build --delete-conflicting-outputs` to generate the `*.g.dart` files for all schema classes.
     - **Reference:** N/A (Dart ecosystem tooling)
 
-- [ ] **Task 1.9: Write Schema Unit Tests**
+- [X] **Task 1.9: Write Schema Unit Tests**
     - **Description:** In `test/schema_test.dart`, write unit tests to verify the JSON serialization and deserialization of all schema classes.
     - **Reference:** [`typescript/acp.test.ts`](https://github.com/zed-industries/agent-client-protocol/blob/main/typescript/acp.test.ts)
 
