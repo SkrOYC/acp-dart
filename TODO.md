@@ -66,7 +66,7 @@ This document breaks down the tasks required to build the Dart SDK for the Agent
   - **Description:** In `lib/src/acp.dart`, implement the `ClientSideConnection` class.
   - **Reference:** [`typescript/acp.ts`](https://github.com/zed-industries/agent-client-protocol/blob/main/typescript/acp.ts) (see `ClientSideConnection` class).
 
-- [ ] **Task 2.7: Implement `TerminalHandle`**
+- [X] **Task 2.7: Implement `TerminalHandle`**
     - **Description:** In `lib/src/acp.dart`, implement the `TerminalHandle` class.
     - **Reference:** [`typescript/acp.ts`](https://github.com/zed-industries/agent-client-protocol/blob/main/typescript/acp.ts) (see `TerminalHandle` class).
 

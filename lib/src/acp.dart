@@ -505,6 +505,11 @@ class AgentSideConnection implements Client {
   Future<void>? extNotification(String method, Map<String, dynamic> params) async {
     return _connection.sendNotification('_$method', params);
   }
+
+  @override
+  Future<void>? extNotification(String method, Map<String, dynamic> params) async {
+    return _connection.sendNotification('_$method', params);
+  }
 }
 
 /// A client-side connection to an agent.
@@ -762,4 +767,116 @@ abstract class Agent {
     String method,
     Map<String, dynamic> params,
   );
+}
+  /// Extension notification
+  ///
+  /// Allows the Client to send an arbitrary notification that is not part of the ACP spec.
+  Future<void>? extNotification(
+    String method,
+    Map<String, dynamic> params,
+  );
+}
+
+/// A handle for managing terminal operations within a session.
+///
+/// This class provides methods to interact with a terminal created by an agent,
+/// including getting output, waiting for completion, killing processes, and
+/// releasing resources.
+///
+/// Terminal handles are typically created by agents and provided to clients
+/// for terminal management operations.
+class TerminalHandle {
+  /// The unique identifier for this terminal instance.
+  final String id;
+
+  /// Private session identifier for routing requests.
+  final String _sessionId;
+
+  /// The connection used to send terminal-related requests.
+  final Connection _connection;
+
+  /// Creates a new terminal handle.
+  ///
+  /// [id] - The unique terminal identifier
+  /// [sessionId] - The session this terminal belongs to
+  /// [connection] - The connection for sending requests
+  TerminalHandle(this.id, this._sessionId, this._connection);
+
+  /// Gets the current terminal output without waiting for the command to exit.
+  ///
+  /// Returns the current stdout, stderr, and exit status if the command
+  /// has already completed.
+  Future<TerminalOutputResponse> currentOutput() async {
+    final result = await _connection.sendRequest(
+      clientMethods['terminalOutput']!,
+      {
+        'sessionId': _sessionId,
+        'terminalId': id,
+      },
+    );
+    return TerminalOutputResponse.fromJson(result as Map<String, dynamic>);
+  }
+
+  /// Waits for the terminal command to complete and returns its exit status.
+  ///
+  /// This method blocks until the command finishes execution, then returns
+  /// the exit code that indicates the command's success or failure.
+  Future<WaitForTerminalExitResponse> waitForExit() async {
+    final result = await _connection.sendRequest(
+      clientMethods['terminalWaitForExit']!,
+      {
+        'sessionId': _sessionId,
+        'terminalId': id,
+      },
+    );
+    return WaitForTerminalExitResponse.fromJson(result as Map<String, dynamic>);
+  }
+
+  /// Kills the terminal command without releasing the terminal.
+  ///
+  /// The terminal remains valid after killing, allowing you to:
+  /// - Get the final output with `currentOutput()`
+  /// - Check the exit status
+  /// - Release the terminal when done
+  ///
+  /// Useful for implementing timeouts or cancellation.
+  Future<KillTerminalResponse> kill() async {
+    final result = await _connection.sendRequest(
+      clientMethods['terminalKill']!,
+      {
+        'sessionId': _sessionId,
+        'terminalId': id,
+      },
+    );
+    return KillTerminalResponse.fromJson(result as Map<String, dynamic>);
+  }
+
+  /// Releases the terminal and frees all associated resources.
+  ///
+  /// If the command is still running, it will be killed.
+  /// After release, the terminal ID becomes invalid and cannot be used
+  /// with other terminal methods.
+  ///
+  /// Tool calls that already reference this terminal will continue to
+  /// display its output.
+  ///
+  /// **Important:** Always call this method when done with the terminal.
+  Future<ReleaseTerminalResponse> release() async {
+    final result = await _connection.sendRequest(
+      clientMethods['terminalRelease']!,
+      {
+        'sessionId': _sessionId,
+        'terminalId': id,
+      },
+    );
+    return ReleaseTerminalResponse.fromJson(result as Map<String, dynamic>);
+  }
+
+  /// Disposes of the terminal handle and releases resources.
+  ///
+  /// This is the Dart equivalent of TypeScript's [Symbol.asyncDispose].
+  /// It ensures proper cleanup by calling release().
+  Future<void> dispose() async {
+    await release();
+  }
 }
