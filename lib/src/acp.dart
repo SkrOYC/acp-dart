@@ -1,5 +1,7 @@
 /// Error response for JSON-RPC 2.0
 
+library acp;
+
 import 'dart:async';
 
 import 'package:acp_dart/src/schema.dart';

@@ -6,7 +6,7 @@ import 'dart:convert';
 /// This type powers the bidirectional communication for an ACP connection,
 /// providing readable and writable streams of messages.
 ///
-/// The most common way to create an AcpStream is using [ndJsonStream].
+/// The most common way to create an `AcpStream` is using `ndJsonStream`.
 class AcpStream {
   final Stream<Map<String, dynamic>> readable;
   final StreamSink<Map<String, dynamic>> writable;
@@ -17,10 +17,10 @@ class AcpStream {
 /// Creates an ACP Stream from a pair of newline-delimited JSON streams.
 ///
 /// This is the typical way to handle ACP connections over stdio, converting
-/// between Map<String, dynamic> objects and newline-delimited JSON.
+/// between `Map<String, dynamic>` objects and newline-delimited JSON.
 ///
-/// [input] - The readable stream to receive encoded messages from
-/// [output] - The writable stream to send encoded messages to
+/// `input` - The readable stream to receive encoded messages from
+/// `output` - The writable stream to send encoded messages to
 /// Returns an AcpStream for bidirectional ACP communication
 AcpStream ndJsonStream(Stream<List<int>> input, StreamSink<List<int>> output) {
   // Create readable stream: transform bytes to messages
@@ -43,7 +43,7 @@ AcpStream ndJsonStream(Stream<List<int>> input, StreamSink<List<int>> output) {
   // Listen to messages and encode them to NDJSON
   writableController.stream.listen(
     (message) {
-      final jsonString = jsonEncode(message) + '\n';
+      final jsonString = '${jsonEncode(message)}\n';
       final bytes = utf8.encode(jsonString);
       output.add(bytes);
     },
@@ -59,7 +59,7 @@ AcpStream ndJsonStream(Stream<List<int>> input, StreamSink<List<int>> output) {
   return AcpStream(readable: readable, writable: writable);
 }
 
-/// Decoder that converts NDJSON bytes to Map<String, dynamic> messages
+/// Decoder that converts NDJSON bytes to `Map<String, dynamic>` messages
 class _NdJsonDecoder {
   String _buffer = '';
 

@@ -19,6 +19,8 @@
 ///
 /// For detailed protocol information, see: https://agentclientprotocol.com/
 
+library acp_dart;
+
 export 'src/acp.dart'
     show
         Agent,

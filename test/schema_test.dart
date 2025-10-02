@@ -46,8 +46,8 @@ void main() {
       expect(decoded.capabilities.prompt?.sessionModes.first,
           original.capabilities.prompt?.sessionModes.first);
       expect(decoded.capabilities.loadSession, original.capabilities.loadSession);
-      expect(decoded.capabilities.auth?.first.method,
-          original.capabilities.auth?.first.method);
+      expect(decoded.capabilities.auth.first.method,
+          original.capabilities.auth.first.method);
     });
 
     test('AuthenticateRequest can be serialized and deserialized', () {

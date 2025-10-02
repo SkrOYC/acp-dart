@@ -19,7 +19,7 @@ void main() {
       ];
 
       // Send NDJSON data
-      final ndjson = messages.map((m) => jsonEncode(m)).join('\n') + '\n';
+      final ndjson = '${messages.map((m) => jsonEncode(m)).join('\n')}\n';
       inputController.add(utf8.encode(ndjson));
       inputController.close();
 
@@ -75,7 +75,7 @@ void main() {
       final message = {'jsonrpc': '2.0', 'id': 1, 'method': 'test'};
       final jsonStr = jsonEncode(message);
       final chunk1 = jsonStr.substring(0, 10);
-      final chunk2 = jsonStr.substring(10) + '\n';
+      final chunk2 = '${jsonStr.substring(10)}\n';
 
       inputController.add(utf8.encode(chunk1));
       inputController.add(utf8.encode(chunk2));
@@ -105,7 +105,7 @@ void main() {
         {'jsonrpc': '2.0', 'id': 2, 'method': 'test2'},
       ];
 
-      final ndjson = messages.map(jsonEncode).join('\n') + '\n';
+      final ndjson = '${messages.map(jsonEncode).join('\n')}\n';
       inputController.add(utf8.encode(ndjson));
       inputController.close();
 
