@@ -1,5 +1,5 @@
 name: acp_dart
-description: A sample command-line application.
+description: A Dart implementation of the Agent-Client Protocol (ACP) for building AI-powered applications.
 version: 0.1.0
 repository: https://github.com/SkrOYC/acp-dart
 
