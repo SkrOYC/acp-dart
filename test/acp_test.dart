@@ -475,7 +475,7 @@ class MockAgent implements Agent {
   @override
   Future<InitializeResponse> initialize(InitializeRequest params) async {
     return InitializeResponse(
-      protocolVersion: '1',
+      protocolVersion: 1.0,
       capabilities: AgentCapabilities(loadSession: true, auth: []),
     );
   }

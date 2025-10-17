@@ -7,6 +7,7 @@ void main() {
   group('Schema', () {
     test('InitializeRequest can be serialized and deserialized', () {
       final original = InitializeRequest(
+        protocolVersion: 1.0,
         capabilities: ClientCapabilities(
           fs: FileSystemCapability(readTextFile: true, writeTextFile: true),
         ),
@@ -29,7 +30,7 @@ void main() {
 
     test('InitializeResponse can be serialized and deserialized', () {
       final original = InitializeResponse(
-        protocolVersion: '1.0.0',
+        protocolVersion: 1.0,
         capabilities: AgentCapabilities(
           mcp: McpCapabilities(versions: ['1.0']),
           prompt: PromptCapabilities(sessionModes: ['test-mode']),
@@ -45,20 +46,20 @@ void main() {
 
       expect(decoded.protocolVersion, original.protocolVersion);
       expect(
-        decoded.capabilities.mcp?.versions,
-        original.capabilities.mcp?.versions,
+        decoded.capabilities?.mcp?.versions,
+        original.capabilities?.mcp?.versions,
       );
       expect(
-        decoded.capabilities.prompt?.sessionModes.first,
-        original.capabilities.prompt?.sessionModes.first,
+        decoded.capabilities?.prompt?.sessionModes.first,
+        original.capabilities?.prompt?.sessionModes.first,
       );
       expect(
-        decoded.capabilities.loadSession,
-        original.capabilities.loadSession,
+        decoded.capabilities?.loadSession,
+        original.capabilities?.loadSession,
       );
       expect(
-        decoded.capabilities.auth.first.method,
-        original.capabilities.auth.first.method,
+        decoded.capabilities?.auth.first.method,
+        original.capabilities?.auth.first.method,
       );
     });
 
@@ -216,10 +217,10 @@ void main() {
 
       expect(decoded.sessionId, original.sessionId);
       expect(
-        decoded.modes.available.first.id,
-        original.modes.available.first.id,
+        decoded.modes?.available.first.id,
+        original.modes?.available.first.id,
       );
-      expect(decoded.modes.current, original.modes.current);
+      expect(decoded.modes?.current, original.modes?.current);
       expect(
         decoded.models?.available.first.id,
         original.models?.available.first.id,
@@ -252,8 +253,7 @@ void main() {
     test('PromptRequest can be serialized and deserialized', () {
       final original = PromptRequest(
         sessionId: 'test-session-id',
-        text: 'Hello, agent!',
-        content: [TextContentBlock(text: 'Hello, agent!')],
+        prompt: [TextContentBlock(text: 'Hello, agent!')],
       );
 
       final json = jsonEncode(original.toJson());
@@ -262,8 +262,7 @@ void main() {
       );
 
       expect(decoded.sessionId, original.sessionId);
-      expect(decoded.text, original.text);
-      expect(decoded.content, original.content);
+      expect(decoded.prompt, original.prompt);
     });
 
     test('RequestPermissionRequest can be serialized and deserialized', () {

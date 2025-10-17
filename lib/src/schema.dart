@@ -145,8 +145,10 @@ class AuthenticateRequest {
 class NewSessionRequest {
   final McpServer? mcp;
   final Stdio? stdio;
+  final String? cwd; // Required by backend
+  final List<dynamic>? mcpServers; // Required by backend
 
-  NewSessionRequest({this.mcp, this.stdio});
+  NewSessionRequest({this.mcp, this.stdio, this.cwd, this.mcpServers});
 
   factory NewSessionRequest.fromJson(Map<String, dynamic> json) =>
       _$NewSessionRequestFromJson(json);
@@ -241,12 +243,9 @@ class PromptRequest {
   /// The ID of the session this prompt belongs to
   final String sessionId;
 
-  /// Optional plain text prompt (deprecated in favor of content)
-  final String? text;
-
   /// Structured content blocks representing the user's message
   @ContentBlockConverter()
-  final List<ContentBlock>? content;
+  final List<ContentBlock>? prompt;
 
   /// Tools available for the agent to use during this prompt
   final List<ToolCall>? tools;
@@ -258,7 +257,7 @@ class PromptRequest {
   /// stop reason and any generated content or tool calls.
   ///
   /// See protocol docs: [User Message](https://agentclientprotocol.com/protocol/prompt-turn#1-user-message)
-  PromptRequest({required this.sessionId, this.text, this.content, this.tools});
+  PromptRequest({required this.sessionId, this.prompt, this.tools});
 
   factory PromptRequest.fromJson(Map<String, dynamic> json) =>
       _$PromptRequestFromJson(json);
@@ -728,12 +727,12 @@ class AuthenticateResponse {
 @JsonSerializable()
 class NewSessionResponse {
   final String sessionId;
-  final SessionModeState modes;
+  final SessionModeState? modes;
   final SessionModelState? models;
 
   NewSessionResponse({
     required this.sessionId,
-    required this.modes,
+    this.modes,
     this.models,
   });
 
@@ -830,7 +829,7 @@ class SetSessionModeResponse {
 
 @JsonSerializable()
 class PromptResponse {
-  final bool done;
+  final bool? done;
 
   PromptResponse({required this.done});
 
@@ -1208,9 +1207,9 @@ class AgentMessageChunkSessionUpdate extends SessionUpdate {
 @JsonSerializable()
 class AgentThoughtChunkSessionUpdate extends SessionUpdate {
   @ContentBlockConverter()
-  final ContentBlock content;
+  final ContentBlock? content;
 
-  AgentThoughtChunkSessionUpdate({required this.content});
+  AgentThoughtChunkSessionUpdate({this.content});
 
   factory AgentThoughtChunkSessionUpdate.fromJson(Map<String, dynamic> json) =>
       _$AgentThoughtChunkSessionUpdateFromJson(json);
@@ -1314,6 +1313,27 @@ class CurrentModeUpdateSessionUpdate extends SessionUpdate {
       _$CurrentModeUpdateSessionUpdateFromJson(json);
 
   Map<String, dynamic> toJson() => _$CurrentModeUpdateSessionUpdateToJson(this);
+}
+
+@JsonSerializable()
+class SessionStopSessionUpdate extends SessionUpdate {
+  final String reason;
+
+  SessionStopSessionUpdate({required this.reason});
+
+  factory SessionStopSessionUpdate.fromJson(Map<String, dynamic> json) =>
+      _$SessionStopSessionUpdateFromJson(json);
+
+  Map<String, dynamic> toJson() => _$SessionStopSessionUpdateToJson(this);
+}
+
+@JsonSerializable()
+class UnknownSessionUpdate extends SessionUpdate {
+  final Map<String, dynamic> rawJson;
+  UnknownSessionUpdate({required this.rawJson});
+  factory UnknownSessionUpdate.fromJson(Map<String, dynamic> json) =>
+      _$UnknownSessionUpdateFromJson(json);
+  Map<String, dynamic> toJson() => _$UnknownSessionUpdateToJson(this);
 }
 
 /// Protocol method constants for agent-side requests

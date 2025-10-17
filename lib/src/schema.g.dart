@@ -62,10 +62,17 @@ NewSessionRequest _$NewSessionRequestFromJson(Map<String, dynamic> json) =>
       stdio: json['stdio'] == null
           ? null
           : Stdio.fromJson(json['stdio'] as Map<String, dynamic>),
+      cwd: json['cwd'] as String?,
+      mcpServers: json['mcpServers'] as List<dynamic>?,
     );
 
 Map<String, dynamic> _$NewSessionRequestToJson(NewSessionRequest instance) =>
-    <String, dynamic>{'mcp': instance.mcp, 'stdio': instance.stdio};
+    <String, dynamic>{
+      'mcp': instance.mcp,
+      'stdio': instance.stdio,
+      'cwd': instance.cwd,
+      'mcpServers': instance.mcpServers,
+    };
 
 McpServer _$McpServerFromJson(Map<String, dynamic> json) => McpServer(
   host: json['host'] as String,
@@ -124,8 +131,7 @@ Map<String, dynamic> _$SetSessionModeRequestToJson(
 PromptRequest _$PromptRequestFromJson(Map<String, dynamic> json) =>
     PromptRequest(
       sessionId: json['sessionId'] as String,
-      text: json['text'] as String?,
-      content: (json['content'] as List<dynamic>?)
+      prompt: (json['prompt'] as List<dynamic>?)
           ?.map(
             (e) => const ContentBlockConverter().fromJson(
               e as Map<String, dynamic>,
@@ -137,15 +143,13 @@ PromptRequest _$PromptRequestFromJson(Map<String, dynamic> json) =>
           .toList(),
     );
 
-Map<String, dynamic> _$PromptRequestToJson(PromptRequest instance) =>
-    <String, dynamic>{
-      'sessionId': instance.sessionId,
-      'text': instance.text,
-      'content': instance.content
-          ?.map(const ContentBlockConverter().toJson)
-          .toList(),
-      'tools': instance.tools,
-    };
+Map<String, dynamic> _$PromptRequestToJson(
+  PromptRequest instance,
+) => <String, dynamic>{
+  'sessionId': instance.sessionId,
+  'prompt': instance.prompt?.map(const ContentBlockConverter().toJson).toList(),
+  'tools': instance.tools,
+};
 
 TextContentBlock _$TextContentBlockFromJson(Map<String, dynamic> json) =>
     TextContentBlock(
@@ -507,7 +511,9 @@ Map<String, dynamic> _$AuthenticateResponseToJson(
 NewSessionResponse _$NewSessionResponseFromJson(Map<String, dynamic> json) =>
     NewSessionResponse(
       sessionId: json['sessionId'] as String,
-      modes: SessionModeState.fromJson(json['modes'] as Map<String, dynamic>),
+      modes: json['modes'] == null
+          ? null
+          : SessionModeState.fromJson(json['modes'] as Map<String, dynamic>),
       models: json['models'] == null
           ? null
           : SessionModelState.fromJson(json['models'] as Map<String, dynamic>),
@@ -609,7 +615,7 @@ Map<String, dynamic> _$SetSessionModeResponseToJson(
 ) => <String, dynamic>{};
 
 PromptResponse _$PromptResponseFromJson(Map<String, dynamic> json) =>
-    PromptResponse(done: json['done'] as bool);
+    PromptResponse(done: json['done'] as bool?);
 
 Map<String, dynamic> _$PromptResponseToJson(PromptResponse instance) =>
     <String, dynamic>{'done': instance.done};
@@ -887,16 +893,30 @@ Map<String, dynamic> _$AgentMessageChunkSessionUpdateToJson(
 AgentThoughtChunkSessionUpdate _$AgentThoughtChunkSessionUpdateFromJson(
   Map<String, dynamic> json,
 ) => AgentThoughtChunkSessionUpdate(
-  content: const ContentBlockConverter().fromJson(
-    json['content'] as Map<String, dynamic>,
+  content: _$JsonConverterFromJson<Map<String, dynamic>, ContentBlock>(
+    json['content'],
+    const ContentBlockConverter().fromJson,
   ),
 );
 
 Map<String, dynamic> _$AgentThoughtChunkSessionUpdateToJson(
   AgentThoughtChunkSessionUpdate instance,
 ) => <String, dynamic>{
-  'content': const ContentBlockConverter().toJson(instance.content),
+  'content': _$JsonConverterToJson<Map<String, dynamic>, ContentBlock>(
+    instance.content,
+    const ContentBlockConverter().toJson,
+  ),
 };
+
+Value? _$JsonConverterFromJson<Json, Value>(
+  Object? json,
+  Value? Function(Json json) fromJson,
+) => json == null ? null : fromJson(json as Json);
+
+Json? _$JsonConverterToJson<Json, Value>(
+  Value? value,
+  Json? Function(Value value) toJson,
+) => value == null ? null : toJson(value);
 
 ToolCallSessionUpdate _$ToolCallSessionUpdateFromJson(
   Map<String, dynamic> json,
@@ -1001,3 +1021,19 @@ CurrentModeUpdateSessionUpdate _$CurrentModeUpdateSessionUpdateFromJson(
 Map<String, dynamic> _$CurrentModeUpdateSessionUpdateToJson(
   CurrentModeUpdateSessionUpdate instance,
 ) => <String, dynamic>{'currentModeId': instance.currentModeId};
+
+SessionStopSessionUpdate _$SessionStopSessionUpdateFromJson(
+  Map<String, dynamic> json,
+) => SessionStopSessionUpdate(reason: json['reason'] as String);
+
+Map<String, dynamic> _$SessionStopSessionUpdateToJson(
+  SessionStopSessionUpdate instance,
+) => <String, dynamic>{'reason': instance.reason};
+
+UnknownSessionUpdate _$UnknownSessionUpdateFromJson(
+  Map<String, dynamic> json,
+) => UnknownSessionUpdate(rawJson: json['rawJson'] as Map<String, dynamic>);
+
+Map<String, dynamic> _$UnknownSessionUpdateToJson(
+  UnknownSessionUpdate instance,
+) => <String, dynamic>{'rawJson': instance.rawJson};
