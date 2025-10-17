@@ -38,6 +38,10 @@ FileSystemCapability _$FileSystemCapabilityFromJson(
 ) => FileSystemCapability(
   readTextFile: json['readTextFile'] as bool,
   writeTextFile: json['writeTextFile'] as bool,
+  deleteFile: json['deleteFile'] as bool,
+  listDirectory: json['listDirectory'] as bool,
+  makeDirectory: json['makeDirectory'] as bool,
+  moveFile: json['moveFile'] as bool,
 );
 
 Map<String, dynamic> _$FileSystemCapabilityToJson(
@@ -45,6 +49,10 @@ Map<String, dynamic> _$FileSystemCapabilityToJson(
 ) => <String, dynamic>{
   'readTextFile': instance.readTextFile,
   'writeTextFile': instance.writeTextFile,
+  'deleteFile': instance.deleteFile,
+  'listDirectory': instance.listDirectory,
+  'makeDirectory': instance.makeDirectory,
+  'moveFile': instance.moveFile,
 };
 
 AuthenticateRequest _$AuthenticateRequestFromJson(Map<String, dynamic> json) =>
@@ -348,6 +356,81 @@ ReadTextFileRequest _$ReadTextFileRequestFromJson(Map<String, dynamic> json) =>
 Map<String, dynamic> _$ReadTextFileRequestToJson(
   ReadTextFileRequest instance,
 ) => <String, dynamic>{'path': instance.path};
+
+DeleteFileRequest _$DeleteFileRequestFromJson(Map<String, dynamic> json) =>
+    DeleteFileRequest(path: json['path'] as String);
+
+Map<String, dynamic> _$DeleteFileRequestToJson(DeleteFileRequest instance) =>
+    <String, dynamic>{'path': instance.path};
+
+DeleteFileResponse _$DeleteFileResponseFromJson(Map<String, dynamic> json) =>
+    DeleteFileResponse();
+
+Map<String, dynamic> _$DeleteFileResponseToJson(DeleteFileResponse instance) =>
+    <String, dynamic>{};
+
+MakeDirectoryRequest _$MakeDirectoryRequestFromJson(
+  Map<String, dynamic> json,
+) => MakeDirectoryRequest(path: json['path'] as String);
+
+Map<String, dynamic> _$MakeDirectoryRequestToJson(
+  MakeDirectoryRequest instance,
+) => <String, dynamic>{'path': instance.path};
+
+MakeDirectoryResponse _$MakeDirectoryResponseFromJson(
+  Map<String, dynamic> json,
+) => MakeDirectoryResponse();
+
+Map<String, dynamic> _$MakeDirectoryResponseToJson(
+  MakeDirectoryResponse instance,
+) => <String, dynamic>{};
+
+MoveFileRequest _$MoveFileRequestFromJson(Map<String, dynamic> json) =>
+    MoveFileRequest(
+      fromPath: json['fromPath'] as String,
+      toPath: json['toPath'] as String,
+    );
+
+Map<String, dynamic> _$MoveFileRequestToJson(MoveFileRequest instance) =>
+    <String, dynamic>{'fromPath': instance.fromPath, 'toPath': instance.toPath};
+
+MoveFileResponse _$MoveFileResponseFromJson(Map<String, dynamic> json) =>
+    MoveFileResponse();
+
+Map<String, dynamic> _$MoveFileResponseToJson(MoveFileResponse instance) =>
+    <String, dynamic>{};
+
+ListDirectoryRequest _$ListDirectoryRequestFromJson(
+  Map<String, dynamic> json,
+) => ListDirectoryRequest(path: json['path'] as String);
+
+Map<String, dynamic> _$ListDirectoryRequestToJson(
+  ListDirectoryRequest instance,
+) => <String, dynamic>{'path': instance.path};
+
+ListDirectoryResponse _$ListDirectoryResponseFromJson(
+  Map<String, dynamic> json,
+) => ListDirectoryResponse(
+  entries: (json['entries'] as List<dynamic>)
+      .map((e) => DirectoryEntry.fromJson(e as Map<String, dynamic>))
+      .toList(),
+);
+
+Map<String, dynamic> _$ListDirectoryResponseToJson(
+  ListDirectoryResponse instance,
+) => <String, dynamic>{'entries': instance.entries};
+
+DirectoryEntry _$DirectoryEntryFromJson(Map<String, dynamic> json) =>
+    DirectoryEntry(
+      name: json['name'] as String,
+      isDirectory: json['isDirectory'] as bool,
+    );
+
+Map<String, dynamic> _$DirectoryEntryToJson(DirectoryEntry instance) =>
+    <String, dynamic>{
+      'name': instance.name,
+      'isDirectory': instance.isDirectory,
+    };
 
 RequestPermissionRequest _$RequestPermissionRequestFromJson(
   Map<String, dynamic> json,
@@ -693,19 +776,27 @@ Map<String, dynamic> _$ReadTextFileResponseToJson(
 ) => <String, dynamic>{'content': instance.content};
 
 CancelledOutcome _$CancelledOutcomeFromJson(Map<String, dynamic> json) =>
-    CancelledOutcome(meta: json['_meta'] as Map<String, dynamic>?);
+    CancelledOutcome(
+      meta: json['_meta'] as Map<String, dynamic>?,
+      outcome: json['outcome'] as String? ?? 'cancelled',
+    );
 
 Map<String, dynamic> _$CancelledOutcomeToJson(CancelledOutcome instance) =>
-    <String, dynamic>{'_meta': ?instance.meta};
+    <String, dynamic>{'_meta': ?instance.meta, 'outcome': instance.outcome};
 
 SelectedOutcome _$SelectedOutcomeFromJson(Map<String, dynamic> json) =>
     SelectedOutcome(
       meta: json['_meta'] as Map<String, dynamic>?,
+      outcome: json['outcome'] as String? ?? 'selected',
       optionId: json['optionId'] as String,
     );
 
 Map<String, dynamic> _$SelectedOutcomeToJson(SelectedOutcome instance) =>
-    <String, dynamic>{'_meta': ?instance.meta, 'optionId': instance.optionId};
+    <String, dynamic>{
+      '_meta': ?instance.meta,
+      'outcome': instance.outcome,
+      'optionId': instance.optionId,
+    };
 
 RequestPermissionResponse _$RequestPermissionResponseFromJson(
   Map<String, dynamic> json,

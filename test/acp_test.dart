@@ -411,7 +411,10 @@ void main() {
     });
 
     test('currentOutput sends terminalOutput request', () async {
-      mockConnection.mockResponse = TerminalOutputResponse();
+      mockConnection.mockResponse = TerminalOutputResponse(
+        output: '',
+        truncated: false,
+      );
 
       final result = await terminalHandle.currentOutput();
 
@@ -526,7 +529,7 @@ class MockAgent implements Agent {
 
   @override
   Future<PromptResponse> prompt(PromptRequest params) async {
-    return PromptResponse(done: true);
+    return PromptResponse(stopReason: StopReason.endTurn);
   }
 
   @override
@@ -557,7 +560,9 @@ class MockClient implements Client {
   Future<RequestPermissionResponse> requestPermission(
     RequestPermissionRequest params,
   ) async {
-    return RequestPermissionResponse(optionId: 'yes');
+    return RequestPermissionResponse(
+      outcome: SelectedOutcome(optionId: 'yes'),
+    );
   }
 
   @override
@@ -578,6 +583,30 @@ class MockClient implements Client {
   }
 
   @override
+  Future<DeleteFileResponse>? deleteFile(DeleteFileRequest params) async {
+    return DeleteFileResponse();
+  }
+
+  @override
+  Future<ListDirectoryResponse>? listDirectory(
+    ListDirectoryRequest params,
+  ) async {
+    return ListDirectoryResponse(entries: []);
+  }
+
+  @override
+  Future<MakeDirectoryResponse>? makeDirectory(
+    MakeDirectoryRequest params,
+  ) async {
+    return MakeDirectoryResponse();
+  }
+
+  @override
+  Future<MoveFileResponse>? moveFile(MoveFileRequest params) async {
+    return MoveFileResponse();
+  }
+
+  @override
   Future<CreateTerminalResponse>? createTerminal(
     CreateTerminalRequest params,
   ) async {
@@ -588,7 +617,7 @@ class MockClient implements Client {
   Future<TerminalOutputResponse>? terminalOutput(
     TerminalOutputRequest params,
   ) async {
-    return TerminalOutputResponse();
+    return TerminalOutputResponse(output: '', truncated: false);
   }
 
   @override

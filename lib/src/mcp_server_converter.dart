@@ -9,7 +9,7 @@ class McpServerConverter implements JsonConverter<McpServerBase, Map<String, dyn
   McpServerBase fromJson(Map<String, dynamic> json) {
     if (json.containsKey('type')) {
       final type = json['type'] as String;
-      if (type == 'http' || type == 'sse') {
+      if (type == 'http' || type == 'sse' || type == 'http_sse') {
         return HttpSseMcpServer.fromJson(json);
       }
     }

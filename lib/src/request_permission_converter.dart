@@ -7,7 +7,10 @@ class RequestPermissionOutcomeConverter
 
   @override
   RequestPermissionOutcome fromJson(Map<String, dynamic> json) {
-    final type = json['outcome'] as String;
+    final type = json['outcome'] as String?;
+    if (type == null) {
+      throw ArgumentError('Missing or null "outcome" field in RequestPermissionOutcome JSON: $json');
+    }
     switch (type) {
       case 'cancelled':
         return CancelledOutcome.fromJson(json);

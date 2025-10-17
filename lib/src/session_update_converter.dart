@@ -25,9 +25,9 @@ class SessionUpdateConverter
         return ToolCallUpdateSessionUpdate.fromJson(data);
       case 'plan':
         return PlanSessionUpdate.fromJson(data);
-      case 'available_commands':
+      case 'available_commands_update':
         return AvailableCommandsUpdateSessionUpdate.fromJson(data);
-      case 'current_mode':
+      case 'current_mode_update':
         return CurrentModeUpdateSessionUpdate.fromJson(data);
       case 'session_stop':
         return SessionStopSessionUpdate.fromJson(data);
@@ -76,13 +76,13 @@ class SessionUpdateConverter
     }
     if (object is AvailableCommandsUpdateSessionUpdate) {
       return {
-        'sessionUpdate': 'available_commands',
+        'sessionUpdate': 'available_commands_update',
         ...object.toJson(),
       };
     }
     if (object is CurrentModeUpdateSessionUpdate) {
       return {
-        'sessionUpdate': 'current_mode',
+        'sessionUpdate': 'current_mode_update',
         ...object.toJson(),
       };
     }

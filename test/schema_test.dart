@@ -9,7 +9,14 @@ void main() {
       final original = InitializeRequest(
         protocolVersion: 1.0,
         capabilities: ClientCapabilities(
-          fs: FileSystemCapability(readTextFile: true, writeTextFile: true),
+          fs: FileSystemCapability(
+            readTextFile: true,
+            writeTextFile: true,
+            deleteFile: true,
+            listDirectory: true,
+            makeDirectory: true,
+            moveFile: true,
+          ),
         ),
       );
 
@@ -19,12 +26,16 @@ void main() {
       );
 
       expect(
-        decoded.capabilities.fs?.readTextFile,
-        original.capabilities.fs?.readTextFile,
+        decoded.capabilities!.fs!.readTextFile,
+        original.capabilities!.fs!.readTextFile,
       );
       expect(
-        decoded.capabilities.fs?.writeTextFile,
-        original.capabilities.fs?.writeTextFile,
+        decoded.capabilities!.fs!.writeTextFile,
+        original.capabilities!.fs!.writeTextFile,
+      );
+      expect(
+        decoded.capabilities!.fs!.deleteFile,
+        original.capabilities!.fs!.deleteFile,
       );
     });
 
@@ -91,16 +102,20 @@ void main() {
 
     test('NewSessionRequest can be serialized and deserialized', () {
       final original = NewSessionRequest(
-        mcp: McpServer(
-          host: 'localhost',
-          port: 8080,
-          tls: true,
-          headers: [HttpHeader(name: 'Authorization', value: 'Bearer token')],
-        ),
-        stdio: Stdio(
-          command: ['node', 'server.js'],
-          env: [EnvVariable(name: 'PORT', value: '8080')],
-        ),
+        cwd: '/home/user',
+        mcpServers: [
+          HttpSseMcpServer(
+            type: 'http_sse',
+            host: 'localhost',
+            port: 8080,
+            tls: true,
+            headers: [HttpHeader(name: 'Authorization', value: 'Bearer token')],
+          ),
+          Stdio(
+            command: ['node', 'server.js'],
+            env: [EnvVariable(name: 'PORT', value: '8080')],
+          ),
+        ],
       );
 
       final json = jsonEncode(original.toJson());
@@ -108,15 +123,20 @@ void main() {
         jsonDecode(json) as Map<String, dynamic>,
       );
 
-      expect(decoded.mcp?.host, original.mcp?.host);
-      expect(decoded.mcp?.port, original.mcp?.port);
-      expect(decoded.mcp?.tls, original.mcp?.tls);
+      final decodedHttp = decoded.mcpServers.first as HttpSseMcpServer;
+      final originalHttp = original.mcpServers.first as HttpSseMcpServer;
+      final decodedStdio = decoded.mcpServers.last as Stdio;
+      final originalStdio = original.mcpServers.last as Stdio;
+
+      expect(decodedHttp.host, originalHttp.host);
+      expect(decodedHttp.port, originalHttp.port);
+      expect(decodedHttp.tls, originalHttp.tls);
       expect(
-        decoded.mcp?.headers?.first.name,
-        original.mcp?.headers?.first.name,
+        decodedHttp.headers?.first.name,
+        originalHttp.headers?.first.name,
       );
-      expect(decoded.stdio?.command, original.stdio?.command);
-      expect(decoded.stdio?.env?.first.name, original.stdio?.env?.first.name);
+      expect(decodedStdio.command, originalStdio.command);
+      expect(decodedStdio.env?.first.name, originalStdio.env?.first.name);
     });
 
     test('LoadSessionRequest can be serialized and deserialized', () {
@@ -267,7 +287,7 @@ void main() {
 
     test('RequestPermissionRequest can be serialized and deserialized', () {
       final original = RequestPermissionRequest(
-        question: 'Allow file access?',
+        sessionId: 'test-session-id',
         options: [
           PermissionOption(
             id: 'yes',
@@ -286,16 +306,16 @@ void main() {
         jsonDecode(json) as Map<String, dynamic>,
       );
 
-      expect(decoded.question, original.question);
+      expect(decoded.sessionId, original.sessionId);
       expect(decoded.options.length, original.options.length);
       expect(decoded.options.first.id, original.options.first.id);
     });
 
     test('TerminalOutputResponse can be serialized and deserialized', () {
       final original = TerminalOutputResponse(
-        stdout: 'output',
-        stderr: null,
-        exitStatus: TerminalExitStatus(code: 0),
+        output: 'output',
+        truncated: false,
+        exitStatus: TerminalExitStatus(exitCode: 0),
       );
 
       final json = jsonEncode(original.toJson());
@@ -303,9 +323,9 @@ void main() {
         jsonDecode(json) as Map<String, dynamic>,
       );
 
-      expect(decoded.stdout, original.stdout);
-      expect(decoded.stderr, original.stderr);
-      expect(decoded.exitStatus?.code, original.exitStatus?.code);
+      expect(decoded.output, original.output);
+      expect(decoded.truncated, original.truncated);
+      expect(decoded.exitStatus?.exitCode, original.exitStatus?.exitCode);
     });
 
     test('CancelNotification can be serialized and deserialized', () {
@@ -359,14 +379,16 @@ void main() {
     });
 
     test('RequestPermissionResponse can be serialized and deserialized', () {
-      final original = RequestPermissionResponse(optionId: 'yes');
+      final original = RequestPermissionResponse(
+        outcome: SelectedOutcome(optionId: 'yes'),
+      );
 
       final json = jsonEncode(original.toJson());
       final decoded = RequestPermissionResponse.fromJson(
         jsonDecode(json) as Map<String, dynamic>,
       );
 
-      expect(decoded.optionId, original.optionId);
+      expect((decoded.outcome as SelectedOutcome).optionId, 'yes');
     });
 
     test('ReleaseTerminalResponse can be serialized and deserialized', () {

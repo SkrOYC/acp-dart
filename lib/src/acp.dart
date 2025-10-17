@@ -285,6 +285,26 @@ abstract class Client {
   /// Allows the agent to access file contents within the client's environment.
   Future<ReadTextFileResponse>? readTextFile(ReadTextFileRequest params);
 
+  /// Deletes a file in the client's file system.
+  ///
+  /// Only available if the client advertises the `fs.deleteFile` capability.
+  Future<DeleteFileResponse>? deleteFile(DeleteFileRequest params);
+
+  /// Lists the contents of a directory in the client's file system.
+  ///
+  /// Only available if the client advertises the `fs.listDirectory` capability.
+  Future<ListDirectoryResponse>? listDirectory(ListDirectoryRequest params);
+
+  /// Creates a new directory in the client's file system.
+  ///
+  /// Only available if the client advertises the `fs.makeDirectory` capability.
+  Future<MakeDirectoryResponse>? makeDirectory(MakeDirectoryRequest params);
+
+  /// Moves or renames a file or directory in the client's file system.
+  ///
+  /// Only available if the client advertises the `fs.moveFile` capability.
+  Future<MoveFileResponse>? moveFile(MoveFileRequest params);
+
   /// Creates a new terminal to execute a command.
   ///
   /// Only available if the `terminal` capability is set to `true`.
@@ -491,6 +511,46 @@ class AgentSideConnection implements Client {
   }
 
   @override
+  Future<DeleteFileResponse>? deleteFile(DeleteFileRequest params) async {
+    final result = await _connection.sendRequest(
+      clientMethods['fsDeleteFile']!,
+      params.toJson(),
+    );
+    return DeleteFileResponse.fromJson(result as Map<String, dynamic>);
+  }
+
+  @override
+  Future<ListDirectoryResponse>? listDirectory(
+    ListDirectoryRequest params,
+  ) async {
+    final result = await _connection.sendRequest(
+      clientMethods['fsListDirectory']!,
+      params.toJson(),
+    );
+    return ListDirectoryResponse.fromJson(result as Map<String, dynamic>);
+  }
+
+  @override
+  Future<MakeDirectoryResponse>? makeDirectory(
+    MakeDirectoryRequest params,
+  ) async {
+    final result = await _connection.sendRequest(
+      clientMethods['fsMakeDirectory']!,
+      params.toJson(),
+    );
+    return MakeDirectoryResponse.fromJson(result as Map<String, dynamic>);
+  }
+
+  @override
+  Future<MoveFileResponse>? moveFile(MoveFileRequest params) async {
+    final result = await _connection.sendRequest(
+      clientMethods['fsMoveFile']!,
+      params.toJson(),
+    );
+    return MoveFileResponse.fromJson(result as Map<String, dynamic>);
+  }
+
+  @override
   Future<CreateTerminalResponse>? createTerminal(
     CreateTerminalRequest params,
   ) async {
@@ -598,6 +658,26 @@ class ClientSideConnection implements Agent {
             params as Map<String, dynamic>,
           );
           return client.readTextFile(validatedParams);
+        case 'fs/delete_file':
+          final validatedParams = DeleteFileRequest.fromJson(
+            params as Map<String, dynamic>,
+          );
+          return client.deleteFile(validatedParams);
+        case 'fs/list_directory':
+          final validatedParams = ListDirectoryRequest.fromJson(
+            params as Map<String, dynamic>,
+          );
+          return client.listDirectory(validatedParams);
+        case 'fs/make_directory':
+          final validatedParams = MakeDirectoryRequest.fromJson(
+            params as Map<String, dynamic>,
+          );
+          return client.makeDirectory(validatedParams);
+        case 'fs/move_file':
+          final validatedParams = MoveFileRequest.fromJson(
+            params as Map<String, dynamic>,
+          );
+          return client.moveFile(validatedParams);
         case 'session/request_permission':
           final validatedParams = RequestPermissionRequest.fromJson(
             params as Map<String, dynamic>,
@@ -874,6 +954,11 @@ abstract class Agent {
   ///
   /// Allows the Client to send an arbitrary notification that is not part of the ACP spec.
   Future<void>? extNotification(String method, Map<String, dynamic> params);
+}
+
+/// Interface for objects that can be asynchronously disposed.
+abstract class AsyncDisposable {
+  Future<void> dispose();
 }
 
 /// A handle for managing terminal operations within a session.

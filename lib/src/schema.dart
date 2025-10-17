@@ -149,10 +149,18 @@ class ClientCapabilities {
 class FileSystemCapability {
   final bool readTextFile;
   final bool writeTextFile;
+  final bool deleteFile;
+  final bool listDirectory;
+  final bool makeDirectory;
+  final bool moveFile;
 
   FileSystemCapability({
     required this.readTextFile,
     required this.writeTextFile,
+    required this.deleteFile,
+    required this.listDirectory,
+    required this.makeDirectory,
+    required this.moveFile,
   });
 
   factory FileSystemCapability.fromJson(Map<String, dynamic> json) =>
@@ -560,6 +568,110 @@ class ReadTextFileRequest {
 }
 
 @JsonSerializable()
+class DeleteFileRequest {
+  final String path;
+
+  DeleteFileRequest({required this.path});
+
+  factory DeleteFileRequest.fromJson(Map<String, dynamic> json) =>
+      _$DeleteFileRequestFromJson(json);
+
+  Map<String, dynamic> toJson() => _$DeleteFileRequestToJson(this);
+}
+
+@JsonSerializable()
+class DeleteFileResponse {
+  DeleteFileResponse();
+
+  factory DeleteFileResponse.fromJson(Map<String, dynamic> json) =>
+      _$DeleteFileResponseFromJson(json);
+
+  Map<String, dynamic> toJson() => _$DeleteFileResponseToJson(this);
+}
+
+@JsonSerializable()
+class MakeDirectoryRequest {
+  final String path;
+
+  MakeDirectoryRequest({required this.path});
+
+  factory MakeDirectoryRequest.fromJson(Map<String, dynamic> json) =>
+      _$MakeDirectoryRequestFromJson(json);
+
+  Map<String, dynamic> toJson() => _$MakeDirectoryRequestToJson(this);
+}
+
+@JsonSerializable()
+class MakeDirectoryResponse {
+  MakeDirectoryResponse();
+
+  factory MakeDirectoryResponse.fromJson(Map<String, dynamic> json) =>
+      _$MakeDirectoryResponseFromJson(json);
+
+  Map<String, dynamic> toJson() => _$MakeDirectoryResponseToJson(this);
+}
+
+@JsonSerializable()
+class MoveFileRequest {
+  final String fromPath;
+  final String toPath;
+
+  MoveFileRequest({required this.fromPath, required this.toPath});
+
+  factory MoveFileRequest.fromJson(Map<String, dynamic> json) =>
+      _$MoveFileRequestFromJson(json);
+
+  Map<String, dynamic> toJson() => _$MoveFileRequestToJson(this);
+}
+
+@JsonSerializable()
+class MoveFileResponse {
+  MoveFileResponse();
+
+  factory MoveFileResponse.fromJson(Map<String, dynamic> json) =>
+      _$MoveFileResponseFromJson(json);
+
+  Map<String, dynamic> toJson() => _$MoveFileResponseToJson(this);
+}
+
+@JsonSerializable()
+class ListDirectoryRequest {
+  final String path;
+
+  ListDirectoryRequest({required this.path});
+
+  factory ListDirectoryRequest.fromJson(Map<String, dynamic> json) =>
+      _$ListDirectoryRequestFromJson(json);
+
+  Map<String, dynamic> toJson() => _$ListDirectoryRequestToJson(this);
+}
+
+@JsonSerializable()
+class ListDirectoryResponse {
+  final List<DirectoryEntry> entries;
+
+  ListDirectoryResponse({required this.entries});
+
+  factory ListDirectoryResponse.fromJson(Map<String, dynamic> json) =>
+      _$ListDirectoryResponseFromJson(json);
+
+  Map<String, dynamic> toJson() => _$ListDirectoryResponseToJson(this);
+}
+
+@JsonSerializable()
+class DirectoryEntry {
+  final String name;
+  final bool isDirectory;
+
+  DirectoryEntry({required this.name, required this.isDirectory});
+
+  factory DirectoryEntry.fromJson(Map<String, dynamic> json) =>
+      _$DirectoryEntryFromJson(json);
+
+  Map<String, dynamic> toJson() => _$DirectoryEntryToJson(this);
+}
+
+@JsonSerializable()
 class RequestPermissionRequest {
   @JsonKey(name: '_meta', includeIfNull: false)
   final Map<String, dynamic>? meta;
@@ -939,9 +1051,9 @@ class CancelledOutcome implements RequestPermissionOutcome {
   @JsonKey(name: '_meta', includeIfNull: false)
   final Map<String, dynamic>? meta;
   @JsonKey(name: 'outcome')
-  final String outcome = 'cancelled';
+  final String outcome;
 
-  CancelledOutcome({this.meta});
+  CancelledOutcome({this.meta, this.outcome = 'cancelled'});
 
   factory CancelledOutcome.fromJson(Map<String, dynamic> json) =>
       _$CancelledOutcomeFromJson(json);
@@ -954,10 +1066,14 @@ class SelectedOutcome implements RequestPermissionOutcome {
   @JsonKey(name: '_meta', includeIfNull: false)
   final Map<String, dynamic>? meta;
   @JsonKey(name: 'outcome')
-  final String outcome = 'selected';
+  final String outcome;
   final String optionId;
 
-  SelectedOutcome({this.meta, required this.optionId});
+  SelectedOutcome({
+    this.meta,
+    this.outcome = 'selected',
+    required this.optionId,
+  });
 
   factory SelectedOutcome.fromJson(Map<String, dynamic> json) =>
       _$SelectedOutcomeFromJson(json);
@@ -1456,6 +1572,10 @@ const agentMethods = {
 const clientMethods = {
   'fsReadTextFile': 'fs/read_text_file',
   'fsWriteTextFile': 'fs/write_text_file',
+  'fsDeleteFile': 'fs/delete_file',
+  'fsListDirectory': 'fs/list_directory',
+  'fsMakeDirectory': 'fs/make_directory',
+  'fsMoveFile': 'fs/move_file',
   'sessionRequestPermission': 'session/request_permission',
   'sessionUpdate': 'session/update',
   'terminalCreate': 'terminal/create',
