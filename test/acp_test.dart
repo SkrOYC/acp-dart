@@ -511,6 +511,13 @@ class MockAgent implements Agent {
   }
 
   @override
+  Future<SetSessionModelResponse?>? setSessionModel(
+    SetSessionModelRequest params,
+  ) async {
+    return SetSessionModelResponse();
+  }
+
+  @override
   Future<AuthenticateResponse?>? authenticate(
     AuthenticateRequest params,
   ) async {

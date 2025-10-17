@@ -85,9 +85,14 @@ enum ToolCallStatus {
 
 @JsonSerializable()
 class InitializeRequest {
+  final num protocolVersion;
+  @JsonKey(name: 'clientCapabilities')
   final ClientCapabilities capabilities;
 
-  InitializeRequest({required this.capabilities});
+  InitializeRequest({
+    required this.protocolVersion,
+    required this.capabilities,
+  });
 
   factory InitializeRequest.fromJson(Map<String, dynamic> json) =>
       _$InitializeRequestFromJson(json);
@@ -639,12 +644,12 @@ class KillTerminalCommandRequest {
 
 @JsonSerializable()
 class InitializeResponse {
-  final String protocolVersion;
-  final AgentCapabilities capabilities;
+  final num protocolVersion;
+  final AgentCapabilities? capabilities;
 
   InitializeResponse({
     required this.protocolVersion,
-    required this.capabilities,
+    this.capabilities,
   });
 
   factory InitializeResponse.fromJson(Map<String, dynamic> json) =>

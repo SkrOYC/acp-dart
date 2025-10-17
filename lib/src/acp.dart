@@ -711,6 +711,17 @@ class ClientSideConnection implements Agent {
   }
 
   @override
+  Future<SetSessionModelResponse?>? setSessionModel(
+    SetSessionModelRequest params,
+  ) async {
+    final result = await _connection.sendRequest(
+      agentMethods['modelSelect']!,
+      params.toJson(),
+    );
+    return SetSessionModelResponse.fromJson(result as Map<String, dynamic>);
+  }
+
+  @override
   Future<AuthenticateResponse?>? authenticate(
     AuthenticateRequest params,
   ) async {
@@ -805,6 +816,11 @@ abstract class Agent {
   /// This method can be called at any time during a session, whether the Agent is
   /// idle or actively generating a turn.
   Future<SetSessionModeResponse?>? setSessionMode(SetSessionModeRequest params);
+
+  /// Selects the model for a given session.
+  ///
+  /// **UNSTABLE:** This capability is not part of the spec yet, and may be removed or changed at any point.
+  Future<SetSessionModelResponse?>? setSessionModel(SetSessionModelRequest params);
 
   /// Authenticates the client using the specified authentication method.
   ///

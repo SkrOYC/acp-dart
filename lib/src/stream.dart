@@ -24,17 +24,18 @@ class AcpStream {
 /// Returns an AcpStream for bidirectional ACP communication
 AcpStream ndJsonStream(Stream<List<int>> input, StreamSink<List<int>> output) {
   // Create readable stream: transform bytes to messages
-  final readableController = StreamController<Map<String, dynamic>>();
-  final decoder = _NdJsonDecoder();
-  input.listen(
-    (data) => decoder._handleData(data, readableController),
-    onError: (error, stackTrace) => readableController.addError(error, stackTrace),
-    onDone: () {
-      decoder._handleDone(readableController);
-      readableController.close();
-    },
-  );
-  final readable = readableController.stream;
+  final readable = input
+      .transform(utf8.decoder) // Safely decode bytes to string
+      .transform(const LineSplitter()) // Safely split lines, handling partial UTF-8
+      .where((line) => line.trim().isNotEmpty) // Filter empty lines
+      .map((line) {
+        try {
+          return jsonDecode(line) as Map<String, dynamic>;
+        } catch (e) {
+          // Propagate the error to the stream listener
+          throw FormatException('Failed to parse JSON message: $line, error: $e');
+        }
+      });
 
   // Create writable stream: transform messages to bytes
   final writableController = StreamController<Map<String, dynamic>>();
@@ -57,41 +58,4 @@ AcpStream ndJsonStream(Stream<List<int>> input, StreamSink<List<int>> output) {
   );
 
   return AcpStream(readable: readable, writable: writable);
-}
-
-/// Decoder that converts NDJSON bytes to `Map<String, dynamic>` messages
-class _NdJsonDecoder {
-  String _buffer = '';
-
-  void _handleData(List<int> data, StreamController<Map<String, dynamic>> controller) {
-    _buffer += utf8.decode(data);
-    final lines = _buffer.split('\n');
-    _buffer = lines.removeLast(); // Keep incomplete line in buffer
-
-    for (final line in lines) {
-      final trimmed = line.trim();
-      if (trimmed.isNotEmpty) {
-        try {
-          final message = jsonDecode(trimmed) as Map<String, dynamic>;
-          controller.add(message);
-        } catch (e) {
-          // Log parsing errors but continue
-          print('Failed to parse JSON message: $trimmed, error: $e');
-        }
-      }
-    }
-  }
-
-  void _handleDone(StreamController<Map<String, dynamic>> controller) {
-    // Process any remaining data in buffer
-    final trimmed = _buffer.trim();
-    if (trimmed.isNotEmpty) {
-      try {
-        final message = jsonDecode(trimmed) as Map<String, dynamic>;
-        controller.add(message);
-      } catch (e) {
-        print('Failed to parse final JSON message: $trimmed, error: $e');
-      }
-    }
-  }
 }

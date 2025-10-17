@@ -8,13 +8,17 @@ part of 'schema.dart';
 
 InitializeRequest _$InitializeRequestFromJson(Map<String, dynamic> json) =>
     InitializeRequest(
+      protocolVersion: json['protocolVersion'] as num,
       capabilities: ClientCapabilities.fromJson(
-        json['capabilities'] as Map<String, dynamic>,
+        json['clientCapabilities'] as Map<String, dynamic>,
       ),
     );
 
 Map<String, dynamic> _$InitializeRequestToJson(InitializeRequest instance) =>
-    <String, dynamic>{'capabilities': instance.capabilities};
+    <String, dynamic>{
+      'protocolVersion': instance.protocolVersion,
+      'clientCapabilities': instance.capabilities,
+    };
 
 ClientCapabilities _$ClientCapabilitiesFromJson(Map<String, dynamic> json) =>
     ClientCapabilities(
@@ -425,10 +429,12 @@ Map<String, dynamic> _$KillTerminalCommandRequestToJson(
 
 InitializeResponse _$InitializeResponseFromJson(Map<String, dynamic> json) =>
     InitializeResponse(
-      protocolVersion: json['protocolVersion'] as String,
-      capabilities: AgentCapabilities.fromJson(
-        json['capabilities'] as Map<String, dynamic>,
-      ),
+      protocolVersion: json['protocolVersion'] as num,
+      capabilities: json['capabilities'] == null
+          ? null
+          : AgentCapabilities.fromJson(
+              json['capabilities'] as Map<String, dynamic>,
+            ),
     );
 
 Map<String, dynamic> _$InitializeResponseToJson(InitializeResponse instance) =>

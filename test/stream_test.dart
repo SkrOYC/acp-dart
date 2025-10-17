@@ -146,26 +146,50 @@ void main() {
       outputController.close();
     });
 
-    test('handles JSON parsing errors gracefully', () async {
+    test('propagates JSON parsing errors and stops stream', () async {
       final inputController = StreamController<List<int>>();
       final outputController = StreamController<List<int>>();
 
       final acpStream = ndJsonStream(inputController.stream, outputController.sink);
 
-      // Send invalid JSON followed by valid
-      inputController.add(utf8.encode('invalid json\n'));
+      // Send a valid message, then an invalid message
       inputController.add(utf8.encode('{"valid": "json"}\n'));
+      inputController.add(utf8.encode('invalid json\n'));
       inputController.close();
 
       final received = <Map<String, dynamic>>[];
-      final completer = Completer<void>();
+      final errorCompleter = Completer<Object>();
+      final doneCompleter = Completer<void>();
+      var completed = false;
+
+      void complete() {
+        if (!completed) {
+          completed = true;
+          doneCompleter.complete();
+        }
+      }
+
       acpStream.readable.listen(
         (msg) => received.add(msg),
-        onDone: () => completer.complete(),
+        onError: (e) {
+          errorCompleter.complete(e);
+          complete();
+        },
+        onDone: () {
+          if (!errorCompleter.isCompleted) {
+            errorCompleter.complete(null); // No error occurred
+          }
+          complete();
+        },
       );
 
-      await completer.future;
+      await doneCompleter.future;
+
+      // Expect the valid message to be received
       expect(received, equals([{'valid': 'json'}]));
+      // Expect the stream to have terminated with a FormatException
+      expect(errorCompleter.isCompleted, isTrue);
+      expect(await errorCompleter.future, isA<FormatException>());
 
       outputController.close();
     });

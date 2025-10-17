@@ -1,6 +1,6 @@
 name: acp_dart
 description: A Dart implementation of the Agent-Client Protocol (ACP) for building AI-powered applications.
-version: 0.1.0
+version: 0.2.0
 repository: https://github.com/SkrOYC/acp-dart
 
 environment:
