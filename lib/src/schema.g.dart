@@ -1184,14 +1184,6 @@ Map<String, dynamic> _$CurrentModeUpdateSessionUpdateToJson(
   CurrentModeUpdateSessionUpdate instance,
 ) => <String, dynamic>{'currentModeId': instance.currentModeId};
 
-SessionStopSessionUpdate _$SessionStopSessionUpdateFromJson(
-  Map<String, dynamic> json,
-) => SessionStopSessionUpdate(reason: json['reason'] as String);
-
-Map<String, dynamic> _$SessionStopSessionUpdateToJson(
-  SessionStopSessionUpdate instance,
-) => <String, dynamic>{'reason': instance.reason};
-
 UnknownSessionUpdate _$UnknownSessionUpdateFromJson(
   Map<String, dynamic> json,
 ) => UnknownSessionUpdate(rawJson: json['rawJson'] as Map<String, dynamic>);

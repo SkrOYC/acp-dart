@@ -29,8 +29,7 @@ class SessionUpdateConverter
         return AvailableCommandsUpdateSessionUpdate.fromJson(data);
       case 'current_mode_update':
         return CurrentModeUpdateSessionUpdate.fromJson(data);
-      case 'session_stop':
-        return SessionStopSessionUpdate.fromJson(data);
+
       default:
         return UnknownSessionUpdate(rawJson: json);
     }
@@ -86,12 +85,7 @@ class SessionUpdateConverter
         ...object.toJson(),
       };
     }
-    if (object is SessionStopSessionUpdate) {
-      return {
-        'sessionUpdate': 'session_stop',
-        ...object.toJson(),
-      };
-    }
+
     if (object is UnknownSessionUpdate) {
       return object.rawJson;
     }

@@ -1535,17 +1535,7 @@ class CurrentModeUpdateSessionUpdate extends SessionUpdate {
   Map<String, dynamic> toJson() => _$CurrentModeUpdateSessionUpdateToJson(this);
 }
 
-@JsonSerializable()
-class SessionStopSessionUpdate extends SessionUpdate {
-  final String reason;
 
-  SessionStopSessionUpdate({required this.reason});
-
-  factory SessionStopSessionUpdate.fromJson(Map<String, dynamic> json) =>
-      _$SessionStopSessionUpdateFromJson(json);
-
-  Map<String, dynamic> toJson() => _$SessionStopSessionUpdateToJson(this);
-}
 
 @JsonSerializable()
 class UnknownSessionUpdate extends SessionUpdate {
