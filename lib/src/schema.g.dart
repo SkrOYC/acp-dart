@@ -268,9 +268,59 @@ Map<String, dynamic> _$ResourceContentBlockToJson(
   'type': instance.type,
 };
 
-ToolCall _$ToolCallFromJson(Map<String, dynamic> json) => ToolCall();
+ToolCall _$ToolCallFromJson(Map<String, dynamic> json) => ToolCall(
+  meta: json['_meta'] as Map<String, dynamic>?,
+  content: (json['content'] as List<dynamic>?)
+      ?.map(
+        (e) => const ToolCallContentConverter().fromJson(
+          e as Map<String, dynamic>,
+        ),
+      )
+      .toList(),
+  kind: $enumDecodeNullable(_$ToolKindEnumMap, json['kind']),
+  locations: (json['locations'] as List<dynamic>?)
+      ?.map((e) => ToolCallLocation.fromJson(e as Map<String, dynamic>))
+      .toList(),
+  rawInput: json['rawInput'] as Map<String, dynamic>?,
+  rawOutput: json['rawOutput'] as Map<String, dynamic>?,
+  status: $enumDecodeNullable(_$ToolCallStatusEnumMap, json['status']),
+  title: json['title'] as String,
+  toolCallId: json['toolCallId'] as String,
+);
 
-Map<String, dynamic> _$ToolCallToJson(ToolCall instance) => <String, dynamic>{};
+Map<String, dynamic> _$ToolCallToJson(ToolCall instance) => <String, dynamic>{
+  '_meta': ?instance.meta,
+  'content': instance.content
+      ?.map(const ToolCallContentConverter().toJson)
+      .toList(),
+  'kind': _$ToolKindEnumMap[instance.kind],
+  'locations': instance.locations,
+  'rawInput': instance.rawInput,
+  'rawOutput': instance.rawOutput,
+  'status': _$ToolCallStatusEnumMap[instance.status],
+  'title': instance.title,
+  'toolCallId': instance.toolCallId,
+};
+
+const _$ToolKindEnumMap = {
+  ToolKind.read: 'read',
+  ToolKind.edit: 'edit',
+  ToolKind.delete: 'delete',
+  ToolKind.move: 'move',
+  ToolKind.search: 'search',
+  ToolKind.execute: 'execute',
+  ToolKind.think: 'think',
+  ToolKind.fetch: 'fetch',
+  ToolKind.switchMode: 'switch_mode',
+  ToolKind.other: 'other',
+};
+
+const _$ToolCallStatusEnumMap = {
+  ToolCallStatus.pending: 'pending',
+  ToolCallStatus.inProgress: 'in_progress',
+  ToolCallStatus.completed: 'completed',
+  ToolCallStatus.failed: 'failed',
+};
 
 SetSessionModelRequest _$SetSessionModelRequestFromJson(
   Map<String, dynamic> json,
@@ -301,7 +351,8 @@ Map<String, dynamic> _$ReadTextFileRequestToJson(
 RequestPermissionRequest _$RequestPermissionRequestFromJson(
   Map<String, dynamic> json,
 ) => RequestPermissionRequest(
-  question: json['question'] as String,
+  meta: json['_meta'] as Map<String, dynamic>?,
+  sessionId: json['sessionId'] as String,
   options: (json['options'] as List<dynamic>)
       .map((e) => PermissionOption.fromJson(e as Map<String, dynamic>))
       .toList(),
@@ -311,7 +362,8 @@ RequestPermissionRequest _$RequestPermissionRequestFromJson(
 Map<String, dynamic> _$RequestPermissionRequestToJson(
   RequestPermissionRequest instance,
 ) => <String, dynamic>{
-  'question': instance.question,
+  '_meta': ?instance.meta,
+  'sessionId': instance.sessionId,
   'options': instance.options,
   'toolCall': instance.toolCall,
 };
@@ -363,26 +415,6 @@ Map<String, dynamic> _$ToolCallUpdateToJson(ToolCallUpdate instance) =>
       'title': instance.title,
       'toolCallId': instance.toolCallId,
     };
-
-const _$ToolKindEnumMap = {
-  ToolKind.read: 'read',
-  ToolKind.edit: 'edit',
-  ToolKind.delete: 'delete',
-  ToolKind.move: 'move',
-  ToolKind.search: 'search',
-  ToolKind.execute: 'execute',
-  ToolKind.think: 'think',
-  ToolKind.fetch: 'fetch',
-  ToolKind.switchMode: 'switch_mode',
-  ToolKind.other: 'other',
-};
-
-const _$ToolCallStatusEnumMap = {
-  ToolCallStatus.pending: 'pending',
-  ToolCallStatus.inProgress: 'in_progress',
-  ToolCallStatus.completed: 'completed',
-  ToolCallStatus.failed: 'failed',
-};
 
 CreateTerminalRequest _$CreateTerminalRequestFromJson(
   Map<String, dynamic> json,
@@ -620,10 +652,20 @@ Map<String, dynamic> _$SetSessionModeResponseToJson(
 ) => <String, dynamic>{};
 
 PromptResponse _$PromptResponseFromJson(Map<String, dynamic> json) =>
-    PromptResponse(stopReason: json['stopReason'] as String);
+    PromptResponse(
+      stopReason: $enumDecode(_$StopReasonEnumMap, json['stopReason']),
+    );
 
 Map<String, dynamic> _$PromptResponseToJson(PromptResponse instance) =>
-    <String, dynamic>{'stopReason': instance.stopReason};
+    <String, dynamic>{'stopReason': _$StopReasonEnumMap[instance.stopReason]!};
+
+const _$StopReasonEnumMap = {
+  StopReason.endTurn: 'end_turn',
+  StopReason.maxTokens: 'max_tokens',
+  StopReason.maxTurnRequests: 'max_turn_requests',
+  StopReason.refusal: 'refusal',
+  StopReason.cancelled: 'cancelled',
+};
 
 SetSessionModelResponse _$SetSessionModelResponseFromJson(
   Map<String, dynamic> json,
@@ -649,13 +691,36 @@ Map<String, dynamic> _$ReadTextFileResponseToJson(
   ReadTextFileResponse instance,
 ) => <String, dynamic>{'content': instance.content};
 
+CancelledOutcome _$CancelledOutcomeFromJson(Map<String, dynamic> json) =>
+    CancelledOutcome(meta: json['_meta'] as Map<String, dynamic>?);
+
+Map<String, dynamic> _$CancelledOutcomeToJson(CancelledOutcome instance) =>
+    <String, dynamic>{'_meta': ?instance.meta};
+
+SelectedOutcome _$SelectedOutcomeFromJson(Map<String, dynamic> json) =>
+    SelectedOutcome(
+      meta: json['_meta'] as Map<String, dynamic>?,
+      optionId: json['optionId'] as String,
+    );
+
+Map<String, dynamic> _$SelectedOutcomeToJson(SelectedOutcome instance) =>
+    <String, dynamic>{'_meta': ?instance.meta, 'optionId': instance.optionId};
+
 RequestPermissionResponse _$RequestPermissionResponseFromJson(
   Map<String, dynamic> json,
-) => RequestPermissionResponse(optionId: json['optionId'] as String);
+) => RequestPermissionResponse(
+  meta: json['_meta'] as Map<String, dynamic>?,
+  outcome: const RequestPermissionOutcomeConverter().fromJson(
+    json['outcome'] as Map<String, dynamic>,
+  ),
+);
 
 Map<String, dynamic> _$RequestPermissionResponseToJson(
   RequestPermissionResponse instance,
-) => <String, dynamic>{'optionId': instance.optionId};
+) => <String, dynamic>{
+  '_meta': ?instance.meta,
+  'outcome': const RequestPermissionOutcomeConverter().toJson(instance.outcome),
+};
 
 CreateTerminalResponse _$CreateTerminalResponseFromJson(
   Map<String, dynamic> json,
@@ -684,10 +749,18 @@ Map<String, dynamic> _$TerminalOutputResponseToJson(
 };
 
 TerminalExitStatus _$TerminalExitStatusFromJson(Map<String, dynamic> json) =>
-    TerminalExitStatus(code: (json['code'] as num).toInt());
+    TerminalExitStatus(
+      meta: json['_meta'] as Map<String, dynamic>?,
+      exitCode: (json['exitCode'] as num?)?.toInt(),
+      signal: json['signal'] as String?,
+    );
 
 Map<String, dynamic> _$TerminalExitStatusToJson(TerminalExitStatus instance) =>
-    <String, dynamic>{'code': instance.code};
+    <String, dynamic>{
+      '_meta': ?instance.meta,
+      'exitCode': instance.exitCode,
+      'signal': instance.signal,
+    };
 
 ReleaseTerminalResponse _$ReleaseTerminalResponseFromJson(
   Map<String, dynamic> json,

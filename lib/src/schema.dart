@@ -5,6 +5,7 @@ import 'embedded_resource_converter.dart';
 import 'session_update_converter.dart';
 import 'tool_call_content_converter.dart';
 import 'mcp_server_converter.dart';
+import 'request_permission_converter.dart';
 part 'schema.g.dart';
 
 /// Base class for all MCP Server definitions (HTTP, SSE, Stdio).
@@ -85,6 +86,33 @@ enum ToolCallStatus {
 
   /// Tool call failed to complete
   failed,
+}
+
+/// Reasons why an agent stops processing a prompt turn.
+///
+/// See protocol docs: [Stop Reasons](https://agentclientprotocol.com/protocol/prompt-turn#stop-reasons)
+enum StopReason {
+  /// The turn ended successfully.
+  @JsonValue('end_turn')
+  endTurn,
+
+  /// The turn ended because the agent reached the maximum number of tokens.
+  @JsonValue('max_tokens')
+  maxTokens,
+
+  /// The turn ended because the agent reached the maximum number of allowed
+  /// agent requests between user turns.
+  @JsonValue('max_turn_requests')
+  maxTurnRequests,
+
+  /// The turn ended because the agent refused to continue. The user prompt
+  /// and everything that comes after it won't be included in the next
+  /// prompt, so this should be reflected in the UI.
+  refusal,
+
+  /// The turn was cancelled by the client via `session/cancel`.
+  @JsonValue('cancelled')
+  cancelled,
 }
 
 @JsonSerializable()
@@ -461,8 +489,29 @@ class ResourceContentBlock extends ContentBlock {
 
 @JsonSerializable()
 class ToolCall {
-  // This class is also complex. I will leave it empty for now.
-  ToolCall();
+  @JsonKey(name: '_meta', includeIfNull: false)
+  final Map<String, dynamic>? meta;
+  @ToolCallContentConverter()
+  final List<ToolCallContent>? content;
+  final ToolKind? kind;
+  final List<ToolCallLocation>? locations;
+  final Map<String, dynamic>? rawInput;
+  final Map<String, dynamic>? rawOutput;
+  final ToolCallStatus? status;
+  final String title;
+  final String toolCallId;
+
+  ToolCall({
+    this.meta,
+    this.content,
+    this.kind,
+    this.locations,
+    this.rawInput,
+    this.rawOutput,
+    this.status,
+    required this.title,
+    required this.toolCallId,
+  });
 
   factory ToolCall.fromJson(Map<String, dynamic> json) =>
       _$ToolCallFromJson(json);
@@ -509,12 +558,15 @@ class ReadTextFileRequest {
 
 @JsonSerializable()
 class RequestPermissionRequest {
-  final String question;
+  @JsonKey(name: '_meta', includeIfNull: false)
+  final Map<String, dynamic>? meta;
+  final String sessionId;
   final List<PermissionOption> options;
   final ToolCallUpdate toolCall;
 
   RequestPermissionRequest({
-    required this.question,
+    this.meta,
+    required this.sessionId,
     required this.options,
     required this.toolCall,
   });
@@ -835,7 +887,7 @@ class SetSessionModeResponse {
 @JsonSerializable()
 class PromptResponse {
   /// Indicates why the agent stopped processing the turn.
-  final String stopReason;
+  final StopReason stopReason;
 
   PromptResponse({required this.stopReason});
 
@@ -877,11 +929,50 @@ class ReadTextFileResponse {
   Map<String, dynamic> toJson() => _$ReadTextFileResponseToJson(this);
 }
 
+abstract class RequestPermissionOutcome {}
+
 @JsonSerializable()
-class RequestPermissionResponse {
+class CancelledOutcome implements RequestPermissionOutcome {
+  @JsonKey(name: '_meta', includeIfNull: false)
+  final Map<String, dynamic>? meta;
+  @JsonKey(name: 'outcome')
+  final String outcome = 'cancelled';
+
+  CancelledOutcome({this.meta});
+
+  factory CancelledOutcome.fromJson(Map<String, dynamic> json) =>
+      _$CancelledOutcomeFromJson(json);
+
+  Map<String, dynamic> toJson() => _$CancelledOutcomeToJson(this);
+}
+
+@JsonSerializable()
+class SelectedOutcome implements RequestPermissionOutcome {
+  @JsonKey(name: '_meta', includeIfNull: false)
+  final Map<String, dynamic>? meta;
+  @JsonKey(name: 'outcome')
+  final String outcome = 'selected';
   final String optionId;
 
-  RequestPermissionResponse({required this.optionId});
+  SelectedOutcome({this.meta, required this.optionId});
+
+  factory SelectedOutcome.fromJson(Map<String, dynamic> json) =>
+      _$SelectedOutcomeFromJson(json);
+
+  Map<String, dynamic> toJson() => _$SelectedOutcomeToJson(this);
+}
+
+@JsonSerializable()
+class RequestPermissionResponse {
+  @JsonKey(name: '_meta', includeIfNull: false)
+  final Map<String, dynamic>? meta;
+  @RequestPermissionOutcomeConverter()
+  final RequestPermissionOutcome outcome;
+
+  RequestPermissionResponse({
+    this.meta,
+    required this.outcome,
+  });
 
   factory RequestPermissionResponse.fromJson(Map<String, dynamic> json) =>
       _$RequestPermissionResponseFromJson(json);
@@ -917,9 +1008,12 @@ class TerminalOutputResponse {
 
 @JsonSerializable()
 class TerminalExitStatus {
-  final int code;
+  @JsonKey(name: '_meta', includeIfNull: false)
+  final Map<String, dynamic>? meta;
+  final int? exitCode;
+  final String? signal;
 
-  TerminalExitStatus({required this.code});
+  TerminalExitStatus({this.meta, this.exitCode, this.signal});
 
   factory TerminalExitStatus.fromJson(Map<String, dynamic> json) =>
       _$TerminalExitStatusFromJson(json);
