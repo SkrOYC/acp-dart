@@ -544,10 +544,11 @@ class SetSessionModelRequest {
 
 @JsonSerializable()
 class WriteTextFileRequest {
+  final String sessionId;
   final String path;
   final String content;
 
-  WriteTextFileRequest({required this.path, required this.content});
+  WriteTextFileRequest({required this.sessionId, required this.path, required this.content});
 
   factory WriteTextFileRequest.fromJson(Map<String, dynamic> json) =>
       _$WriteTextFileRequestFromJson(json);
@@ -557,9 +558,12 @@ class WriteTextFileRequest {
 
 @JsonSerializable()
 class ReadTextFileRequest {
+  final String sessionId;
   final String path;
+  final int? line;
+  final int? limit;
 
-  ReadTextFileRequest({required this.path});
+  ReadTextFileRequest({required this.sessionId, required this.path, this.line, this.limit});
 
   factory ReadTextFileRequest.fromJson(Map<String, dynamic> json) =>
       _$ReadTextFileRequestFromJson(json);
@@ -569,9 +573,10 @@ class ReadTextFileRequest {
 
 @JsonSerializable()
 class DeleteFileRequest {
+  final String sessionId;
   final String path;
 
-  DeleteFileRequest({required this.path});
+  DeleteFileRequest({required this.sessionId, required this.path});
 
   factory DeleteFileRequest.fromJson(Map<String, dynamic> json) =>
       _$DeleteFileRequestFromJson(json);
@@ -591,9 +596,10 @@ class DeleteFileResponse {
 
 @JsonSerializable()
 class MakeDirectoryRequest {
+  final String sessionId;
   final String path;
 
-  MakeDirectoryRequest({required this.path});
+  MakeDirectoryRequest({required this.sessionId, required this.path});
 
   factory MakeDirectoryRequest.fromJson(Map<String, dynamic> json) =>
       _$MakeDirectoryRequestFromJson(json);
@@ -613,10 +619,11 @@ class MakeDirectoryResponse {
 
 @JsonSerializable()
 class MoveFileRequest {
+  final String sessionId;
   final String fromPath;
   final String toPath;
 
-  MoveFileRequest({required this.fromPath, required this.toPath});
+  MoveFileRequest({required this.sessionId, required this.fromPath, required this.toPath});
 
   factory MoveFileRequest.fromJson(Map<String, dynamic> json) =>
       _$MoveFileRequestFromJson(json);
@@ -636,9 +643,10 @@ class MoveFileResponse {
 
 @JsonSerializable()
 class ListDirectoryRequest {
+  final String sessionId;
   final String path;
 
-  ListDirectoryRequest({required this.path});
+  ListDirectoryRequest({required this.sessionId, required this.path});
 
   factory ListDirectoryRequest.fromJson(Map<String, dynamic> json) =>
       _$ListDirectoryRequestFromJson(json);
@@ -737,6 +745,8 @@ class ToolCallUpdate {
 
 @JsonSerializable()
 class CreateTerminalRequest {
+  final String sessionId;
+
   /// The command to execute in the terminal
   final String command;
 
@@ -757,7 +767,7 @@ class CreateTerminalRequest {
   ///
   /// The terminal can also be embedded in tool calls by referencing its ID
   /// in ToolCallContent with type "terminal".
-  CreateTerminalRequest({required this.command, this.args, this.cwd, this.env});
+  CreateTerminalRequest({required this.sessionId, required this.command, this.args, this.cwd, this.env});
 
   factory CreateTerminalRequest.fromJson(Map<String, dynamic> json) =>
       _$CreateTerminalRequestFromJson(json);
@@ -767,9 +777,10 @@ class CreateTerminalRequest {
 
 @JsonSerializable()
 class TerminalOutputRequest {
+  final String sessionId;
   final String terminalId;
 
-  TerminalOutputRequest({required this.terminalId});
+  TerminalOutputRequest({required this.sessionId, required this.terminalId});
 
   factory TerminalOutputRequest.fromJson(Map<String, dynamic> json) =>
       _$TerminalOutputRequestFromJson(json);
@@ -779,9 +790,10 @@ class TerminalOutputRequest {
 
 @JsonSerializable()
 class ReleaseTerminalRequest {
+  final String sessionId;
   final String terminalId;
 
-  ReleaseTerminalRequest({required this.terminalId});
+  ReleaseTerminalRequest({required this.sessionId, required this.terminalId});
 
   factory ReleaseTerminalRequest.fromJson(Map<String, dynamic> json) =>
       _$ReleaseTerminalRequestFromJson(json);
@@ -791,9 +803,10 @@ class ReleaseTerminalRequest {
 
 @JsonSerializable()
 class WaitForTerminalExitRequest {
+  final String sessionId;
   final String terminalId;
 
-  WaitForTerminalExitRequest({required this.terminalId});
+  WaitForTerminalExitRequest({required this.sessionId, required this.terminalId});
 
   factory WaitForTerminalExitRequest.fromJson(Map<String, dynamic> json) =>
       _$WaitForTerminalExitRequestFromJson(json);
@@ -803,9 +816,10 @@ class WaitForTerminalExitRequest {
 
 @JsonSerializable()
 class KillTerminalCommandRequest {
+  final String sessionId;
   final String terminalId;
 
-  KillTerminalCommandRequest({required this.terminalId});
+  KillTerminalCommandRequest({required this.sessionId, required this.terminalId});
 
   factory KillTerminalCommandRequest.fromJson(Map<String, dynamic> json) =>
       _$KillTerminalCommandRequestFromJson(json);

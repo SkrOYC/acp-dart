@@ -342,26 +342,44 @@ Map<String, dynamic> _$SetSessionModelRequestToJson(
 WriteTextFileRequest _$WriteTextFileRequestFromJson(
   Map<String, dynamic> json,
 ) => WriteTextFileRequest(
+  sessionId: json['sessionId'] as String,
   path: json['path'] as String,
   content: json['content'] as String,
 );
 
 Map<String, dynamic> _$WriteTextFileRequestToJson(
   WriteTextFileRequest instance,
-) => <String, dynamic>{'path': instance.path, 'content': instance.content};
+) => <String, dynamic>{
+  'sessionId': instance.sessionId,
+  'path': instance.path,
+  'content': instance.content,
+};
 
 ReadTextFileRequest _$ReadTextFileRequestFromJson(Map<String, dynamic> json) =>
-    ReadTextFileRequest(path: json['path'] as String);
+    ReadTextFileRequest(
+      sessionId: json['sessionId'] as String,
+      path: json['path'] as String,
+      line: (json['line'] as num?)?.toInt(),
+      limit: (json['limit'] as num?)?.toInt(),
+    );
 
 Map<String, dynamic> _$ReadTextFileRequestToJson(
   ReadTextFileRequest instance,
-) => <String, dynamic>{'path': instance.path};
+) => <String, dynamic>{
+  'sessionId': instance.sessionId,
+  'path': instance.path,
+  'line': instance.line,
+  'limit': instance.limit,
+};
 
 DeleteFileRequest _$DeleteFileRequestFromJson(Map<String, dynamic> json) =>
-    DeleteFileRequest(path: json['path'] as String);
+    DeleteFileRequest(
+      sessionId: json['sessionId'] as String,
+      path: json['path'] as String,
+    );
 
 Map<String, dynamic> _$DeleteFileRequestToJson(DeleteFileRequest instance) =>
-    <String, dynamic>{'path': instance.path};
+    <String, dynamic>{'sessionId': instance.sessionId, 'path': instance.path};
 
 DeleteFileResponse _$DeleteFileResponseFromJson(Map<String, dynamic> json) =>
     DeleteFileResponse();
@@ -371,11 +389,14 @@ Map<String, dynamic> _$DeleteFileResponseToJson(DeleteFileResponse instance) =>
 
 MakeDirectoryRequest _$MakeDirectoryRequestFromJson(
   Map<String, dynamic> json,
-) => MakeDirectoryRequest(path: json['path'] as String);
+) => MakeDirectoryRequest(
+  sessionId: json['sessionId'] as String,
+  path: json['path'] as String,
+);
 
 Map<String, dynamic> _$MakeDirectoryRequestToJson(
   MakeDirectoryRequest instance,
-) => <String, dynamic>{'path': instance.path};
+) => <String, dynamic>{'sessionId': instance.sessionId, 'path': instance.path};
 
 MakeDirectoryResponse _$MakeDirectoryResponseFromJson(
   Map<String, dynamic> json,
@@ -387,12 +408,17 @@ Map<String, dynamic> _$MakeDirectoryResponseToJson(
 
 MoveFileRequest _$MoveFileRequestFromJson(Map<String, dynamic> json) =>
     MoveFileRequest(
+      sessionId: json['sessionId'] as String,
       fromPath: json['fromPath'] as String,
       toPath: json['toPath'] as String,
     );
 
 Map<String, dynamic> _$MoveFileRequestToJson(MoveFileRequest instance) =>
-    <String, dynamic>{'fromPath': instance.fromPath, 'toPath': instance.toPath};
+    <String, dynamic>{
+      'sessionId': instance.sessionId,
+      'fromPath': instance.fromPath,
+      'toPath': instance.toPath,
+    };
 
 MoveFileResponse _$MoveFileResponseFromJson(Map<String, dynamic> json) =>
     MoveFileResponse();
@@ -402,11 +428,14 @@ Map<String, dynamic> _$MoveFileResponseToJson(MoveFileResponse instance) =>
 
 ListDirectoryRequest _$ListDirectoryRequestFromJson(
   Map<String, dynamic> json,
-) => ListDirectoryRequest(path: json['path'] as String);
+) => ListDirectoryRequest(
+  sessionId: json['sessionId'] as String,
+  path: json['path'] as String,
+);
 
 Map<String, dynamic> _$ListDirectoryRequestToJson(
   ListDirectoryRequest instance,
-) => <String, dynamic>{'path': instance.path};
+) => <String, dynamic>{'sessionId': instance.sessionId, 'path': instance.path};
 
 ListDirectoryResponse _$ListDirectoryResponseFromJson(
   Map<String, dynamic> json,
@@ -503,6 +532,7 @@ Map<String, dynamic> _$ToolCallUpdateToJson(ToolCallUpdate instance) =>
 CreateTerminalRequest _$CreateTerminalRequestFromJson(
   Map<String, dynamic> json,
 ) => CreateTerminalRequest(
+  sessionId: json['sessionId'] as String,
   command: json['command'] as String,
   args: (json['args'] as List<dynamic>?)?.map((e) => e as String).toList(),
   cwd: json['cwd'] as String?,
@@ -514,6 +544,7 @@ CreateTerminalRequest _$CreateTerminalRequestFromJson(
 Map<String, dynamic> _$CreateTerminalRequestToJson(
   CreateTerminalRequest instance,
 ) => <String, dynamic>{
+  'sessionId': instance.sessionId,
   'command': instance.command,
   'args': instance.args,
   'cwd': instance.cwd,
@@ -522,35 +553,59 @@ Map<String, dynamic> _$CreateTerminalRequestToJson(
 
 TerminalOutputRequest _$TerminalOutputRequestFromJson(
   Map<String, dynamic> json,
-) => TerminalOutputRequest(terminalId: json['terminalId'] as String);
+) => TerminalOutputRequest(
+  sessionId: json['sessionId'] as String,
+  terminalId: json['terminalId'] as String,
+);
 
 Map<String, dynamic> _$TerminalOutputRequestToJson(
   TerminalOutputRequest instance,
-) => <String, dynamic>{'terminalId': instance.terminalId};
+) => <String, dynamic>{
+  'sessionId': instance.sessionId,
+  'terminalId': instance.terminalId,
+};
 
 ReleaseTerminalRequest _$ReleaseTerminalRequestFromJson(
   Map<String, dynamic> json,
-) => ReleaseTerminalRequest(terminalId: json['terminalId'] as String);
+) => ReleaseTerminalRequest(
+  sessionId: json['sessionId'] as String,
+  terminalId: json['terminalId'] as String,
+);
 
 Map<String, dynamic> _$ReleaseTerminalRequestToJson(
   ReleaseTerminalRequest instance,
-) => <String, dynamic>{'terminalId': instance.terminalId};
+) => <String, dynamic>{
+  'sessionId': instance.sessionId,
+  'terminalId': instance.terminalId,
+};
 
 WaitForTerminalExitRequest _$WaitForTerminalExitRequestFromJson(
   Map<String, dynamic> json,
-) => WaitForTerminalExitRequest(terminalId: json['terminalId'] as String);
+) => WaitForTerminalExitRequest(
+  sessionId: json['sessionId'] as String,
+  terminalId: json['terminalId'] as String,
+);
 
 Map<String, dynamic> _$WaitForTerminalExitRequestToJson(
   WaitForTerminalExitRequest instance,
-) => <String, dynamic>{'terminalId': instance.terminalId};
+) => <String, dynamic>{
+  'sessionId': instance.sessionId,
+  'terminalId': instance.terminalId,
+};
 
 KillTerminalCommandRequest _$KillTerminalCommandRequestFromJson(
   Map<String, dynamic> json,
-) => KillTerminalCommandRequest(terminalId: json['terminalId'] as String);
+) => KillTerminalCommandRequest(
+  sessionId: json['sessionId'] as String,
+  terminalId: json['terminalId'] as String,
+);
 
 Map<String, dynamic> _$KillTerminalCommandRequestToJson(
   KillTerminalCommandRequest instance,
-) => <String, dynamic>{'terminalId': instance.terminalId};
+) => <String, dynamic>{
+  'sessionId': instance.sessionId,
+  'terminalId': instance.terminalId,
+};
 
 InitializeResponse _$InitializeResponseFromJson(Map<String, dynamic> json) =>
     InitializeResponse(
