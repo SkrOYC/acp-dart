@@ -878,7 +878,7 @@ abstract class Agent {
 ///
 /// Terminal handles are typically created by agents and provided to clients
 /// for terminal management operations.
-class TerminalHandle {
+class TerminalHandle implements AsyncDisposable {
   /// The unique identifier for this terminal instance.
   final String id;
 
@@ -953,6 +953,7 @@ class TerminalHandle {
   ///
   /// This is the Dart equivalent of TypeScript's [Symbol.asyncDispose].
   /// It ensures proper cleanup by calling release().
+  @override
   Future<void> dispose() async {
     await release();
   }

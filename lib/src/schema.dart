@@ -4,7 +4,11 @@ import 'content_block_converter.dart';
 import 'embedded_resource_converter.dart';
 import 'session_update_converter.dart';
 import 'tool_call_content_converter.dart';
+import 'mcp_server_converter.dart';
 part 'schema.g.dart';
+
+/// Base class for all MCP Server definitions (HTTP, SSE, Stdio).
+abstract class McpServerBase {}
 
 /// The sender or recipient of messages and data in a conversation.
 ///
@@ -87,11 +91,11 @@ enum ToolCallStatus {
 class InitializeRequest {
   final num protocolVersion;
   @JsonKey(name: 'clientCapabilities')
-  final ClientCapabilities capabilities;
+  final ClientCapabilities? capabilities;
 
   InitializeRequest({
     required this.protocolVersion,
-    required this.capabilities,
+    this.capabilities,
   });
 
   factory InitializeRequest.fromJson(Map<String, dynamic> json) =>
@@ -143,12 +147,11 @@ class AuthenticateRequest {
 
 @JsonSerializable()
 class NewSessionRequest {
-  final McpServer? mcp;
-  final Stdio? stdio;
-  final String? cwd; // Required by backend
-  final List<dynamic>? mcpServers; // Required by backend
+  final String cwd;
+  @McpServerConverter()
+  final List<McpServerBase> mcpServers;
 
-  NewSessionRequest({this.mcp, this.stdio, this.cwd, this.mcpServers});
+  NewSessionRequest({required this.cwd, required this.mcpServers});
 
   factory NewSessionRequest.fromJson(Map<String, dynamic> json) =>
       _$NewSessionRequestFromJson(json);
@@ -157,23 +160,25 @@ class NewSessionRequest {
 }
 
 @JsonSerializable()
-class McpServer {
+class HttpSseMcpServer extends McpServerBase {
+  final String type;
   final String host;
   final int port;
   final bool tls;
   final List<HttpHeader>? headers;
 
-  McpServer({
+  HttpSseMcpServer({
+    required this.type,
     required this.host,
     required this.port,
     required this.tls,
     this.headers,
   });
 
-  factory McpServer.fromJson(Map<String, dynamic> json) =>
-      _$McpServerFromJson(json);
+  factory HttpSseMcpServer.fromJson(Map<String, dynamic> json) =>
+      _$HttpSseMcpServerFromJson(json);
 
-  Map<String, dynamic> toJson() => _$McpServerToJson(this);
+  Map<String, dynamic> toJson() => _$HttpSseMcpServerToJson(this);
 }
 
 @JsonSerializable()
@@ -190,7 +195,7 @@ class HttpHeader {
 }
 
 @JsonSerializable()
-class Stdio {
+class Stdio extends McpServerBase {
   final List<String> command;
   final List<EnvVariable>? env;
 
@@ -829,9 +834,10 @@ class SetSessionModeResponse {
 
 @JsonSerializable()
 class PromptResponse {
-  final bool? done;
+  /// Indicates why the agent stopped processing the turn.
+  final String stopReason;
 
-  PromptResponse({required this.done});
+  PromptResponse({required this.stopReason});
 
   factory PromptResponse.fromJson(Map<String, dynamic> json) =>
       _$PromptResponseFromJson(json);
@@ -897,11 +903,11 @@ class CreateTerminalResponse {
 
 @JsonSerializable()
 class TerminalOutputResponse {
-  final String? stdout;
-  final String? stderr;
+  final String output;
   final TerminalExitStatus? exitStatus;
+  final bool truncated;
 
-  TerminalOutputResponse({this.stdout, this.stderr, this.exitStatus});
+  TerminalOutputResponse({required this.output, this.exitStatus, required this.truncated});
 
   factory TerminalOutputResponse.fromJson(Map<String, dynamic> json) =>
       _$TerminalOutputResponseFromJson(json);
@@ -1168,9 +1174,9 @@ class SessionNotification {
 
   /// The actual update content.
   @SessionUpdateConverter()
-  final SessionUpdate update;
+  final SessionUpdate? update;
 
-  SessionNotification({required this.sessionId, required this.update});
+  SessionNotification({required this.sessionId, this.update});
 
   factory SessionNotification.fromJson(Map<String, dynamic> json) =>
       _$SessionNotificationFromJson(json);

@@ -9,9 +9,11 @@ part of 'schema.dart';
 InitializeRequest _$InitializeRequestFromJson(Map<String, dynamic> json) =>
     InitializeRequest(
       protocolVersion: json['protocolVersion'] as num,
-      capabilities: ClientCapabilities.fromJson(
-        json['clientCapabilities'] as Map<String, dynamic>,
-      ),
+      capabilities: json['clientCapabilities'] == null
+          ? null
+          : ClientCapabilities.fromJson(
+              json['clientCapabilities'] as Map<String, dynamic>,
+            ),
     );
 
 Map<String, dynamic> _$InitializeRequestToJson(InitializeRequest instance) =>
@@ -56,39 +58,42 @@ Map<String, dynamic> _$AuthenticateRequestToJson(
 
 NewSessionRequest _$NewSessionRequestFromJson(Map<String, dynamic> json) =>
     NewSessionRequest(
-      mcp: json['mcp'] == null
-          ? null
-          : McpServer.fromJson(json['mcp'] as Map<String, dynamic>),
-      stdio: json['stdio'] == null
-          ? null
-          : Stdio.fromJson(json['stdio'] as Map<String, dynamic>),
-      cwd: json['cwd'] as String?,
-      mcpServers: json['mcpServers'] as List<dynamic>?,
+      cwd: json['cwd'] as String,
+      mcpServers: (json['mcpServers'] as List<dynamic>)
+          .map(
+            (e) =>
+                const McpServerConverter().fromJson(e as Map<String, dynamic>),
+          )
+          .toList(),
     );
 
 Map<String, dynamic> _$NewSessionRequestToJson(NewSessionRequest instance) =>
     <String, dynamic>{
-      'mcp': instance.mcp,
-      'stdio': instance.stdio,
       'cwd': instance.cwd,
-      'mcpServers': instance.mcpServers,
+      'mcpServers': instance.mcpServers
+          .map(const McpServerConverter().toJson)
+          .toList(),
     };
 
-McpServer _$McpServerFromJson(Map<String, dynamic> json) => McpServer(
-  host: json['host'] as String,
-  port: (json['port'] as num).toInt(),
-  tls: json['tls'] as bool,
-  headers: (json['headers'] as List<dynamic>?)
-      ?.map((e) => HttpHeader.fromJson(e as Map<String, dynamic>))
-      .toList(),
-);
+HttpSseMcpServer _$HttpSseMcpServerFromJson(Map<String, dynamic> json) =>
+    HttpSseMcpServer(
+      type: json['type'] as String,
+      host: json['host'] as String,
+      port: (json['port'] as num).toInt(),
+      tls: json['tls'] as bool,
+      headers: (json['headers'] as List<dynamic>?)
+          ?.map((e) => HttpHeader.fromJson(e as Map<String, dynamic>))
+          .toList(),
+    );
 
-Map<String, dynamic> _$McpServerToJson(McpServer instance) => <String, dynamic>{
-  'host': instance.host,
-  'port': instance.port,
-  'tls': instance.tls,
-  'headers': instance.headers,
-};
+Map<String, dynamic> _$HttpSseMcpServerToJson(HttpSseMcpServer instance) =>
+    <String, dynamic>{
+      'type': instance.type,
+      'host': instance.host,
+      'port': instance.port,
+      'tls': instance.tls,
+      'headers': instance.headers,
+    };
 
 HttpHeader _$HttpHeaderFromJson(Map<String, dynamic> json) =>
     HttpHeader(name: json['name'] as String, value: json['value'] as String);
@@ -615,10 +620,10 @@ Map<String, dynamic> _$SetSessionModeResponseToJson(
 ) => <String, dynamic>{};
 
 PromptResponse _$PromptResponseFromJson(Map<String, dynamic> json) =>
-    PromptResponse(done: json['done'] as bool?);
+    PromptResponse(stopReason: json['stopReason'] as String);
 
 Map<String, dynamic> _$PromptResponseToJson(PromptResponse instance) =>
-    <String, dynamic>{'done': instance.done};
+    <String, dynamic>{'stopReason': instance.stopReason};
 
 SetSessionModelResponse _$SetSessionModelResponseFromJson(
   Map<String, dynamic> json,
@@ -663,19 +668,19 @@ Map<String, dynamic> _$CreateTerminalResponseToJson(
 TerminalOutputResponse _$TerminalOutputResponseFromJson(
   Map<String, dynamic> json,
 ) => TerminalOutputResponse(
-  stdout: json['stdout'] as String?,
-  stderr: json['stderr'] as String?,
+  output: json['output'] as String,
   exitStatus: json['exitStatus'] == null
       ? null
       : TerminalExitStatus.fromJson(json['exitStatus'] as Map<String, dynamic>),
+  truncated: json['truncated'] as bool,
 );
 
 Map<String, dynamic> _$TerminalOutputResponseToJson(
   TerminalOutputResponse instance,
 ) => <String, dynamic>{
-  'stdout': instance.stdout,
-  'stderr': instance.stderr,
+  'output': instance.output,
   'exitStatus': instance.exitStatus,
+  'truncated': instance.truncated,
 };
 
 TerminalExitStatus _$TerminalExitStatusFromJson(Map<String, dynamic> json) =>
@@ -850,8 +855,9 @@ Map<String, dynamic> _$AvailableCommandToJson(AvailableCommand instance) =>
 SessionNotification _$SessionNotificationFromJson(Map<String, dynamic> json) =>
     SessionNotification(
       sessionId: json['sessionId'] as String,
-      update: const SessionUpdateConverter().fromJson(
-        json['update'] as Map<String, dynamic>,
+      update: _$JsonConverterFromJson<Map<String, dynamic>, SessionUpdate>(
+        json['update'],
+        const SessionUpdateConverter().fromJson,
       ),
     );
 
@@ -859,8 +865,21 @@ Map<String, dynamic> _$SessionNotificationToJson(
   SessionNotification instance,
 ) => <String, dynamic>{
   'sessionId': instance.sessionId,
-  'update': const SessionUpdateConverter().toJson(instance.update),
+  'update': _$JsonConverterToJson<Map<String, dynamic>, SessionUpdate>(
+    instance.update,
+    const SessionUpdateConverter().toJson,
+  ),
 };
+
+Value? _$JsonConverterFromJson<Json, Value>(
+  Object? json,
+  Value? Function(Json json) fromJson,
+) => json == null ? null : fromJson(json as Json);
+
+Json? _$JsonConverterToJson<Json, Value>(
+  Value? value,
+  Json? Function(Value value) toJson,
+) => value == null ? null : toJson(value);
 
 UserMessageChunkSessionUpdate _$UserMessageChunkSessionUpdateFromJson(
   Map<String, dynamic> json,
@@ -907,16 +926,6 @@ Map<String, dynamic> _$AgentThoughtChunkSessionUpdateToJson(
     const ContentBlockConverter().toJson,
   ),
 };
-
-Value? _$JsonConverterFromJson<Json, Value>(
-  Object? json,
-  Value? Function(Json json) fromJson,
-) => json == null ? null : fromJson(json as Json);
-
-Json? _$JsonConverterToJson<Json, Value>(
-  Value? value,
-  Json? Function(Value value) toJson,
-) => value == null ? null : toJson(value);
 
 ToolCallSessionUpdate _$ToolCallSessionUpdateFromJson(
   Map<String, dynamic> json,
