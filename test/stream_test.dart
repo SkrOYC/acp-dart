@@ -10,12 +10,20 @@ void main() {
       final inputController = StreamController<List<int>>();
       final outputController = StreamController<List<int>>();
 
-      final acpStream = ndJsonStream(inputController.stream, outputController.sink);
+      final acpStream = ndJsonStream(
+        inputController.stream,
+        outputController.sink,
+      );
 
       // Test messages
       final messages = [
         {'jsonrpc': '2.0', 'id': 1, 'method': 'initialize', 'params': {}},
-        {'jsonrpc': '2.0', 'id': 2, 'method': 'prompt', 'params': {'text': 'Hello'}},
+        {
+          'jsonrpc': '2.0',
+          'id': 2,
+          'method': 'prompt',
+          'params': {'text': 'Hello'},
+        },
       ];
 
       // Send NDJSON data
@@ -46,10 +54,18 @@ void main() {
       final inputController = StreamController<List<int>>();
       final outputController = StreamController<List<int>>();
 
-      final acpStream = ndJsonStream(inputController.stream, outputController.sink);
+      final acpStream = ndJsonStream(
+        inputController.stream,
+        outputController.sink,
+      );
 
       // Test message
-      final message = {'jsonrpc': '2.0', 'id': 1, 'method': 'initialize', 'params': {}};
+      final message = {
+        'jsonrpc': '2.0',
+        'id': 1,
+        'method': 'initialize',
+        'params': {},
+      };
 
       // Send message
       acpStream.writable.add(message);
@@ -69,7 +85,10 @@ void main() {
       final inputController = StreamController<List<int>>();
       final outputController = StreamController<List<int>>();
 
-      final acpStream = ndJsonStream(inputController.stream, outputController.sink);
+      final acpStream = ndJsonStream(
+        inputController.stream,
+        outputController.sink,
+      );
 
       // Send partial message in chunks
       final message = {'jsonrpc': '2.0', 'id': 1, 'method': 'test'};
@@ -98,7 +117,10 @@ void main() {
       final inputController = StreamController<List<int>>();
       final outputController = StreamController<List<int>>();
 
-      final acpStream = ndJsonStream(inputController.stream, outputController.sink);
+      final acpStream = ndJsonStream(
+        inputController.stream,
+        outputController.sink,
+      );
 
       final messages = [
         {'jsonrpc': '2.0', 'id': 1, 'method': 'test1'},
@@ -126,7 +148,10 @@ void main() {
       final inputController = StreamController<List<int>>();
       final outputController = StreamController<List<int>>();
 
-      final acpStream = ndJsonStream(inputController.stream, outputController.sink);
+      final acpStream = ndJsonStream(
+        inputController.stream,
+        outputController.sink,
+      );
 
       final message = {'jsonrpc': '2.0', 'id': 1, 'method': 'test'};
       final ndjson = '\n\n${jsonEncode(message)}\n\n';
@@ -150,7 +175,10 @@ void main() {
       final inputController = StreamController<List<int>>();
       final outputController = StreamController<List<int>>();
 
-      final acpStream = ndJsonStream(inputController.stream, outputController.sink);
+      final acpStream = ndJsonStream(
+        inputController.stream,
+        outputController.sink,
+      );
 
       // Send a valid message, then an invalid message
       inputController.add(utf8.encode('{"valid": "json"}\n'));
@@ -158,7 +186,7 @@ void main() {
       inputController.close();
 
       final received = <Map<String, dynamic>>[];
-      final errorCompleter = Completer<Object>();
+      final errorCompleter = Completer<Object?>();
       final doneCompleter = Completer<void>();
       var completed = false;
 
@@ -186,7 +214,12 @@ void main() {
       await doneCompleter.future;
 
       // Expect the valid message to be received
-      expect(received, equals([{'valid': 'json'}]));
+      expect(
+        received,
+        equals([
+          {'valid': 'json'},
+        ]),
+      );
       // Expect the stream to have terminated with a FormatException
       expect(errorCompleter.isCompleted, isTrue);
       expect(await errorCompleter.future, isA<FormatException>());

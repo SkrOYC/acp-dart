@@ -7,38 +7,30 @@ class ToolCallContentConverter
 
   @override
   ToolCallContent fromJson(Map<String, dynamic> json) {
-    if (json.containsKey('content')) {
-      return ContentToolCallContent.fromJson(
-          json['content'] as Map<String, dynamic>);
+    final type = json['type'] as String?;
+    switch (type) {
+      case 'content':
+        return ContentToolCallContent.fromJson(json);
+      case 'diff':
+        return DiffToolCallContent.fromJson(json);
+      case 'terminal':
+        return TerminalToolCallContent.fromJson(json);
+      default:
+        throw Exception('Unknown ToolCallContent type: $type');
     }
-    if (json.containsKey('diff')) {
-      return DiffToolCallContent.fromJson(
-          json['diff'] as Map<String, dynamic>);
-    }
-    if (json.containsKey('terminal')) {
-      return TerminalToolCallContent.fromJson(
-          json['terminal'] as Map<String, dynamic>);
-    }
-    throw Exception('Unknown ToolCallContent type');
   }
 
   @override
   Map<String, dynamic> toJson(ToolCallContent object) {
     if (object is ContentToolCallContent) {
-      return {
-        'content': object.toJson(),
-      };
+      return object.toJson();
     }
     if (object is DiffToolCallContent) {
-      return {
-        'diff': object.toJson(),
-      };
+      return object.toJson();
     }
     if (object is TerminalToolCallContent) {
-      return {
-        'terminal': object.toJson(),
-      };
+      return object.toJson();
     }
-    throw Exception('Unknown ToolCallContent type');
+    throw Exception('Unknown ToolCallContent type: ${object.runtimeType}');
   }
 }

@@ -441,7 +441,7 @@ void main() {
     });
 
     test('kill sends terminalKill request', () async {
-      mockConnection.mockResponse = KillTerminalResponse();
+      mockConnection.mockResponse = KillTerminalCommandResponse();
 
       final result = await terminalHandle.kill();
 
@@ -450,7 +450,7 @@ void main() {
         'sessionId': 'test-session',
         'terminalId': 'terminal-123',
       });
-      expect(result, isA<KillTerminalResponse>());
+      expect(result, isA<KillTerminalCommandResponse>());
     });
 
     test('release sends terminalRelease request', () async {
@@ -478,8 +478,9 @@ class MockAgent implements Agent {
   @override
   Future<InitializeResponse> initialize(InitializeRequest params) async {
     return InitializeResponse(
-      protocolVersion: 1.0,
-      capabilities: AgentCapabilities(loadSession: true, auth: []),
+      protocolVersion: 1,
+      agentCapabilities: AgentCapabilities(loadSession: true),
+      authMethods: const [],
     );
   }
 
@@ -488,8 +489,8 @@ class MockAgent implements Agent {
     return NewSessionResponse(
       sessionId: 'test-session',
       modes: SessionModeState(
-        available: [SessionMode(id: 'code', name: 'Code')],
-        current: 'code',
+        availableModes: [SessionMode(id: 'code', name: 'Code')],
+        currentModeId: 'code',
       ),
     );
   }
@@ -497,12 +498,10 @@ class MockAgent implements Agent {
   @override
   Future<LoadSessionResponse>? loadSession(LoadSessionRequest params) async {
     return LoadSessionResponse(
-      sessionId: params.sessionId,
       modes: SessionModeState(
-        available: [SessionMode(id: 'code', name: 'Code')],
-        current: 'code',
+        availableModes: [SessionMode(id: 'code', name: 'Code')],
+        currentModeId: 'code',
       ),
-      history: [],
     );
   }
 
@@ -560,9 +559,7 @@ class MockClient implements Client {
   Future<RequestPermissionResponse> requestPermission(
     RequestPermissionRequest params,
   ) async {
-    return RequestPermissionResponse(
-      outcome: SelectedOutcome(optionId: 'yes'),
-    );
+    return RequestPermissionResponse(outcome: SelectedOutcome(optionId: 'yes'));
   }
 
   @override
@@ -580,30 +577,6 @@ class MockClient implements Client {
   @override
   Future<ReadTextFileResponse> readTextFile(ReadTextFileRequest params) async {
     return ReadTextFileResponse(content: 'mock content');
-  }
-
-  @override
-  Future<DeleteFileResponse>? deleteFile(DeleteFileRequest params) async {
-    return DeleteFileResponse();
-  }
-
-  @override
-  Future<ListDirectoryResponse>? listDirectory(
-    ListDirectoryRequest params,
-  ) async {
-    return ListDirectoryResponse(entries: []);
-  }
-
-  @override
-  Future<MakeDirectoryResponse>? makeDirectory(
-    MakeDirectoryRequest params,
-  ) async {
-    return MakeDirectoryResponse();
-  }
-
-  @override
-  Future<MoveFileResponse>? moveFile(MoveFileRequest params) async {
-    return MoveFileResponse();
   }
 
   @override
@@ -635,10 +608,10 @@ class MockClient implements Client {
   }
 
   @override
-  Future<KillTerminalResponse?>? killTerminal(
+  Future<KillTerminalCommandResponse?>? killTerminal(
     KillTerminalCommandRequest params,
   ) async {
-    return KillTerminalResponse();
+    return KillTerminalCommandResponse();
   }
 
   @override

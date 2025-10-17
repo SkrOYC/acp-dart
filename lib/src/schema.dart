@@ -8,6 +8,14 @@ import 'mcp_server_converter.dart';
 import 'request_permission_converter.dart';
 part 'schema.g.dart';
 
+typedef ProtocolVersion = int;
+typedef SessionId = String;
+typedef SessionModeId = String;
+typedef ModelId = String;
+typedef AuthMethodId = String;
+typedef ToolCallId = String;
+typedef PermissionOptionId = String;
+
 /// Base class for all MCP Server definitions (HTTP, SSE, Stdio).
 abstract class McpServerBase {}
 
@@ -117,13 +125,16 @@ enum StopReason {
 
 @JsonSerializable()
 class InitializeRequest {
-  final num protocolVersion;
+  @JsonKey(name: '_meta', includeIfNull: false)
+  final Map<String, dynamic>? meta;
   @JsonKey(name: 'clientCapabilities')
-  final ClientCapabilities? capabilities;
+  final ClientCapabilities? clientCapabilities;
+  final int protocolVersion;
 
   InitializeRequest({
+    this.meta,
+    this.clientCapabilities,
     required this.protocolVersion,
-    this.capabilities,
   });
 
   factory InitializeRequest.fromJson(Map<String, dynamic> json) =>
@@ -134,10 +145,13 @@ class InitializeRequest {
 
 @JsonSerializable()
 class ClientCapabilities {
+  @JsonKey(name: '_meta', includeIfNull: false)
+  final Map<String, dynamic>? meta;
   final FileSystemCapability? fs;
-  final bool? terminal;
+  @JsonKey(defaultValue: false)
+  final bool terminal;
 
-  ClientCapabilities({this.fs, this.terminal});
+  ClientCapabilities({this.meta, this.fs, this.terminal = false});
 
   factory ClientCapabilities.fromJson(Map<String, dynamic> json) =>
       _$ClientCapabilitiesFromJson(json);
@@ -147,20 +161,17 @@ class ClientCapabilities {
 
 @JsonSerializable()
 class FileSystemCapability {
+  @JsonKey(name: '_meta', includeIfNull: false)
+  final Map<String, dynamic>? meta;
+  @JsonKey(defaultValue: false)
   final bool readTextFile;
+  @JsonKey(defaultValue: false)
   final bool writeTextFile;
-  final bool deleteFile;
-  final bool listDirectory;
-  final bool makeDirectory;
-  final bool moveFile;
 
   FileSystemCapability({
-    required this.readTextFile,
-    required this.writeTextFile,
-    required this.deleteFile,
-    required this.listDirectory,
-    required this.makeDirectory,
-    required this.moveFile,
+    this.meta,
+    this.readTextFile = false,
+    this.writeTextFile = false,
   });
 
   factory FileSystemCapability.fromJson(Map<String, dynamic> json) =>
@@ -171,10 +182,12 @@ class FileSystemCapability {
 
 @JsonSerializable()
 class AuthenticateRequest {
-  final String method;
-  final String? token;
+  @JsonKey(name: '_meta', includeIfNull: false)
+  final Map<String, dynamic>? meta;
+  @JsonKey(name: 'methodId')
+  final String methodId;
 
-  AuthenticateRequest({required this.method, this.token});
+  AuthenticateRequest({this.meta, required this.methodId});
 
   factory AuthenticateRequest.fromJson(Map<String, dynamic> json) =>
       _$AuthenticateRequestFromJson(json);
@@ -184,11 +197,13 @@ class AuthenticateRequest {
 
 @JsonSerializable()
 class NewSessionRequest {
+  @JsonKey(name: '_meta', includeIfNull: false)
+  final Map<String, dynamic>? meta;
   final String cwd;
   @McpServerConverter()
   final List<McpServerBase> mcpServers;
 
-  NewSessionRequest({required this.cwd, required this.mcpServers});
+  NewSessionRequest({this.meta, required this.cwd, required this.mcpServers});
 
   factory NewSessionRequest.fromJson(Map<String, dynamic> json) =>
       _$NewSessionRequestFromJson(json);
@@ -197,33 +212,61 @@ class NewSessionRequest {
 }
 
 @JsonSerializable()
-class HttpSseMcpServer extends McpServerBase {
+class HttpMcpServer extends McpServerBase {
+  @JsonKey(name: '_meta', includeIfNull: false)
+  final Map<String, dynamic>? meta;
+  @JsonKey(defaultValue: 'http')
   final String type;
-  final String host;
-  final int port;
-  final bool tls;
-  final List<HttpHeader>? headers;
+  final String name;
+  final String url;
+  final List<HttpHeader> headers;
 
-  HttpSseMcpServer({
-    required this.type,
-    required this.host,
-    required this.port,
-    required this.tls,
-    this.headers,
+  HttpMcpServer({
+    this.meta,
+    this.type = 'http',
+    required this.name,
+    required this.url,
+    required this.headers,
   });
 
-  factory HttpSseMcpServer.fromJson(Map<String, dynamic> json) =>
-      _$HttpSseMcpServerFromJson(json);
+  factory HttpMcpServer.fromJson(Map<String, dynamic> json) =>
+      _$HttpMcpServerFromJson(json);
 
-  Map<String, dynamic> toJson() => _$HttpSseMcpServerToJson(this);
+  Map<String, dynamic> toJson() => _$HttpMcpServerToJson(this);
+}
+
+@JsonSerializable()
+class SseMcpServer extends McpServerBase {
+  @JsonKey(name: '_meta', includeIfNull: false)
+  final Map<String, dynamic>? meta;
+  @JsonKey(defaultValue: 'sse')
+  final String type;
+  final String name;
+  final String url;
+  final List<HttpHeader> headers;
+
+  SseMcpServer({
+    this.meta,
+    this.type = 'sse',
+    required this.name,
+    required this.url,
+    required this.headers,
+  });
+
+  factory SseMcpServer.fromJson(Map<String, dynamic> json) =>
+      _$SseMcpServerFromJson(json);
+
+  Map<String, dynamic> toJson() => _$SseMcpServerToJson(this);
 }
 
 @JsonSerializable()
 class HttpHeader {
+  @JsonKey(name: '_meta', includeIfNull: false)
+  final Map<String, dynamic>? meta;
   final String name;
   final String value;
 
-  HttpHeader({required this.name, required this.value});
+  HttpHeader({this.meta, required this.name, required this.value});
 
   factory HttpHeader.fromJson(Map<String, dynamic> json) =>
       _$HttpHeaderFromJson(json);
@@ -232,25 +275,36 @@ class HttpHeader {
 }
 
 @JsonSerializable()
-class Stdio extends McpServerBase {
-  @JsonKey(defaultValue: 'stdio')
-  final String type = 'stdio';
-  final List<String> command;
-  final List<EnvVariable>? env;
+class StdioMcpServer extends McpServerBase {
+  @JsonKey(name: '_meta', includeIfNull: false)
+  final Map<String, dynamic>? meta;
+  final List<String> args;
+  final String command;
+  final List<EnvVariable> env;
+  final String name;
 
-  Stdio({required this.command, this.env});
+  StdioMcpServer({
+    this.meta,
+    required this.args,
+    required this.command,
+    required this.env,
+    required this.name,
+  });
 
-  factory Stdio.fromJson(Map<String, dynamic> json) => _$StdioFromJson(json);
+  factory StdioMcpServer.fromJson(Map<String, dynamic> json) =>
+      _$StdioMcpServerFromJson(json);
 
-  Map<String, dynamic> toJson() => _$StdioToJson(this);
+  Map<String, dynamic> toJson() => _$StdioMcpServerToJson(this);
 }
 
 @JsonSerializable()
 class EnvVariable {
+  @JsonKey(name: '_meta', includeIfNull: false)
+  final Map<String, dynamic>? meta;
   final String name;
   final String value;
 
-  EnvVariable({required this.name, required this.value});
+  EnvVariable({this.meta, required this.name, required this.value});
 
   factory EnvVariable.fromJson(Map<String, dynamic> json) =>
       _$EnvVariableFromJson(json);
@@ -260,9 +314,19 @@ class EnvVariable {
 
 @JsonSerializable()
 class LoadSessionRequest {
+  @JsonKey(name: '_meta', includeIfNull: false)
+  final Map<String, dynamic>? meta;
+  final String cwd;
+  @McpServerConverter()
+  final List<McpServerBase> mcpServers;
   final String sessionId;
 
-  LoadSessionRequest({required this.sessionId});
+  LoadSessionRequest({
+    this.meta,
+    required this.cwd,
+    required this.mcpServers,
+    required this.sessionId,
+  });
 
   factory LoadSessionRequest.fromJson(Map<String, dynamic> json) =>
       _$LoadSessionRequestFromJson(json);
@@ -272,10 +336,16 @@ class LoadSessionRequest {
 
 @JsonSerializable()
 class SetSessionModeRequest {
+  @JsonKey(name: '_meta', includeIfNull: false)
+  final Map<String, dynamic>? meta;
   final String sessionId;
   final String modeId;
 
-  SetSessionModeRequest({required this.sessionId, required this.modeId});
+  SetSessionModeRequest({
+    this.meta,
+    required this.sessionId,
+    required this.modeId,
+  });
 
   factory SetSessionModeRequest.fromJson(Map<String, dynamic> json) =>
       _$SetSessionModeRequestFromJson(json);
@@ -285,15 +355,15 @@ class SetSessionModeRequest {
 
 @JsonSerializable()
 class PromptRequest {
+  @JsonKey(name: '_meta', includeIfNull: false)
+  final Map<String, dynamic>? meta;
+
   /// The ID of the session this prompt belongs to
   final String sessionId;
 
   /// Structured content blocks representing the user's message
   @ContentBlockConverter()
-  final List<ContentBlock>? prompt;
-
-  /// Tools available for the agent to use during this prompt
-  final List<ToolCall>? tools;
+  final List<ContentBlock> prompt;
 
   /// Request parameters for sending a user prompt to the agent.
   ///
@@ -302,7 +372,7 @@ class PromptRequest {
   /// stop reason and any generated content or tool calls.
   ///
   /// See protocol docs: [User Message](https://agentclientprotocol.com/protocol/prompt-turn#1-user-message)
-  PromptRequest({required this.sessionId, this.prompt, this.tools});
+  PromptRequest({this.meta, required this.sessionId, required this.prompt});
 
   factory PromptRequest.fromJson(Map<String, dynamic> json) =>
       _$PromptRequestFromJson(json);
@@ -483,8 +553,7 @@ class ResourceContentBlock extends ContentBlock {
   @JsonKey(name: '_meta', includeIfNull: false)
   final Map<String, dynamic>? meta;
   final Annotations? annotations;
-  @EmbeddedResourceResourceConverter()
-  final EmbeddedResourceResource resource;
+  final EmbeddedResource resource;
   @JsonKey(name: 'type')
   final String type;
 
@@ -535,9 +604,17 @@ class ToolCall {
 
 @JsonSerializable()
 class SetSessionModelRequest {
-  final String model;
+  @JsonKey(name: '_meta', includeIfNull: false)
+  final Map<String, dynamic>? meta;
+  @JsonKey(name: 'modelId')
+  final String modelId;
+  final String sessionId;
 
-  SetSessionModelRequest({required this.model});
+  SetSessionModelRequest({
+    this.meta,
+    required this.modelId,
+    required this.sessionId,
+  });
 
   factory SetSessionModelRequest.fromJson(Map<String, dynamic> json) =>
       _$SetSessionModelRequestFromJson(json);
@@ -547,11 +624,18 @@ class SetSessionModelRequest {
 
 @JsonSerializable()
 class WriteTextFileRequest {
+  @JsonKey(name: '_meta', includeIfNull: false)
+  final Map<String, dynamic>? meta;
   final String sessionId;
   final String path;
   final String content;
 
-  WriteTextFileRequest({required this.sessionId, required this.path, required this.content});
+  WriteTextFileRequest({
+    this.meta,
+    required this.sessionId,
+    required this.path,
+    required this.content,
+  });
 
   factory WriteTextFileRequest.fromJson(Map<String, dynamic> json) =>
       _$WriteTextFileRequestFromJson(json);
@@ -561,125 +645,25 @@ class WriteTextFileRequest {
 
 @JsonSerializable()
 class ReadTextFileRequest {
+  @JsonKey(name: '_meta', includeIfNull: false)
+  final Map<String, dynamic>? meta;
   final String sessionId;
   final String path;
   final int? line;
   final int? limit;
 
-  ReadTextFileRequest({required this.sessionId, required this.path, this.line, this.limit});
+  ReadTextFileRequest({
+    this.meta,
+    required this.sessionId,
+    required this.path,
+    this.line,
+    this.limit,
+  });
 
   factory ReadTextFileRequest.fromJson(Map<String, dynamic> json) =>
       _$ReadTextFileRequestFromJson(json);
 
   Map<String, dynamic> toJson() => _$ReadTextFileRequestToJson(this);
-}
-
-@JsonSerializable()
-class DeleteFileRequest {
-  final String sessionId;
-  final String path;
-
-  DeleteFileRequest({required this.sessionId, required this.path});
-
-  factory DeleteFileRequest.fromJson(Map<String, dynamic> json) =>
-      _$DeleteFileRequestFromJson(json);
-
-  Map<String, dynamic> toJson() => _$DeleteFileRequestToJson(this);
-}
-
-@JsonSerializable()
-class DeleteFileResponse {
-  DeleteFileResponse();
-
-  factory DeleteFileResponse.fromJson(Map<String, dynamic> json) =>
-      _$DeleteFileResponseFromJson(json);
-
-  Map<String, dynamic> toJson() => _$DeleteFileResponseToJson(this);
-}
-
-@JsonSerializable()
-class MakeDirectoryRequest {
-  final String sessionId;
-  final String path;
-
-  MakeDirectoryRequest({required this.sessionId, required this.path});
-
-  factory MakeDirectoryRequest.fromJson(Map<String, dynamic> json) =>
-      _$MakeDirectoryRequestFromJson(json);
-
-  Map<String, dynamic> toJson() => _$MakeDirectoryRequestToJson(this);
-}
-
-@JsonSerializable()
-class MakeDirectoryResponse {
-  MakeDirectoryResponse();
-
-  factory MakeDirectoryResponse.fromJson(Map<String, dynamic> json) =>
-      _$MakeDirectoryResponseFromJson(json);
-
-  Map<String, dynamic> toJson() => _$MakeDirectoryResponseToJson(this);
-}
-
-@JsonSerializable()
-class MoveFileRequest {
-  final String sessionId;
-  final String fromPath;
-  final String toPath;
-
-  MoveFileRequest({required this.sessionId, required this.fromPath, required this.toPath});
-
-  factory MoveFileRequest.fromJson(Map<String, dynamic> json) =>
-      _$MoveFileRequestFromJson(json);
-
-  Map<String, dynamic> toJson() => _$MoveFileRequestToJson(this);
-}
-
-@JsonSerializable()
-class MoveFileResponse {
-  MoveFileResponse();
-
-  factory MoveFileResponse.fromJson(Map<String, dynamic> json) =>
-      _$MoveFileResponseFromJson(json);
-
-  Map<String, dynamic> toJson() => _$MoveFileResponseToJson(this);
-}
-
-@JsonSerializable()
-class ListDirectoryRequest {
-  final String sessionId;
-  final String path;
-
-  ListDirectoryRequest({required this.sessionId, required this.path});
-
-  factory ListDirectoryRequest.fromJson(Map<String, dynamic> json) =>
-      _$ListDirectoryRequestFromJson(json);
-
-  Map<String, dynamic> toJson() => _$ListDirectoryRequestToJson(this);
-}
-
-@JsonSerializable()
-class ListDirectoryResponse {
-  final List<DirectoryEntry> entries;
-
-  ListDirectoryResponse({required this.entries});
-
-  factory ListDirectoryResponse.fromJson(Map<String, dynamic> json) =>
-      _$ListDirectoryResponseFromJson(json);
-
-  Map<String, dynamic> toJson() => _$ListDirectoryResponseToJson(this);
-}
-
-@JsonSerializable()
-class DirectoryEntry {
-  final String name;
-  final bool isDirectory;
-
-  DirectoryEntry({required this.name, required this.isDirectory});
-
-  factory DirectoryEntry.fromJson(Map<String, dynamic> json) =>
-      _$DirectoryEntryFromJson(json);
-
-  Map<String, dynamic> toJson() => _$DirectoryEntryToJson(this);
 }
 
 @JsonSerializable()
@@ -705,11 +689,19 @@ class RequestPermissionRequest {
 
 @JsonSerializable()
 class PermissionOption {
-  final String id;
-  final String title;
-  final String? description;
+  @JsonKey(name: '_meta', includeIfNull: false)
+  final Map<String, dynamic>? meta;
+  @JsonKey(name: 'optionId')
+  final String optionId;
+  final String name;
+  final PermissionOptionKind kind;
 
-  PermissionOption({required this.id, required this.title, this.description});
+  PermissionOption({
+    this.meta,
+    required this.optionId,
+    required this.name,
+    required this.kind,
+  });
 
   factory PermissionOption.fromJson(Map<String, dynamic> json) =>
       _$PermissionOptionFromJson(json);
@@ -717,8 +709,21 @@ class PermissionOption {
   Map<String, dynamic> toJson() => _$PermissionOptionToJson(this);
 }
 
+enum PermissionOptionKind {
+  @JsonValue('allow_once')
+  allowOnce,
+  @JsonValue('allow_always')
+  allowAlways,
+  @JsonValue('reject_once')
+  rejectOnce,
+  @JsonValue('reject_always')
+  rejectAlways,
+}
+
 @JsonSerializable()
 class ToolCallUpdate {
+  @JsonKey(name: '_meta', includeIfNull: false)
+  final Map<String, dynamic>? meta;
   @ToolCallContentConverter()
   final List<ToolCallContent>? content;
   final ToolKind? kind;
@@ -730,6 +735,7 @@ class ToolCallUpdate {
   final String toolCallId;
 
   ToolCallUpdate({
+    this.meta,
     this.content,
     this.kind,
     this.locations,
@@ -748,6 +754,8 @@ class ToolCallUpdate {
 
 @JsonSerializable()
 class CreateTerminalRequest {
+  @JsonKey(name: '_meta', includeIfNull: false)
+  final Map<String, dynamic>? meta;
   final String sessionId;
 
   /// The command to execute in the terminal
@@ -760,7 +768,10 @@ class CreateTerminalRequest {
   final String? cwd;
 
   /// Environment variables to set for the command
-  final Map<String, String>? env;
+  final List<EnvVariable>? env;
+
+  /// Optional limit for terminal output bytes returned in responses.
+  final int? outputByteLimit;
 
   /// Request to create a new terminal and execute a command.
   ///
@@ -770,7 +781,15 @@ class CreateTerminalRequest {
   ///
   /// The terminal can also be embedded in tool calls by referencing its ID
   /// in ToolCallContent with type "terminal".
-  CreateTerminalRequest({required this.sessionId, required this.command, this.args, this.cwd, this.env});
+  CreateTerminalRequest({
+    this.meta,
+    required this.sessionId,
+    required this.command,
+    this.args,
+    this.cwd,
+    this.env,
+    this.outputByteLimit,
+  });
 
   factory CreateTerminalRequest.fromJson(Map<String, dynamic> json) =>
       _$CreateTerminalRequestFromJson(json);
@@ -780,10 +799,16 @@ class CreateTerminalRequest {
 
 @JsonSerializable()
 class TerminalOutputRequest {
+  @JsonKey(name: '_meta', includeIfNull: false)
+  final Map<String, dynamic>? meta;
   final String sessionId;
   final String terminalId;
 
-  TerminalOutputRequest({required this.sessionId, required this.terminalId});
+  TerminalOutputRequest({
+    this.meta,
+    required this.sessionId,
+    required this.terminalId,
+  });
 
   factory TerminalOutputRequest.fromJson(Map<String, dynamic> json) =>
       _$TerminalOutputRequestFromJson(json);
@@ -793,10 +818,16 @@ class TerminalOutputRequest {
 
 @JsonSerializable()
 class ReleaseTerminalRequest {
+  @JsonKey(name: '_meta', includeIfNull: false)
+  final Map<String, dynamic>? meta;
   final String sessionId;
   final String terminalId;
 
-  ReleaseTerminalRequest({required this.sessionId, required this.terminalId});
+  ReleaseTerminalRequest({
+    this.meta,
+    required this.sessionId,
+    required this.terminalId,
+  });
 
   factory ReleaseTerminalRequest.fromJson(Map<String, dynamic> json) =>
       _$ReleaseTerminalRequestFromJson(json);
@@ -806,10 +837,16 @@ class ReleaseTerminalRequest {
 
 @JsonSerializable()
 class WaitForTerminalExitRequest {
+  @JsonKey(name: '_meta', includeIfNull: false)
+  final Map<String, dynamic>? meta;
   final String sessionId;
   final String terminalId;
 
-  WaitForTerminalExitRequest({required this.sessionId, required this.terminalId});
+  WaitForTerminalExitRequest({
+    this.meta,
+    required this.sessionId,
+    required this.terminalId,
+  });
 
   factory WaitForTerminalExitRequest.fromJson(Map<String, dynamic> json) =>
       _$WaitForTerminalExitRequestFromJson(json);
@@ -819,10 +856,16 @@ class WaitForTerminalExitRequest {
 
 @JsonSerializable()
 class KillTerminalCommandRequest {
+  @JsonKey(name: '_meta', includeIfNull: false)
+  final Map<String, dynamic>? meta;
   final String sessionId;
   final String terminalId;
 
-  KillTerminalCommandRequest({required this.sessionId, required this.terminalId});
+  KillTerminalCommandRequest({
+    this.meta,
+    required this.sessionId,
+    required this.terminalId,
+  });
 
   factory KillTerminalCommandRequest.fromJson(Map<String, dynamic> json) =>
       _$KillTerminalCommandRequestFromJson(json);
@@ -832,13 +875,20 @@ class KillTerminalCommandRequest {
 
 @JsonSerializable()
 class InitializeResponse {
-  final num protocolVersion;
-  final AgentCapabilities? capabilities;
+  @JsonKey(name: '_meta', includeIfNull: false)
+  final Map<String, dynamic>? meta;
+  final int protocolVersion;
+  @JsonKey(name: 'agentCapabilities')
+  final AgentCapabilities? agentCapabilities;
+  @JsonKey(defaultValue: <AuthMethod>[])
+  final List<AuthMethod> authMethods;
 
   InitializeResponse({
+    this.meta,
     required this.protocolVersion,
-    this.capabilities,
-  });
+    this.agentCapabilities,
+    List<AuthMethod>? authMethods,
+  }) : authMethods = authMethods ?? const [];
 
   factory InitializeResponse.fromJson(Map<String, dynamic> json) =>
       _$InitializeResponseFromJson(json);
@@ -848,18 +898,20 @@ class InitializeResponse {
 
 @JsonSerializable()
 class AgentCapabilities {
+  @JsonKey(name: '_meta', includeIfNull: false)
+  final Map<String, dynamic>? meta;
   @JsonKey(name: 'mcpCapabilities')
-  final McpCapabilities? mcp;
+  final McpCapabilities? mcpCapabilities;
   @JsonKey(name: 'promptCapabilities')
-  final PromptCapabilities? prompt;
+  final PromptCapabilities? promptCapabilities;
+  @JsonKey(defaultValue: false)
   final bool loadSession;
-  final List<AuthMethod> auth;
 
   AgentCapabilities({
-    this.mcp,
-    this.prompt,
-    required this.loadSession,
-    required this.auth,
+    this.meta,
+    this.mcpCapabilities,
+    this.promptCapabilities,
+    this.loadSession = false,
   });
 
   factory AgentCapabilities.fromJson(Map<String, dynamic> json) =>
@@ -870,11 +922,14 @@ class AgentCapabilities {
 
 @JsonSerializable()
 class McpCapabilities {
+  @JsonKey(name: '_meta', includeIfNull: false)
+  final Map<String, dynamic>? meta;
+  @JsonKey(defaultValue: false)
   final bool http;
+  @JsonKey(defaultValue: false)
   final bool sse;
-  final List<String>? versions;
 
-  McpCapabilities({required this.http, required this.sse, this.versions});
+  McpCapabilities({this.meta, this.http = false, this.sse = false});
 
   factory McpCapabilities.fromJson(Map<String, dynamic> json) =>
       _$McpCapabilitiesFromJson(json);
@@ -884,16 +939,20 @@ class McpCapabilities {
 
 @JsonSerializable()
 class PromptCapabilities {
+  @JsonKey(name: '_meta', includeIfNull: false)
+  final Map<String, dynamic>? meta;
+  @JsonKey(defaultValue: false)
   final bool audio;
+  @JsonKey(defaultValue: false)
   final bool embeddedContext;
+  @JsonKey(defaultValue: false)
   final bool image;
-  final List<String>? sessionModes;
 
   PromptCapabilities({
-    required this.audio,
-    required this.embeddedContext,
-    required this.image,
-    this.sessionModes,
+    this.meta,
+    this.audio = false,
+    this.embeddedContext = false,
+    this.image = false,
   });
 
   factory PromptCapabilities.fromJson(Map<String, dynamic> json) =>
@@ -904,10 +963,19 @@ class PromptCapabilities {
 
 @JsonSerializable()
 class AuthMethod {
-  final String method;
+  @JsonKey(name: '_meta', includeIfNull: false)
+  final Map<String, dynamic>? meta;
+  @JsonKey(name: 'id')
+  final String id;
+  final String name;
   final String? description;
 
-  AuthMethod({required this.method, this.description});
+  AuthMethod({
+    this.meta,
+    required this.id,
+    required this.name,
+    this.description,
+  });
 
   factory AuthMethod.fromJson(Map<String, dynamic> json) =>
       _$AuthMethodFromJson(json);
@@ -917,7 +985,10 @@ class AuthMethod {
 
 @JsonSerializable()
 class AuthenticateResponse {
-  AuthenticateResponse();
+  @JsonKey(name: '_meta', includeIfNull: false)
+  final Map<String, dynamic>? meta;
+
+  AuthenticateResponse({this.meta});
 
   factory AuthenticateResponse.fromJson(Map<String, dynamic> json) =>
       _$AuthenticateResponseFromJson(json);
@@ -927,11 +998,14 @@ class AuthenticateResponse {
 
 @JsonSerializable()
 class NewSessionResponse {
+  @JsonKey(name: '_meta', includeIfNull: false)
+  final Map<String, dynamic>? meta;
   final String sessionId;
   final SessionModeState? modes;
   final SessionModelState? models;
 
   NewSessionResponse({
+    this.meta,
     required this.sessionId,
     this.modes,
     this.models,
@@ -945,12 +1019,18 @@ class NewSessionResponse {
 
 @JsonSerializable()
 class SessionModeState {
+  @JsonKey(name: '_meta', includeIfNull: false)
+  final Map<String, dynamic>? meta;
   @JsonKey(name: 'availableModes')
-  final List<SessionMode> available;
+  final List<SessionMode> availableModes;
   @JsonKey(name: 'currentModeId')
-  final String current;
+  final String currentModeId;
 
-  SessionModeState({required this.available, required this.current});
+  SessionModeState({
+    this.meta,
+    required this.availableModes,
+    required this.currentModeId,
+  });
 
   factory SessionModeState.fromJson(Map<String, dynamic> json) =>
       _$SessionModeStateFromJson(json);
@@ -960,11 +1040,18 @@ class SessionModeState {
 
 @JsonSerializable()
 class SessionMode {
+  @JsonKey(name: '_meta', includeIfNull: false)
+  final Map<String, dynamic>? meta;
   final String id;
   final String name;
   final String? description;
 
-  SessionMode({required this.id, required this.name, this.description});
+  SessionMode({
+    this.meta,
+    required this.id,
+    required this.name,
+    this.description,
+  });
 
   factory SessionMode.fromJson(Map<String, dynamic> json) =>
       _$SessionModeFromJson(json);
@@ -974,12 +1061,18 @@ class SessionMode {
 
 @JsonSerializable()
 class SessionModelState {
+  @JsonKey(name: '_meta', includeIfNull: false)
+  final Map<String, dynamic>? meta;
   @JsonKey(name: 'availableModels')
-  final List<ModelInfo> available;
+  final List<ModelInfo> availableModels;
   @JsonKey(name: 'currentModelId')
-  final String current;
+  final String currentModelId;
 
-  SessionModelState({required this.available, required this.current});
+  SessionModelState({
+    this.meta,
+    required this.availableModels,
+    required this.currentModelId,
+  });
 
   factory SessionModelState.fromJson(Map<String, dynamic> json) =>
       _$SessionModelStateFromJson(json);
@@ -989,11 +1082,19 @@ class SessionModelState {
 
 @JsonSerializable()
 class ModelInfo {
-  final String id;
+  @JsonKey(name: '_meta', includeIfNull: false)
+  final Map<String, dynamic>? meta;
+  @JsonKey(name: 'modelId')
+  final String modelId;
   final String name;
   final String? description;
 
-  ModelInfo({required this.id, required this.name, this.description});
+  ModelInfo({
+    this.meta,
+    required this.modelId,
+    required this.name,
+    this.description,
+  });
 
   factory ModelInfo.fromJson(Map<String, dynamic> json) =>
       _$ModelInfoFromJson(json);
@@ -1003,18 +1104,12 @@ class ModelInfo {
 
 @JsonSerializable()
 class LoadSessionResponse {
-  final String sessionId;
-  final SessionModeState modes;
+  @JsonKey(name: '_meta', includeIfNull: false)
+  final Map<String, dynamic>? meta;
+  final SessionModeState? modes;
   final SessionModelState? models;
-  @ContentBlockConverter()
-  final List<ContentBlock> history;
 
-  LoadSessionResponse({
-    required this.sessionId,
-    required this.modes,
-    this.models,
-    required this.history,
-  });
+  LoadSessionResponse({this.meta, this.modes, this.models});
 
   factory LoadSessionResponse.fromJson(Map<String, dynamic> json) =>
       _$LoadSessionResponseFromJson(json);
@@ -1024,7 +1119,10 @@ class LoadSessionResponse {
 
 @JsonSerializable()
 class SetSessionModeResponse {
-  SetSessionModeResponse();
+  @JsonKey(name: '_meta', includeIfNull: false)
+  final Map<String, dynamic>? meta;
+
+  SetSessionModeResponse({this.meta});
 
   factory SetSessionModeResponse.fromJson(Map<String, dynamic> json) =>
       _$SetSessionModeResponseFromJson(json);
@@ -1050,7 +1148,10 @@ class PromptResponse {
 
 @JsonSerializable()
 class SetSessionModelResponse {
-  SetSessionModelResponse();
+  @JsonKey(name: '_meta', includeIfNull: false)
+  final Map<String, dynamic>? meta;
+
+  SetSessionModelResponse({this.meta});
 
   factory SetSessionModelResponse.fromJson(Map<String, dynamic> json) =>
       _$SetSessionModelResponseFromJson(json);
@@ -1060,7 +1161,10 @@ class SetSessionModelResponse {
 
 @JsonSerializable()
 class WriteTextFileResponse {
-  WriteTextFileResponse();
+  @JsonKey(name: '_meta', includeIfNull: false)
+  final Map<String, dynamic>? meta;
+
+  WriteTextFileResponse({this.meta});
 
   factory WriteTextFileResponse.fromJson(Map<String, dynamic> json) =>
       _$WriteTextFileResponseFromJson(json);
@@ -1070,9 +1174,11 @@ class WriteTextFileResponse {
 
 @JsonSerializable()
 class ReadTextFileResponse {
+  @JsonKey(name: '_meta', includeIfNull: false)
+  final Map<String, dynamic>? meta;
   final String content;
 
-  ReadTextFileResponse({required this.content});
+  ReadTextFileResponse({this.meta, required this.content});
 
   factory ReadTextFileResponse.fromJson(Map<String, dynamic> json) =>
       _$ReadTextFileResponseFromJson(json);
@@ -1124,10 +1230,7 @@ class RequestPermissionResponse {
   @RequestPermissionOutcomeConverter()
   final RequestPermissionOutcome outcome;
 
-  RequestPermissionResponse({
-    this.meta,
-    required this.outcome,
-  });
+  RequestPermissionResponse({this.meta, required this.outcome});
 
   factory RequestPermissionResponse.fromJson(Map<String, dynamic> json) =>
       _$RequestPermissionResponseFromJson(json);
@@ -1137,9 +1240,11 @@ class RequestPermissionResponse {
 
 @JsonSerializable()
 class CreateTerminalResponse {
+  @JsonKey(name: '_meta', includeIfNull: false)
+  final Map<String, dynamic>? meta;
   final String terminalId;
 
-  CreateTerminalResponse({required this.terminalId});
+  CreateTerminalResponse({this.meta, required this.terminalId});
 
   factory CreateTerminalResponse.fromJson(Map<String, dynamic> json) =>
       _$CreateTerminalResponseFromJson(json);
@@ -1149,11 +1254,18 @@ class CreateTerminalResponse {
 
 @JsonSerializable()
 class TerminalOutputResponse {
+  @JsonKey(name: '_meta', includeIfNull: false)
+  final Map<String, dynamic>? meta;
   final String output;
   final TerminalExitStatus? exitStatus;
   final bool truncated;
 
-  TerminalOutputResponse({required this.output, this.exitStatus, required this.truncated});
+  TerminalOutputResponse({
+    this.meta,
+    required this.output,
+    this.exitStatus,
+    required this.truncated,
+  });
 
   factory TerminalOutputResponse.fromJson(Map<String, dynamic> json) =>
       _$TerminalOutputResponseFromJson(json);
@@ -1178,7 +1290,10 @@ class TerminalExitStatus {
 
 @JsonSerializable()
 class ReleaseTerminalResponse {
-  ReleaseTerminalResponse();
+  @JsonKey(name: '_meta', includeIfNull: false)
+  final Map<String, dynamic>? meta;
+
+  ReleaseTerminalResponse({this.meta});
 
   factory ReleaseTerminalResponse.fromJson(Map<String, dynamic> json) =>
       _$ReleaseTerminalResponseFromJson(json);
@@ -1188,10 +1303,12 @@ class ReleaseTerminalResponse {
 
 @JsonSerializable()
 class WaitForTerminalExitResponse {
+  @JsonKey(name: '_meta', includeIfNull: false)
+  final Map<String, dynamic>? meta;
   final int? exitCode;
   final String? signal;
 
-  WaitForTerminalExitResponse({this.exitCode, this.signal});
+  WaitForTerminalExitResponse({this.meta, this.exitCode, this.signal});
 
   factory WaitForTerminalExitResponse.fromJson(Map<String, dynamic> json) =>
       _$WaitForTerminalExitResponseFromJson(json);
@@ -1200,13 +1317,16 @@ class WaitForTerminalExitResponse {
 }
 
 @JsonSerializable()
-class KillTerminalResponse {
-  KillTerminalResponse();
+class KillTerminalCommandResponse {
+  @JsonKey(name: '_meta', includeIfNull: false)
+  final Map<String, dynamic>? meta;
 
-  factory KillTerminalResponse.fromJson(Map<String, dynamic> json) =>
-      _$KillTerminalResponseFromJson(json);
+  KillTerminalCommandResponse({this.meta});
 
-  Map<String, dynamic> toJson() => _$KillTerminalResponseToJson(this);
+  factory KillTerminalCommandResponse.fromJson(Map<String, dynamic> json) =>
+      _$KillTerminalCommandResponseFromJson(json);
+
+  Map<String, dynamic> toJson() => _$KillTerminalCommandResponseToJson(this);
 }
 
 /// Notification to cancel ongoing operations for a session.
@@ -1214,10 +1334,13 @@ class KillTerminalResponse {
 /// See protocol docs: [Cancellation](https://agentclientprotocol.com/protocol/prompt-turn#cancellation)
 @JsonSerializable()
 class CancelNotification {
+  @JsonKey(name: '_meta', includeIfNull: false)
+  final Map<String, dynamic>? meta;
+
   /// The ID of the session to cancel operations for.
   final String sessionId;
 
-  CancelNotification({required this.sessionId});
+  CancelNotification({this.meta, required this.sessionId});
 
   factory CancelNotification.fromJson(Map<String, dynamic> json) =>
       _$CancelNotificationFromJson(json);
@@ -1262,15 +1385,16 @@ abstract class AgentRequest {}
 /// All possible responses that an agent can send to a client.
 abstract class AgentResponse {}
 
-
 /// Optional annotations for the client. The client can use annotations to inform how objects are used or displayed
 @JsonSerializable()
 class Annotations {
+  @JsonKey(name: '_meta', includeIfNull: false)
+  final Map<String, dynamic>? meta;
   final List<Role>? audience;
   final String? lastModified;
   final double? priority;
 
-  Annotations({this.audience, this.lastModified, this.priority});
+  Annotations({this.meta, this.audience, this.lastModified, this.priority});
 
   factory Annotations.fromJson(Map<String, dynamic> json) =>
       _$AnnotationsFromJson(json);
@@ -1281,11 +1405,18 @@ class Annotations {
 /// Text-based resource contents.
 @JsonSerializable()
 class TextResourceContents extends EmbeddedResourceResource {
+  @JsonKey(name: '_meta', includeIfNull: false)
+  final Map<String, dynamic>? meta;
   final String? mimeType;
   final String text;
   final String uri;
 
-  TextResourceContents({this.mimeType, required this.text, required this.uri});
+  TextResourceContents({
+    this.meta,
+    this.mimeType,
+    required this.text,
+    required this.uri,
+  });
 
   factory TextResourceContents.fromJson(Map<String, dynamic> json) =>
       _$TextResourceContentsFromJson(json);
@@ -1296,11 +1427,18 @@ class TextResourceContents extends EmbeddedResourceResource {
 /// Binary resource contents.
 @JsonSerializable()
 class BlobResourceContents extends EmbeddedResourceResource {
-  final String blob;
+  @JsonKey(name: '_meta', includeIfNull: false)
+  final Map<String, dynamic>? meta;
   final String? mimeType;
+  final String blob;
   final String uri;
 
-  BlobResourceContents({required this.blob, this.mimeType, required this.uri});
+  BlobResourceContents({
+    this.meta,
+    this.mimeType,
+    required this.blob,
+    required this.uri,
+  });
 
   factory BlobResourceContents.fromJson(Map<String, dynamic> json) =>
       _$BlobResourceContentsFromJson(json);
@@ -1310,6 +1448,22 @@ class BlobResourceContents extends EmbeddedResourceResource {
 
 /// Resource content that can be embedded in a message.
 abstract class EmbeddedResourceResource {}
+
+@JsonSerializable()
+class EmbeddedResource {
+  @JsonKey(name: '_meta', includeIfNull: false)
+  final Map<String, dynamic>? meta;
+  final Annotations? annotations;
+  @EmbeddedResourceResourceConverter()
+  final EmbeddedResourceResource resource;
+
+  EmbeddedResource({this.meta, this.annotations, required this.resource});
+
+  factory EmbeddedResource.fromJson(Map<String, dynamic> json) =>
+      _$EmbeddedResourceFromJson(json);
+
+  Map<String, dynamic> toJson() => _$EmbeddedResourceToJson(this);
+}
 
 /// Content produced by a tool call.
 ///
@@ -1321,12 +1475,14 @@ abstract class ToolCallContent {}
 
 @JsonSerializable()
 class ContentToolCallContent extends ToolCallContent {
+  @JsonKey(name: '_meta', includeIfNull: false)
+  final Map<String, dynamic>? meta;
   @JsonKey(name: 'type', defaultValue: 'content')
   final String type = 'content';
   @ContentBlockConverter()
   final ContentBlock content;
 
-  ContentToolCallContent({required this.content});
+  ContentToolCallContent({this.meta, required this.content});
 
   factory ContentToolCallContent.fromJson(Map<String, dynamic> json) =>
       _$ContentToolCallContentFromJson(json);
@@ -1336,6 +1492,8 @@ class ContentToolCallContent extends ToolCallContent {
 
 @JsonSerializable()
 class DiffToolCallContent extends ToolCallContent {
+  @JsonKey(name: '_meta', includeIfNull: false)
+  final Map<String, dynamic>? meta;
   @JsonKey(name: 'type', defaultValue: 'diff')
   final String type = 'diff';
   final String newText;
@@ -1343,6 +1501,7 @@ class DiffToolCallContent extends ToolCallContent {
   final String path;
 
   DiffToolCallContent({
+    this.meta,
     required this.newText,
     this.oldText,
     required this.path,
@@ -1356,11 +1515,13 @@ class DiffToolCallContent extends ToolCallContent {
 
 @JsonSerializable()
 class TerminalToolCallContent extends ToolCallContent {
+  @JsonKey(name: '_meta', includeIfNull: false)
+  final Map<String, dynamic>? meta;
   @JsonKey(name: 'type', defaultValue: 'terminal')
   final String type = 'terminal';
   final String terminalId;
 
-  TerminalToolCallContent({required this.terminalId});
+  TerminalToolCallContent({this.meta, required this.terminalId});
 
   factory TerminalToolCallContent.fromJson(Map<String, dynamic> json) =>
       _$TerminalToolCallContentFromJson(json);
@@ -1376,13 +1537,16 @@ class TerminalToolCallContent extends ToolCallContent {
 /// See protocol docs: [Following the Agent](https://agentclientprotocol.com/protocol/tool-calls#following-the-agent)
 @JsonSerializable()
 class ToolCallLocation {
+  @JsonKey(name: '_meta', includeIfNull: false)
+  final Map<String, dynamic>? meta;
+
   /// Optional line number within the file.
   final int? line;
 
   /// The file path being accessed or modified.
   final String path;
 
-  ToolCallLocation({this.line, required this.path});
+  ToolCallLocation({this.meta, this.line, required this.path});
 
   factory ToolCallLocation.fromJson(Map<String, dynamic> json) =>
       _$ToolCallLocationFromJson(json);
@@ -1397,17 +1561,19 @@ class ToolCallLocation {
 /// See protocol docs: [Plan Entries](https://agentclientprotocol.com/protocol/agent-plan#plan-entries)
 @JsonSerializable()
 class PlanEntry {
-  /// Human-readable description of what this task aims to accomplish.
+  @JsonKey(name: '_meta', includeIfNull: false)
+  final Map<String, dynamic>? meta;
+
   final String content;
 
-  /// The relative importance of this task.
-  /// Used to indicate which tasks are most critical to the overall goal.
-  final String priority;
+  @JsonKey(name: 'priority')
+  final PlanEntryPriority priority;
 
-  /// Current execution status of this task.
-  final String status;
+  @JsonKey(name: 'status')
+  final PlanEntryStatus status;
 
   PlanEntry({
+    this.meta,
     required this.content,
     required this.priority,
     required this.status,
@@ -1419,16 +1585,50 @@ class PlanEntry {
   Map<String, dynamic> toJson() => _$PlanEntryToJson(this);
 }
 
+@JsonSerializable()
+class Plan {
+  @JsonKey(name: '_meta', includeIfNull: false)
+  final Map<String, dynamic>? meta;
+  final List<PlanEntry> entries;
+
+  Plan({this.meta, required this.entries});
+
+  factory Plan.fromJson(Map<String, dynamic> json) => _$PlanFromJson(json);
+
+  Map<String, dynamic> toJson() => _$PlanToJson(this);
+}
+
+enum PlanEntryPriority {
+  @JsonValue('high')
+  high,
+  @JsonValue('medium')
+  medium,
+  @JsonValue('low')
+  low,
+}
+
+enum PlanEntryStatus {
+  @JsonValue('pending')
+  pending,
+  @JsonValue('in_progress')
+  inProgress,
+  @JsonValue('completed')
+  completed,
+}
+
 /// The input specification for a command.
 abstract class AvailableCommandInput {}
 
 /// All text that was typed after the command name is provided as input.
 @JsonSerializable()
 class UnstructuredCommandInput extends AvailableCommandInput {
+  @JsonKey(name: '_meta', includeIfNull: false)
+  final Map<String, dynamic>? meta;
+
   /// A hint to display when the input hasn't been provided yet
   final String hint;
 
-  UnstructuredCommandInput({required this.hint});
+  UnstructuredCommandInput({this.meta, required this.hint});
 
   factory UnstructuredCommandInput.fromJson(Map<String, dynamic> json) =>
       _$UnstructuredCommandInputFromJson(json);
@@ -1439,6 +1639,9 @@ class UnstructuredCommandInput extends AvailableCommandInput {
 /// Information about a command.
 @JsonSerializable()
 class AvailableCommand {
+  @JsonKey(name: '_meta', includeIfNull: false)
+  final Map<String, dynamic>? meta;
+
   /// Human-readable description of what the command does.
   final String description;
 
@@ -1448,7 +1651,12 @@ class AvailableCommand {
   /// Command name (e.g., `create_plan`, `research_codebase`).
   final String name;
 
-  AvailableCommand({required this.description, this.input, required this.name});
+  AvailableCommand({
+    this.meta,
+    required this.description,
+    this.input,
+    required this.name,
+  });
 
   factory AvailableCommand.fromJson(Map<String, dynamic> json) =>
       _$AvailableCommandFromJson(json);
@@ -1463,6 +1671,9 @@ class AvailableCommand {
 /// See protocol docs: [Agent Reports Output](https://agentclientprotocol.com/protocol/prompt-turn#3-agent-reports-output)
 @JsonSerializable()
 class SessionNotification {
+  @JsonKey(name: '_meta', includeIfNull: false)
+  final Map<String, dynamic>? meta;
+
   /// The ID of the session this update pertains to.
   final String sessionId;
 
@@ -1470,7 +1681,11 @@ class SessionNotification {
   @SessionUpdateConverter()
   final SessionUpdate update;
 
-  SessionNotification({required this.sessionId, required this.update});
+  SessionNotification({
+    this.meta,
+    required this.sessionId,
+    required this.update,
+  });
 
   factory SessionNotification.fromJson(Map<String, dynamic> json) =>
       _$SessionNotificationFromJson(json);
@@ -1603,7 +1818,10 @@ class AvailableCommandsUpdateSessionUpdate extends SessionUpdate {
   final Map<String, dynamic>? meta;
   final List<AvailableCommand> availableCommands;
 
-  AvailableCommandsUpdateSessionUpdate({this.meta, required this.availableCommands});
+  AvailableCommandsUpdateSessionUpdate({
+    this.meta,
+    required this.availableCommands,
+  });
 
   factory AvailableCommandsUpdateSessionUpdate.fromJson(
     Map<String, dynamic> json,
@@ -1626,8 +1844,6 @@ class CurrentModeUpdateSessionUpdate extends SessionUpdate {
 
   Map<String, dynamic> toJson() => _$CurrentModeUpdateSessionUpdateToJson(this);
 }
-
-
 
 @JsonSerializable()
 class UnknownSessionUpdate extends SessionUpdate {

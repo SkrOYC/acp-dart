@@ -285,26 +285,6 @@ abstract class Client {
   /// Allows the agent to access file contents within the client's environment.
   Future<ReadTextFileResponse>? readTextFile(ReadTextFileRequest params);
 
-  /// Deletes a file in the client's file system.
-  ///
-  /// Only available if the client advertises the `fs.deleteFile` capability.
-  Future<DeleteFileResponse>? deleteFile(DeleteFileRequest params);
-
-  /// Lists the contents of a directory in the client's file system.
-  ///
-  /// Only available if the client advertises the `fs.listDirectory` capability.
-  Future<ListDirectoryResponse>? listDirectory(ListDirectoryRequest params);
-
-  /// Creates a new directory in the client's file system.
-  ///
-  /// Only available if the client advertises the `fs.makeDirectory` capability.
-  Future<MakeDirectoryResponse>? makeDirectory(MakeDirectoryRequest params);
-
-  /// Moves or renames a file or directory in the client's file system.
-  ///
-  /// Only available if the client advertises the `fs.moveFile` capability.
-  Future<MoveFileResponse>? moveFile(MoveFileRequest params);
-
   /// Creates a new terminal to execute a command.
   ///
   /// Only available if the `terminal` capability is set to `true`.
@@ -347,7 +327,7 @@ abstract class Client {
   /// and then retrieve the final output.
   ///
   /// Note: Call `releaseTerminal` when the terminal is no longer needed.
-  Future<KillTerminalResponse?>? killTerminal(
+  Future<KillTerminalCommandResponse?>? killTerminal(
     KillTerminalCommandRequest params,
   );
 
@@ -511,45 +491,6 @@ class AgentSideConnection implements Client {
   }
 
   @override
-  Future<DeleteFileResponse>? deleteFile(DeleteFileRequest params) async {
-    final result = await _connection.sendRequest(
-      clientMethods['fsDeleteFile']!,
-      params.toJson(),
-    );
-    return DeleteFileResponse.fromJson(result as Map<String, dynamic>);
-  }
-
-  @override
-  Future<ListDirectoryResponse>? listDirectory(
-    ListDirectoryRequest params,
-  ) async {
-    final result = await _connection.sendRequest(
-      clientMethods['fsListDirectory']!,
-      params.toJson(),
-    );
-    return ListDirectoryResponse.fromJson(result as Map<String, dynamic>);
-  }
-
-  @override
-  Future<MakeDirectoryResponse>? makeDirectory(
-    MakeDirectoryRequest params,
-  ) async {
-    final result = await _connection.sendRequest(
-      clientMethods['fsMakeDirectory']!,
-      params.toJson(),
-    );
-    return MakeDirectoryResponse.fromJson(result as Map<String, dynamic>);
-  }
-
-  @override
-  Future<MoveFileResponse>? moveFile(MoveFileRequest params) async {
-    final result = await _connection.sendRequest(
-      clientMethods['fsMoveFile']!,
-      params.toJson(),
-    );
-    return MoveFileResponse.fromJson(result as Map<String, dynamic>);
-  }
-
   @override
   Future<CreateTerminalResponse>? createTerminal(
     CreateTerminalRequest params,
@@ -595,14 +536,14 @@ class AgentSideConnection implements Client {
   }
 
   @override
-  Future<KillTerminalResponse?>? killTerminal(
+  Future<KillTerminalCommandResponse?>? killTerminal(
     KillTerminalCommandRequest params,
   ) async {
     final result = await _connection.sendRequest(
       clientMethods['terminalKill']!,
       params.toJson(),
     );
-    return KillTerminalResponse.fromJson(result as Map<String, dynamic>);
+    return KillTerminalCommandResponse.fromJson(result as Map<String, dynamic>);
   }
 
   @override
@@ -658,26 +599,6 @@ class ClientSideConnection implements Agent {
             params as Map<String, dynamic>,
           );
           return client.readTextFile(validatedParams);
-        case 'fs/delete_file':
-          final validatedParams = DeleteFileRequest.fromJson(
-            params as Map<String, dynamic>,
-          );
-          return client.deleteFile(validatedParams);
-        case 'fs/list_directory':
-          final validatedParams = ListDirectoryRequest.fromJson(
-            params as Map<String, dynamic>,
-          );
-          return client.listDirectory(validatedParams);
-        case 'fs/make_directory':
-          final validatedParams = MakeDirectoryRequest.fromJson(
-            params as Map<String, dynamic>,
-          );
-          return client.makeDirectory(validatedParams);
-        case 'fs/move_file':
-          final validatedParams = MoveFileRequest.fromJson(
-            params as Map<String, dynamic>,
-          );
-          return client.moveFile(validatedParams);
         case 'session/request_permission':
           final validatedParams = RequestPermissionRequest.fromJson(
             params as Map<String, dynamic>,
@@ -906,7 +827,9 @@ abstract class Agent {
   /// Selects the model for a given session.
   ///
   /// **UNSTABLE:** This capability is not part of the spec yet, and may be removed or changed at any point.
-  Future<SetSessionModelResponse?>? setSessionModel(SetSessionModelRequest params);
+  Future<SetSessionModelResponse?>? setSessionModel(
+    SetSessionModelRequest params,
+  );
 
   /// Authenticates the client using the specified authentication method.
   ///
@@ -1016,7 +939,7 @@ class TerminalHandle implements AsyncDisposable {
   /// - Release the terminal when done
   ///
   /// Useful for implementing timeouts or cancellation.
-  Future<KillTerminalResponse> kill() async {
+  Future<KillTerminalCommandResponse> kill() async {
     return await _connection.sendRequest(clientMethods['terminalKill']!, {
       'sessionId': _sessionId,
       'terminalId': id,

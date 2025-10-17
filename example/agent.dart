@@ -22,11 +22,9 @@ class ExampleAgent implements Agent {
   @override
   Future<InitializeResponse> initialize(InitializeRequest params) async {
     return InitializeResponse(
-      protocolVersion: '0.1.0', // Using a sample protocol version
-      capabilities: AgentCapabilities(
-        loadSession: false,
-        auth: [], // No authentication methods required for this example
-      ),
+      protocolVersion: 1,
+      agentCapabilities: AgentCapabilities(loadSession: false),
+      authMethods: const [],
     );
   }
 
@@ -39,8 +37,8 @@ class ExampleAgent implements Agent {
     return NewSessionResponse(
       sessionId: sessionId,
       modes: SessionModeState(
-        available: [SessionMode(id: 'default', name: 'Default')],
-        current: 'default',
+        availableModes: [SessionMode(id: 'default', name: 'Default')],
+        currentModeId: 'default',
       ),
     );
   }
@@ -82,6 +80,14 @@ class ExampleAgent implements Agent {
   }
 
   @override
+  Future<SetSessionModelResponse?>? setSessionModel(
+    SetSessionModelRequest params,
+  ) async {
+    // Not implemented in this example
+    return SetSessionModelResponse();
+  }
+
+  @override
   Future<PromptResponse> prompt(PromptRequest params) async {
     final session = _sessions[params.sessionId];
 
@@ -102,14 +108,14 @@ class ExampleAgent implements Agent {
       await _simulateTurn(params.sessionId, completer.future.asStream());
     } catch (err) {
       if (session.pendingPrompt != null && session.pendingPrompt!.isCompleted) {
-        return PromptResponse(done: true);
+        return PromptResponse(stopReason: StopReason.cancelled);
       }
       rethrow;
     } finally {
       session.pendingPrompt = null;
     }
 
-    return PromptResponse(done: true);
+    return PromptResponse(stopReason: StopReason.endTurn);
   }
 
   /// Simulates an agent turn with text chunks and tool calls
@@ -203,10 +209,18 @@ class ExampleAgent implements Agent {
     // Request permission for the sensitive operation
     final permissionResponse = await _connection.requestPermission(
       RequestPermissionRequest(
-        question: "Allow this change?",
+        sessionId: sessionId,
         options: [
-          PermissionOption(id: "allow", title: "Allow this change"),
-          PermissionOption(id: "reject", title: "Skip this change"),
+          PermissionOption(
+            optionId: "allow",
+            name: "Allow this change",
+            kind: PermissionOptionKind.allowOnce,
+          ),
+          PermissionOption(
+            optionId: "reject",
+            name: "Skip this change",
+            kind: PermissionOptionKind.rejectOnce,
+          ),
         ],
         toolCall: ToolCallUpdate(
           toolCallId: "call_2",
@@ -222,8 +236,10 @@ class ExampleAgent implements Agent {
       ),
     );
 
-    switch (permissionResponse.optionId) {
-      case "allow":
+    final outcome = permissionResponse.outcome;
+
+    switch (outcome) {
+      case SelectedOutcome(optionId: final optionId) when optionId == "allow":
         await _connection.sessionUpdate(
           SessionNotification(
             sessionId: sessionId,
@@ -249,7 +265,7 @@ class ExampleAgent implements Agent {
           ),
         );
         break;
-      case "reject":
+      case SelectedOutcome(optionId: final optionId) when optionId == "reject":
         await _simulateModelInteraction(abortStream);
 
         await _connection.sessionUpdate(
@@ -264,10 +280,21 @@ class ExampleAgent implements Agent {
           ),
         );
         break;
-      default:
-        throw Exception(
-          'Unexpected permission outcome ${permissionResponse.optionId}',
+      case CancelledOutcome():
+        await _connection.sessionUpdate(
+          SessionNotification(
+            sessionId: sessionId,
+            update: AgentMessageChunkSessionUpdate(
+              content: TextContentBlock(
+                text:
+                    "The permission request was cancelled, so I will leave the configuration unchanged.",
+              ),
+            ),
+          ),
         );
+        break;
+      default:
+        throw Exception('Unexpected permission outcome $outcome');
     }
   }
 

@@ -11,10 +11,8 @@ class ExampleClient implements Client {
 
     print('\nOptions:');
     for (int i = 0; i < params.options.length; i++) {
-      print('   ${i + 1}. ${params.options[i].title}');
-      if (params.options[i].description != null) {
-        print('      ${params.options[i].description}');
-      }
+      final option = params.options[i];
+      print('   ${i + 1}. ${option.name}');
     }
 
     while (true) {
@@ -32,7 +30,9 @@ class ExampleClient implements Client {
           optionIndex > 0 &&
           optionIndex <= params.options.length) {
         return RequestPermissionResponse(
-          optionId: params.options[optionIndex - 1].id,
+          outcome: SelectedOutcome(
+            optionId: params.options[optionIndex - 1].optionId,
+          ),
         );
       } else {
         print('Invalid option. Please try again.');
@@ -105,7 +105,7 @@ class ExampleClient implements Client {
     stderr.writeln(
       '[Client] Terminal output called with: ${jsonEncode(params)}',
     );
-    return TerminalOutputResponse();
+    return TerminalOutputResponse(output: '', truncated: false);
   }
 
   @override
@@ -129,11 +129,11 @@ class ExampleClient implements Client {
   }
 
   @override
-  Future<KillTerminalResponse> killTerminal(
+  Future<KillTerminalCommandResponse> killTerminal(
     KillTerminalCommandRequest params,
   ) async {
     stderr.writeln('[Client] Kill terminal called with: ${jsonEncode(params)}');
-    return KillTerminalResponse();
+    return KillTerminalCommandResponse();
   }
 
   @override
@@ -176,8 +176,10 @@ Future<void> main() async {
     // Initialize the connection
     final initResult = await connection.initialize(
       InitializeRequest(
-        capabilities: ClientCapabilities(
+        protocolVersion: 1,
+        clientCapabilities: ClientCapabilities(
           fs: FileSystemCapability(readTextFile: true, writeTextFile: true),
+          terminal: true,
         ),
       ),
     );
@@ -185,7 +187,9 @@ Future<void> main() async {
     print('✅ Connected to agent (protocol v${initResult.protocolVersion})');
 
     // Create a new session
-    final sessionResult = await connection.newSession(NewSessionRequest());
+    final sessionResult = await connection.newSession(
+      NewSessionRequest(cwd: Directory.current.path, mcpServers: const []),
+    );
 
     print('📝 Created session: ${sessionResult.sessionId}');
     print('💬 User: Hello, agent!\n');
@@ -195,11 +199,11 @@ Future<void> main() async {
     final promptResult = await connection.prompt(
       PromptRequest(
         sessionId: sessionResult.sessionId,
-        content: [TextContentBlock(text: 'Hello, agent!')],
+        prompt: [TextContentBlock(text: 'Hello, agent!')],
       ),
     );
 
-    print('\n\n✅ Agent completed with: done = ${promptResult.done}');
+    print('\n\n✅ Agent completed with stop reason: ${promptResult.stopReason}');
   } catch (error) {
     stderr.writeln('[Client] Error: $error');
   } finally {
