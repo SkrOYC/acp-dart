@@ -135,8 +135,9 @@ class InitializeRequest {
 @JsonSerializable()
 class ClientCapabilities {
   final FileSystemCapability? fs;
+  final bool? terminal;
 
-  ClientCapabilities({this.fs});
+  ClientCapabilities({this.fs, this.terminal});
 
   factory ClientCapabilities.fromJson(Map<String, dynamic> json) =>
       _$ClientCapabilitiesFromJson(json);
@@ -224,6 +225,8 @@ class HttpHeader {
 
 @JsonSerializable()
 class Stdio extends McpServerBase {
+  @JsonKey(defaultValue: 'stdio')
+  final String type = 'stdio';
   final List<String> command;
   final List<EnvVariable>? env;
 

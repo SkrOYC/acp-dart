@@ -27,10 +27,11 @@ ClientCapabilities _$ClientCapabilitiesFromJson(Map<String, dynamic> json) =>
       fs: json['fs'] == null
           ? null
           : FileSystemCapability.fromJson(json['fs'] as Map<String, dynamic>),
+      terminal: json['terminal'] as bool?,
     );
 
 Map<String, dynamic> _$ClientCapabilitiesToJson(ClientCapabilities instance) =>
-    <String, dynamic>{'fs': instance.fs};
+    <String, dynamic>{'fs': instance.fs, 'terminal': instance.terminal};
 
 FileSystemCapability _$FileSystemCapabilityFromJson(
   Map<String, dynamic> json,
