@@ -277,13 +277,13 @@ abstract class Client {
   ///
   /// Only available if the client advertises the `fs.writeTextFile` capability.
   /// Allows the agent to create or modify files within the client's environment.
-  Future<WriteTextFileResponse> writeTextFile(WriteTextFileRequest params);
+  Future<WriteTextFileResponse>? writeTextFile(WriteTextFileRequest params);
 
   /// Reads content from a text file in the client's file system.
   ///
   /// Only available if the client advertises the `fs.readTextFile` capability.
   /// Allows the agent to access file contents within the client's environment.
-  Future<ReadTextFileResponse> readTextFile(ReadTextFileRequest params);
+  Future<ReadTextFileResponse>? readTextFile(ReadTextFileRequest params);
 
   /// Creates a new terminal to execute a command.
   ///
