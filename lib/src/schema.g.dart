@@ -773,11 +773,17 @@ Map<String, dynamic> _$ReleaseTerminalResponseToJson(
 
 WaitForTerminalExitResponse _$WaitForTerminalExitResponseFromJson(
   Map<String, dynamic> json,
-) => WaitForTerminalExitResponse(exitCode: (json['exitCode'] as num).toInt());
+) => WaitForTerminalExitResponse(
+  exitCode: (json['exitCode'] as num?)?.toInt(),
+  signal: json['signal'] as String?,
+);
 
 Map<String, dynamic> _$WaitForTerminalExitResponseToJson(
   WaitForTerminalExitResponse instance,
-) => <String, dynamic>{'exitCode': instance.exitCode};
+) => <String, dynamic>{
+  'exitCode': instance.exitCode,
+  'signal': instance.signal,
+};
 
 KillTerminalResponse _$KillTerminalResponseFromJson(
   Map<String, dynamic> json,

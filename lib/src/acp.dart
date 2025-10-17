@@ -398,6 +398,12 @@ class AgentSideConnection implements Client {
           );
           final result = await agent.setSessionMode(validatedParams);
           return result ?? {};
+        case 'session/set_model':
+          final validatedParams = SetSessionModelRequest.fromJson(
+            params as Map<String, dynamic>,
+          );
+          final result = await agent.setSessionModel(validatedParams);
+          return result ?? {};
         case 'authenticate':
           final validatedParams = AuthenticateRequest.fromJson(
             params as Map<String, dynamic>,

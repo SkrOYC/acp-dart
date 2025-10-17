@@ -1036,9 +1036,10 @@ class ReleaseTerminalResponse {
 
 @JsonSerializable()
 class WaitForTerminalExitResponse {
-  final int exitCode;
+  final int? exitCode;
+  final String? signal;
 
-  WaitForTerminalExitResponse({required this.exitCode});
+  WaitForTerminalExitResponse({this.exitCode, this.signal});
 
   factory WaitForTerminalExitResponse.fromJson(Map<String, dynamic> json) =>
       _$WaitForTerminalExitResponseFromJson(json);
