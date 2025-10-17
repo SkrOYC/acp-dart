@@ -1026,9 +1026,8 @@ Map<String, dynamic> _$AvailableCommandToJson(AvailableCommand instance) =>
 SessionNotification _$SessionNotificationFromJson(Map<String, dynamic> json) =>
     SessionNotification(
       sessionId: json['sessionId'] as String,
-      update: _$JsonConverterFromJson<Map<String, dynamic>, SessionUpdate>(
-        json['update'],
-        const SessionUpdateConverter().fromJson,
+      update: const SessionUpdateConverter().fromJson(
+        json['update'] as Map<String, dynamic>,
       ),
     );
 
@@ -1036,21 +1035,8 @@ Map<String, dynamic> _$SessionNotificationToJson(
   SessionNotification instance,
 ) => <String, dynamic>{
   'sessionId': instance.sessionId,
-  'update': _$JsonConverterToJson<Map<String, dynamic>, SessionUpdate>(
-    instance.update,
-    const SessionUpdateConverter().toJson,
-  ),
+  'update': const SessionUpdateConverter().toJson(instance.update),
 };
-
-Value? _$JsonConverterFromJson<Json, Value>(
-  Object? json,
-  Value? Function(Json json) fromJson,
-) => json == null ? null : fromJson(json as Json);
-
-Json? _$JsonConverterToJson<Json, Value>(
-  Value? value,
-  Json? Function(Value value) toJson,
-) => value == null ? null : toJson(value);
 
 UserMessageChunkSessionUpdate _$UserMessageChunkSessionUpdateFromJson(
   Map<String, dynamic> json,
@@ -1097,6 +1083,16 @@ Map<String, dynamic> _$AgentThoughtChunkSessionUpdateToJson(
     const ContentBlockConverter().toJson,
   ),
 };
+
+Value? _$JsonConverterFromJson<Json, Value>(
+  Object? json,
+  Value? Function(Json json) fromJson,
+) => json == null ? null : fromJson(json as Json);
+
+Json? _$JsonConverterToJson<Json, Value>(
+  Value? value,
+  Json? Function(Value value) toJson,
+) => value == null ? null : toJson(value);
 
 ToolCallSessionUpdate _$ToolCallSessionUpdateFromJson(
   Map<String, dynamic> json,

@@ -1388,9 +1388,9 @@ class SessionNotification {
 
   /// The actual update content.
   @SessionUpdateConverter()
-  final SessionUpdate? update;
+  final SessionUpdate update;
 
-  SessionNotification({required this.sessionId, this.update});
+  SessionNotification({required this.sessionId, required this.update});
 
   factory SessionNotification.fromJson(Map<String, dynamic> json) =>
       _$SessionNotificationFromJson(json);
