@@ -56,6 +56,11 @@ void main() {
             url: 'https://example.com',
             headers: [HttpHeader(name: 'Authorization', value: 'Bearer token')],
           ),
+          SseMcpServer(
+            name: 'stream-docs',
+            url: 'https://example.com/events',
+            headers: [HttpHeader(name: 'X-Client', value: 'acp-dart')],
+          ),
           StdioMcpServer(
             name: 'local-tools',
             command: 'mcp-server',
@@ -95,7 +100,7 @@ void main() {
       );
 
       expect(newSessionDecoded.cwd, equals('/workspace'));
-      expect(newSessionDecoded.mcpServers.length, equals(2));
+      expect(newSessionDecoded.mcpServers.length, equals(3));
       expect(loadSessionDecoded.sessionId, equals('session-123'));
       expect(setModeDecoded.modeId, equals('code'));
       expect(setModelDecoded.modelId, equals('gpt-4'));

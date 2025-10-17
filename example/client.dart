@@ -188,7 +188,21 @@ Future<void> main() async {
 
     // Create a new session
     final sessionResult = await connection.newSession(
-      NewSessionRequest(cwd: Directory.current.path, mcpServers: const []),
+      NewSessionRequest(
+        cwd: Directory.current.path,
+        mcpServers: [
+          HttpMcpServer(
+            name: 'docs',
+            url: 'https://example.com',
+            headers: const [],
+          ),
+          SseMcpServer(
+            name: 'events',
+            url: 'https://example.com/events',
+            headers: const [],
+          ),
+        ],
+      ),
     );
 
     print('📝 Created session: ${sessionResult.sessionId}');

@@ -32,5 +32,6 @@ export 'src/acp.dart'
         TerminalHandle;
 
 export 'src/schema.dart';
+export 'src/rpc_unions.dart';
 
 export 'src/stream.dart' show AcpStream, ndJsonStream;

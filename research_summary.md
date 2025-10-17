@@ -12,6 +12,7 @@ The SDK now mirrors the official Agent Client Protocol (ACP) schema, including a
 
 - End-to-end JSON models match `schema/schema.json`, including `_meta` propagation, discriminator values, and enum string constants.
 - MCP server configuration supports the HTTP/SSE/stdio variants defined in the spec.
+- Typed union wrappers (`AgentRequestUnion`, etc.) provide method-aware routing helpers instead of raw string tables.
 - Tool-call content uses `type` discriminators with a tightened converter that round-trips official payloads.
 - Example agent/client flows and tests exercise spec-compliant request/response sequences (initialize, new session, prompt, permission, terminal, etc.).
 - Added schema round-trip tests to guard against future drift.
