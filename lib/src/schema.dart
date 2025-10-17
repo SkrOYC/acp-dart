@@ -401,6 +401,7 @@ class AudioContentBlock extends ContentBlock {
   final Annotations? annotations;
   final String data;
   final String mimeType;
+  @JsonKey(name: 'type', defaultValue: 'audio')
   final String type;
 
   AudioContentBlock({
@@ -408,7 +409,8 @@ class AudioContentBlock extends ContentBlock {
     this.annotations,
     required this.data,
     required this.mimeType,
-  }) : type = 'audio';
+    this.type = 'audio',
+  });
 
   factory AudioContentBlock.fromJson(Map<String, dynamic> json) =>
       _$AudioContentBlockFromJson(json);
@@ -943,7 +945,9 @@ class NewSessionResponse {
 
 @JsonSerializable()
 class SessionModeState {
+  @JsonKey(name: 'availableModes')
   final List<SessionMode> available;
+  @JsonKey(name: 'currentModeId')
   final String current;
 
   SessionModeState({required this.available, required this.current});
@@ -970,7 +974,9 @@ class SessionMode {
 
 @JsonSerializable()
 class SessionModelState {
+  @JsonKey(name: 'availableModels')
   final List<ModelInfo> available;
+  @JsonKey(name: 'currentModelId')
   final String current;
 
   SessionModelState({required this.available, required this.current});
@@ -1315,6 +1321,8 @@ abstract class ToolCallContent {}
 
 @JsonSerializable()
 class ContentToolCallContent extends ToolCallContent {
+  @JsonKey(name: 'type', defaultValue: 'content')
+  final String type = 'content';
   @ContentBlockConverter()
   final ContentBlock content;
 
@@ -1328,6 +1336,8 @@ class ContentToolCallContent extends ToolCallContent {
 
 @JsonSerializable()
 class DiffToolCallContent extends ToolCallContent {
+  @JsonKey(name: 'type', defaultValue: 'diff')
+  final String type = 'diff';
   final String newText;
   final String? oldText;
   final String path;
@@ -1346,6 +1356,8 @@ class DiffToolCallContent extends ToolCallContent {
 
 @JsonSerializable()
 class TerminalToolCallContent extends ToolCallContent {
+  @JsonKey(name: 'type', defaultValue: 'terminal')
+  final String type = 'terminal';
   final String terminalId;
 
   TerminalToolCallContent({required this.terminalId});

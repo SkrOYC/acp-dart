@@ -219,6 +219,7 @@ AudioContentBlock _$AudioContentBlockFromJson(Map<String, dynamic> json) =>
           : Annotations.fromJson(json['annotations'] as Map<String, dynamic>),
       data: json['data'] as String,
       mimeType: json['mimeType'] as String,
+      type: json['type'] as String? ?? 'audio',
     );
 
 Map<String, dynamic> _$AudioContentBlockToJson(AudioContentBlock instance) =>
@@ -227,6 +228,7 @@ Map<String, dynamic> _$AudioContentBlockToJson(AudioContentBlock instance) =>
       'annotations': instance.annotations,
       'data': instance.data,
       'mimeType': instance.mimeType,
+      'type': instance.type,
     };
 
 ResourceLinkContentBlock _$ResourceLinkContentBlockFromJson(
@@ -728,16 +730,16 @@ Map<String, dynamic> _$NewSessionResponseToJson(NewSessionResponse instance) =>
 
 SessionModeState _$SessionModeStateFromJson(Map<String, dynamic> json) =>
     SessionModeState(
-      available: (json['available'] as List<dynamic>)
+      available: (json['availableModes'] as List<dynamic>)
           .map((e) => SessionMode.fromJson(e as Map<String, dynamic>))
           .toList(),
-      current: json['current'] as String,
+      current: json['currentModeId'] as String,
     );
 
 Map<String, dynamic> _$SessionModeStateToJson(SessionModeState instance) =>
     <String, dynamic>{
-      'available': instance.available,
-      'current': instance.current,
+      'availableModes': instance.available,
+      'currentModeId': instance.current,
     };
 
 SessionMode _$SessionModeFromJson(Map<String, dynamic> json) => SessionMode(
@@ -755,16 +757,16 @@ Map<String, dynamic> _$SessionModeToJson(SessionMode instance) =>
 
 SessionModelState _$SessionModelStateFromJson(Map<String, dynamic> json) =>
     SessionModelState(
-      available: (json['available'] as List<dynamic>)
+      available: (json['availableModels'] as List<dynamic>)
           .map((e) => ModelInfo.fromJson(e as Map<String, dynamic>))
           .toList(),
-      current: json['current'] as String,
+      current: json['currentModelId'] as String,
     );
 
 Map<String, dynamic> _$SessionModelStateToJson(SessionModelState instance) =>
     <String, dynamic>{
-      'available': instance.available,
-      'current': instance.current,
+      'availableModels': instance.available,
+      'currentModelId': instance.current,
     };
 
 ModelInfo _$ModelInfoFromJson(Map<String, dynamic> json) => ModelInfo(
