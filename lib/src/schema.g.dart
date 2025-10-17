@@ -136,11 +136,17 @@ Map<String, dynamic> _$LoadSessionRequestToJson(LoadSessionRequest instance) =>
 
 SetSessionModeRequest _$SetSessionModeRequestFromJson(
   Map<String, dynamic> json,
-) => SetSessionModeRequest(mode: json['mode'] as String);
+) => SetSessionModeRequest(
+  sessionId: json['sessionId'] as String,
+  modeId: json['modeId'] as String,
+);
 
 Map<String, dynamic> _$SetSessionModeRequestToJson(
   SetSessionModeRequest instance,
-) => <String, dynamic>{'mode': instance.mode};
+) => <String, dynamic>{
+  'sessionId': instance.sessionId,
+  'modeId': instance.modeId,
+};
 
 PromptRequest _$PromptRequestFromJson(Map<String, dynamic> json) =>
     PromptRequest(
@@ -372,6 +378,95 @@ Map<String, dynamic> _$ReadTextFileRequestToJson(
   'limit': instance.limit,
 };
 
+DeleteFileRequest _$DeleteFileRequestFromJson(Map<String, dynamic> json) =>
+    DeleteFileRequest(
+      sessionId: json['sessionId'] as String,
+      path: json['path'] as String,
+    );
+
+Map<String, dynamic> _$DeleteFileRequestToJson(DeleteFileRequest instance) =>
+    <String, dynamic>{'sessionId': instance.sessionId, 'path': instance.path};
+
+DeleteFileResponse _$DeleteFileResponseFromJson(Map<String, dynamic> json) =>
+    DeleteFileResponse();
+
+Map<String, dynamic> _$DeleteFileResponseToJson(DeleteFileResponse instance) =>
+    <String, dynamic>{};
+
+MakeDirectoryRequest _$MakeDirectoryRequestFromJson(
+  Map<String, dynamic> json,
+) => MakeDirectoryRequest(
+  sessionId: json['sessionId'] as String,
+  path: json['path'] as String,
+);
+
+Map<String, dynamic> _$MakeDirectoryRequestToJson(
+  MakeDirectoryRequest instance,
+) => <String, dynamic>{'sessionId': instance.sessionId, 'path': instance.path};
+
+MakeDirectoryResponse _$MakeDirectoryResponseFromJson(
+  Map<String, dynamic> json,
+) => MakeDirectoryResponse();
+
+Map<String, dynamic> _$MakeDirectoryResponseToJson(
+  MakeDirectoryResponse instance,
+) => <String, dynamic>{};
+
+MoveFileRequest _$MoveFileRequestFromJson(Map<String, dynamic> json) =>
+    MoveFileRequest(
+      sessionId: json['sessionId'] as String,
+      fromPath: json['fromPath'] as String,
+      toPath: json['toPath'] as String,
+    );
+
+Map<String, dynamic> _$MoveFileRequestToJson(MoveFileRequest instance) =>
+    <String, dynamic>{
+      'sessionId': instance.sessionId,
+      'fromPath': instance.fromPath,
+      'toPath': instance.toPath,
+    };
+
+MoveFileResponse _$MoveFileResponseFromJson(Map<String, dynamic> json) =>
+    MoveFileResponse();
+
+Map<String, dynamic> _$MoveFileResponseToJson(MoveFileResponse instance) =>
+    <String, dynamic>{};
+
+ListDirectoryRequest _$ListDirectoryRequestFromJson(
+  Map<String, dynamic> json,
+) => ListDirectoryRequest(
+  sessionId: json['sessionId'] as String,
+  path: json['path'] as String,
+);
+
+Map<String, dynamic> _$ListDirectoryRequestToJson(
+  ListDirectoryRequest instance,
+) => <String, dynamic>{'sessionId': instance.sessionId, 'path': instance.path};
+
+ListDirectoryResponse _$ListDirectoryResponseFromJson(
+  Map<String, dynamic> json,
+) => ListDirectoryResponse(
+  entries: (json['entries'] as List<dynamic>)
+      .map((e) => DirectoryEntry.fromJson(e as Map<String, dynamic>))
+      .toList(),
+);
+
+Map<String, dynamic> _$ListDirectoryResponseToJson(
+  ListDirectoryResponse instance,
+) => <String, dynamic>{'entries': instance.entries};
+
+DirectoryEntry _$DirectoryEntryFromJson(Map<String, dynamic> json) =>
+    DirectoryEntry(
+      name: json['name'] as String,
+      isDirectory: json['isDirectory'] as bool,
+    );
+
+Map<String, dynamic> _$DirectoryEntryToJson(DirectoryEntry instance) =>
+    <String, dynamic>{
+      'name': instance.name,
+      'isDirectory': instance.isDirectory,
+    };
+
 RequestPermissionRequest _$RequestPermissionRequestFromJson(
   Map<String, dynamic> json,
 ) => RequestPermissionRequest(
@@ -561,16 +656,29 @@ Map<String, dynamic> _$AgentCapabilitiesToJson(AgentCapabilities instance) =>
     };
 
 McpCapabilities _$McpCapabilitiesFromJson(Map<String, dynamic> json) =>
-    McpCapabilities(http: json['http'] as bool, sse: json['sse'] as bool);
+    McpCapabilities(
+      http: json['http'] as bool,
+      sse: json['sse'] as bool,
+      versions: (json['versions'] as List<dynamic>?)
+          ?.map((e) => e as String)
+          .toList(),
+    );
 
 Map<String, dynamic> _$McpCapabilitiesToJson(McpCapabilities instance) =>
-    <String, dynamic>{'http': instance.http, 'sse': instance.sse};
+    <String, dynamic>{
+      'http': instance.http,
+      'sse': instance.sse,
+      'versions': instance.versions,
+    };
 
 PromptCapabilities _$PromptCapabilitiesFromJson(Map<String, dynamic> json) =>
     PromptCapabilities(
       audio: json['audio'] as bool,
       embeddedContext: json['embeddedContext'] as bool,
       image: json['image'] as bool,
+      sessionModes: (json['sessionModes'] as List<dynamic>?)
+          ?.map((e) => e as String)
+          .toList(),
     );
 
 Map<String, dynamic> _$PromptCapabilitiesToJson(PromptCapabilities instance) =>
@@ -578,6 +686,7 @@ Map<String, dynamic> _$PromptCapabilitiesToJson(PromptCapabilities instance) =>
       'audio': instance.audio,
       'embeddedContext': instance.embeddedContext,
       'image': instance.image,
+      'sessionModes': instance.sessionModes,
     };
 
 AuthMethod _$AuthMethodFromJson(Map<String, dynamic> json) => AuthMethod(
@@ -707,11 +816,15 @@ Map<String, dynamic> _$SetSessionModeResponseToJson(
 
 PromptResponse _$PromptResponseFromJson(Map<String, dynamic> json) =>
     PromptResponse(
+      meta: json['_meta'] as Map<String, dynamic>?,
       stopReason: $enumDecode(_$StopReasonEnumMap, json['stopReason']),
     );
 
 Map<String, dynamic> _$PromptResponseToJson(PromptResponse instance) =>
-    <String, dynamic>{'stopReason': _$StopReasonEnumMap[instance.stopReason]!};
+    <String, dynamic>{
+      '_meta': ?instance.meta,
+      'stopReason': _$StopReasonEnumMap[instance.stopReason]!,
+    };
 
 const _$StopReasonEnumMap = {
   StopReason.endTurn: 'end_turn',
@@ -1071,6 +1184,7 @@ Map<String, dynamic> _$AgentThoughtChunkSessionUpdateToJson(
 ToolCallSessionUpdate _$ToolCallSessionUpdateFromJson(
   Map<String, dynamic> json,
 ) => ToolCallSessionUpdate(
+  meta: json['_meta'] as Map<String, dynamic>?,
   content: (json['content'] as List<dynamic>?)
       ?.map(
         (e) => const ToolCallContentConverter().fromJson(
@@ -1092,6 +1206,7 @@ ToolCallSessionUpdate _$ToolCallSessionUpdateFromJson(
 Map<String, dynamic> _$ToolCallSessionUpdateToJson(
   ToolCallSessionUpdate instance,
 ) => <String, dynamic>{
+  '_meta': ?instance.meta,
   'content': instance.content
       ?.map(const ToolCallContentConverter().toJson)
       .toList(),
@@ -1107,6 +1222,7 @@ Map<String, dynamic> _$ToolCallSessionUpdateToJson(
 ToolCallUpdateSessionUpdate _$ToolCallUpdateSessionUpdateFromJson(
   Map<String, dynamic> json,
 ) => ToolCallUpdateSessionUpdate(
+  meta: json['_meta'] as Map<String, dynamic>?,
   content: (json['content'] as List<dynamic>?)
       ?.map(
         (e) => const ToolCallContentConverter().fromJson(
@@ -1128,6 +1244,7 @@ ToolCallUpdateSessionUpdate _$ToolCallUpdateSessionUpdateFromJson(
 Map<String, dynamic> _$ToolCallUpdateSessionUpdateToJson(
   ToolCallUpdateSessionUpdate instance,
 ) => <String, dynamic>{
+  '_meta': ?instance.meta,
   'content': instance.content
       ?.map(const ToolCallContentConverter().toJson)
       .toList(),
@@ -1142,17 +1259,19 @@ Map<String, dynamic> _$ToolCallUpdateSessionUpdateToJson(
 
 PlanSessionUpdate _$PlanSessionUpdateFromJson(Map<String, dynamic> json) =>
     PlanSessionUpdate(
+      meta: json['_meta'] as Map<String, dynamic>?,
       entries: (json['entries'] as List<dynamic>)
           .map((e) => PlanEntry.fromJson(e as Map<String, dynamic>))
           .toList(),
     );
 
 Map<String, dynamic> _$PlanSessionUpdateToJson(PlanSessionUpdate instance) =>
-    <String, dynamic>{'entries': instance.entries};
+    <String, dynamic>{'_meta': ?instance.meta, 'entries': instance.entries};
 
 AvailableCommandsUpdateSessionUpdate
 _$AvailableCommandsUpdateSessionUpdateFromJson(Map<String, dynamic> json) =>
     AvailableCommandsUpdateSessionUpdate(
+      meta: json['_meta'] as Map<String, dynamic>?,
       availableCommands: (json['availableCommands'] as List<dynamic>)
           .map((e) => AvailableCommand.fromJson(e as Map<String, dynamic>))
           .toList(),
@@ -1160,17 +1279,24 @@ _$AvailableCommandsUpdateSessionUpdateFromJson(Map<String, dynamic> json) =>
 
 Map<String, dynamic> _$AvailableCommandsUpdateSessionUpdateToJson(
   AvailableCommandsUpdateSessionUpdate instance,
-) => <String, dynamic>{'availableCommands': instance.availableCommands};
+) => <String, dynamic>{
+  '_meta': ?instance.meta,
+  'availableCommands': instance.availableCommands,
+};
 
 CurrentModeUpdateSessionUpdate _$CurrentModeUpdateSessionUpdateFromJson(
   Map<String, dynamic> json,
 ) => CurrentModeUpdateSessionUpdate(
+  meta: json['_meta'] as Map<String, dynamic>?,
   currentModeId: json['currentModeId'] as String,
 );
 
 Map<String, dynamic> _$CurrentModeUpdateSessionUpdateToJson(
   CurrentModeUpdateSessionUpdate instance,
-) => <String, dynamic>{'currentModeId': instance.currentModeId};
+) => <String, dynamic>{
+  '_meta': ?instance.meta,
+  'currentModeId': instance.currentModeId,
+};
 
 UnknownSessionUpdate _$UnknownSessionUpdateFromJson(
   Map<String, dynamic> json,

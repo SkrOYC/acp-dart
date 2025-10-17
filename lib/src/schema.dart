@@ -272,9 +272,10 @@ class LoadSessionRequest {
 
 @JsonSerializable()
 class SetSessionModeRequest {
-  final String mode;
+  final String sessionId;
+  final String modeId;
 
-  SetSessionModeRequest({required this.mode});
+  SetSessionModeRequest({required this.sessionId, required this.modeId});
 
   factory SetSessionModeRequest.fromJson(Map<String, dynamic> json) =>
       _$SetSessionModeRequestFromJson(json);
@@ -571,7 +572,6 @@ class ReadTextFileRequest {
   Map<String, dynamic> toJson() => _$ReadTextFileRequestToJson(this);
 }
 
-/*
 @JsonSerializable()
 class DeleteFileRequest {
   final String sessionId;
@@ -679,7 +679,6 @@ class DirectoryEntry {
 
   Map<String, dynamic> toJson() => _$DirectoryEntryToJson(this);
 }
-*/
 
 @JsonSerializable()
 class RequestPermissionRequest {
@@ -871,8 +870,9 @@ class AgentCapabilities {
 class McpCapabilities {
   final bool http;
   final bool sse;
+  final List<String>? versions;
 
-  McpCapabilities({required this.http, required this.sse});
+  McpCapabilities({required this.http, required this.sse, this.versions});
 
   factory McpCapabilities.fromJson(Map<String, dynamic> json) =>
       _$McpCapabilitiesFromJson(json);
@@ -885,11 +885,13 @@ class PromptCapabilities {
   final bool audio;
   final bool embeddedContext;
   final bool image;
+  final List<String>? sessionModes;
 
   PromptCapabilities({
     required this.audio,
     required this.embeddedContext,
     required this.image,
+    this.sessionModes,
   });
 
   factory PromptCapabilities.fromJson(Map<String, dynamic> json) =>
@@ -1026,10 +1028,13 @@ class SetSessionModeResponse {
 
 @JsonSerializable()
 class PromptResponse {
+  @JsonKey(name: '_meta', includeIfNull: false)
+  final Map<String, dynamic>? meta;
+
   /// Indicates why the agent stopped processing the turn.
   final StopReason stopReason;
 
-  PromptResponse({required this.stopReason});
+  PromptResponse({this.meta, required this.stopReason});
 
   factory PromptResponse.fromJson(Map<String, dynamic> json) =>
       _$PromptResponseFromJson(json);
@@ -1504,6 +1509,8 @@ abstract class SessionUpdate {}
 
 @JsonSerializable()
 class ToolCallSessionUpdate extends SessionUpdate {
+  @JsonKey(name: '_meta', includeIfNull: false)
+  final Map<String, dynamic>? meta;
   @ToolCallContentConverter()
   final List<ToolCallContent>? content;
   final ToolKind? kind;
@@ -1515,6 +1522,7 @@ class ToolCallSessionUpdate extends SessionUpdate {
   final String toolCallId;
 
   ToolCallSessionUpdate({
+    this.meta,
     this.content,
     this.kind,
     this.locations,
@@ -1533,6 +1541,8 @@ class ToolCallSessionUpdate extends SessionUpdate {
 
 @JsonSerializable()
 class ToolCallUpdateSessionUpdate extends SessionUpdate {
+  @JsonKey(name: '_meta', includeIfNull: false)
+  final Map<String, dynamic>? meta;
   @ToolCallContentConverter()
   final List<ToolCallContent>? content;
   final ToolKind? kind;
@@ -1544,6 +1554,7 @@ class ToolCallUpdateSessionUpdate extends SessionUpdate {
   final String toolCallId;
 
   ToolCallUpdateSessionUpdate({
+    this.meta,
     this.content,
     this.kind,
     this.locations,
@@ -1562,9 +1573,11 @@ class ToolCallUpdateSessionUpdate extends SessionUpdate {
 
 @JsonSerializable()
 class PlanSessionUpdate extends SessionUpdate {
+  @JsonKey(name: '_meta', includeIfNull: false)
+  final Map<String, dynamic>? meta;
   final List<PlanEntry> entries;
 
-  PlanSessionUpdate({required this.entries});
+  PlanSessionUpdate({this.meta, required this.entries});
 
   factory PlanSessionUpdate.fromJson(Map<String, dynamic> json) =>
       _$PlanSessionUpdateFromJson(json);
@@ -1574,9 +1587,11 @@ class PlanSessionUpdate extends SessionUpdate {
 
 @JsonSerializable()
 class AvailableCommandsUpdateSessionUpdate extends SessionUpdate {
+  @JsonKey(name: '_meta', includeIfNull: false)
+  final Map<String, dynamic>? meta;
   final List<AvailableCommand> availableCommands;
 
-  AvailableCommandsUpdateSessionUpdate({required this.availableCommands});
+  AvailableCommandsUpdateSessionUpdate({this.meta, required this.availableCommands});
 
   factory AvailableCommandsUpdateSessionUpdate.fromJson(
     Map<String, dynamic> json,
@@ -1588,9 +1603,11 @@ class AvailableCommandsUpdateSessionUpdate extends SessionUpdate {
 
 @JsonSerializable()
 class CurrentModeUpdateSessionUpdate extends SessionUpdate {
+  @JsonKey(name: '_meta', includeIfNull: false)
+  final Map<String, dynamic>? meta;
   final String currentModeId;
 
-  CurrentModeUpdateSessionUpdate({required this.currentModeId});
+  CurrentModeUpdateSessionUpdate({this.meta, required this.currentModeId});
 
   factory CurrentModeUpdateSessionUpdate.fromJson(Map<String, dynamic> json) =>
       _$CurrentModeUpdateSessionUpdateFromJson(json);

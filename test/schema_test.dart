@@ -43,8 +43,13 @@ void main() {
       final original = InitializeResponse(
         protocolVersion: 1.0,
         capabilities: AgentCapabilities(
-          mcp: McpCapabilities(versions: ['1.0']),
-          prompt: PromptCapabilities(sessionModes: ['test-mode']),
+          mcp: McpCapabilities(http: true, sse: true, versions: ['1.0']),
+          prompt: PromptCapabilities(
+            audio: false,
+            embeddedContext: false,
+            image: false,
+            sessionModes: ['test-mode'],
+          ),
           loadSession: true,
           auth: [AuthMethod(method: 'test-auth', description: 'Test Auth')],
         ),
@@ -61,8 +66,8 @@ void main() {
         original.capabilities?.mcp?.versions,
       );
       expect(
-        decoded.capabilities?.prompt?.sessionModes.first,
-        original.capabilities?.prompt?.sessionModes.first,
+        decoded.capabilities?.prompt?.sessionModes?.first,
+        original.capabilities?.prompt?.sessionModes?.first,
       );
       expect(
         decoded.capabilities?.loadSession,
@@ -151,14 +156,15 @@ void main() {
     });
 
     test('SetSessionModeRequest can be serialized and deserialized', () {
-      final original = SetSessionModeRequest(mode: 'code');
+      final original = SetSessionModeRequest(sessionId: 'test-session-id', modeId: 'code');
 
       final json = jsonEncode(original.toJson());
       final decoded = SetSessionModeRequest.fromJson(
         jsonDecode(json) as Map<String, dynamic>,
       );
 
-      expect(decoded.mode, original.mode);
+      expect(decoded.sessionId, original.sessionId);
+      expect(decoded.modeId, original.modeId);
     });
 
     test('SetSessionModelRequest can be serialized and deserialized', () {
@@ -174,6 +180,7 @@ void main() {
 
     test('WriteTextFileRequest can be serialized and deserialized', () {
       final original = WriteTextFileRequest(
+        sessionId: 'test-session-id',
         path: '/test/file.txt',
         content: 'Hello World',
       );
@@ -183,23 +190,26 @@ void main() {
         jsonDecode(json) as Map<String, dynamic>,
       );
 
+      expect(decoded.sessionId, original.sessionId);
       expect(decoded.path, original.path);
       expect(decoded.content, original.content);
     });
 
     test('ReadTextFileRequest can be serialized and deserialized', () {
-      final original = ReadTextFileRequest(path: '/test/file.txt');
+      final original = ReadTextFileRequest(sessionId: 'test-session-id', path: '/test/file.txt');
 
       final json = jsonEncode(original.toJson());
       final decoded = ReadTextFileRequest.fromJson(
         jsonDecode(json) as Map<String, dynamic>,
       );
 
+      expect(decoded.sessionId, original.sessionId);
       expect(decoded.path, original.path);
     });
 
     test('CreateTerminalRequest can be serialized and deserialized', () {
       final original = CreateTerminalRequest(
+        sessionId: 'test-session-id',
         command: 'ls',
         args: ['-la'],
         cwd: '/home/user',
@@ -211,6 +221,7 @@ void main() {
         jsonDecode(json) as Map<String, dynamic>,
       );
 
+      expect(decoded.sessionId, original.sessionId);
       expect(decoded.command, original.command);
       expect(decoded.args, original.args);
       expect(decoded.cwd, original.cwd);
