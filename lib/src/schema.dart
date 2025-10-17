@@ -571,6 +571,7 @@ class ReadTextFileRequest {
   Map<String, dynamic> toJson() => _$ReadTextFileRequestToJson(this);
 }
 
+/*
 @JsonSerializable()
 class DeleteFileRequest {
   final String sessionId;
@@ -678,6 +679,7 @@ class DirectoryEntry {
 
   Map<String, dynamic> toJson() => _$DirectoryEntryToJson(this);
 }
+*/
 
 @JsonSerializable()
 class RequestPermissionRequest {
@@ -845,7 +847,9 @@ class InitializeResponse {
 
 @JsonSerializable()
 class AgentCapabilities {
+  @JsonKey(name: 'mcpCapabilities')
   final McpCapabilities? mcp;
+  @JsonKey(name: 'promptCapabilities')
   final PromptCapabilities? prompt;
   final bool loadSession;
   final List<AuthMethod> auth;
@@ -865,9 +869,10 @@ class AgentCapabilities {
 
 @JsonSerializable()
 class McpCapabilities {
-  final List<String> versions;
+  final bool http;
+  final bool sse;
 
-  McpCapabilities({required this.versions});
+  McpCapabilities({required this.http, required this.sse});
 
   factory McpCapabilities.fromJson(Map<String, dynamic> json) =>
       _$McpCapabilitiesFromJson(json);
@@ -877,9 +882,15 @@ class McpCapabilities {
 
 @JsonSerializable()
 class PromptCapabilities {
-  final List<String> sessionModes;
+  final bool audio;
+  final bool embeddedContext;
+  final bool image;
 
-  PromptCapabilities({required this.sessionModes});
+  PromptCapabilities({
+    required this.audio,
+    required this.embeddedContext,
+    required this.image,
+  });
 
   factory PromptCapabilities.fromJson(Map<String, dynamic> json) =>
       _$PromptCapabilitiesFromJson(json);
@@ -1202,6 +1213,44 @@ class CancelNotification {
 
   Map<String, dynamic> toJson() => _$CancelNotificationToJson(this);
 }
+
+// --- Extensibility Types ---
+
+@JsonSerializable()
+class ExtNotification {
+  ExtNotification();
+  factory ExtNotification.fromJson(Map<String, dynamic> json) =>
+      _$ExtNotificationFromJson(json);
+  Map<String, dynamic> toJson() => _$ExtNotificationToJson(this);
+}
+
+@JsonSerializable()
+class ExtMethodRequest {
+  ExtMethodRequest();
+  factory ExtMethodRequest.fromJson(Map<String, dynamic> json) =>
+      _$ExtMethodRequestFromJson(json);
+  Map<String, dynamic> toJson() => _$ExtMethodRequestToJson(this);
+}
+
+@JsonSerializable()
+class ExtMethodResponse {
+  ExtMethodResponse();
+  factory ExtMethodResponse.fromJson(Map<String, dynamic> json) =>
+      _$ExtMethodResponseFromJson(json);
+  Map<String, dynamic> toJson() => _$ExtMethodResponseToJson(this);
+}
+
+// --- Top-Level Union Types ---
+
+/// All possible notifications that an agent can send to a client.
+abstract class AgentNotification {}
+
+/// All possible requests that an agent can send to a client.
+abstract class AgentRequest {}
+
+/// All possible responses that an agent can send to a client.
+abstract class AgentResponse {}
+
 
 /// Optional annotations for the client. The client can use annotations to inform how objects are used or displayed
 @JsonSerializable()
@@ -1576,10 +1625,6 @@ const agentMethods = {
 const clientMethods = {
   'fsReadTextFile': 'fs/read_text_file',
   'fsWriteTextFile': 'fs/write_text_file',
-  'fsDeleteFile': 'fs/delete_file',
-  'fsListDirectory': 'fs/list_directory',
-  'fsMakeDirectory': 'fs/make_directory',
-  'fsMoveFile': 'fs/move_file',
   'sessionRequestPermission': 'session/request_permission',
   'sessionUpdate': 'session/update',
   'terminalCreate': 'terminal/create',

@@ -372,95 +372,6 @@ Map<String, dynamic> _$ReadTextFileRequestToJson(
   'limit': instance.limit,
 };
 
-DeleteFileRequest _$DeleteFileRequestFromJson(Map<String, dynamic> json) =>
-    DeleteFileRequest(
-      sessionId: json['sessionId'] as String,
-      path: json['path'] as String,
-    );
-
-Map<String, dynamic> _$DeleteFileRequestToJson(DeleteFileRequest instance) =>
-    <String, dynamic>{'sessionId': instance.sessionId, 'path': instance.path};
-
-DeleteFileResponse _$DeleteFileResponseFromJson(Map<String, dynamic> json) =>
-    DeleteFileResponse();
-
-Map<String, dynamic> _$DeleteFileResponseToJson(DeleteFileResponse instance) =>
-    <String, dynamic>{};
-
-MakeDirectoryRequest _$MakeDirectoryRequestFromJson(
-  Map<String, dynamic> json,
-) => MakeDirectoryRequest(
-  sessionId: json['sessionId'] as String,
-  path: json['path'] as String,
-);
-
-Map<String, dynamic> _$MakeDirectoryRequestToJson(
-  MakeDirectoryRequest instance,
-) => <String, dynamic>{'sessionId': instance.sessionId, 'path': instance.path};
-
-MakeDirectoryResponse _$MakeDirectoryResponseFromJson(
-  Map<String, dynamic> json,
-) => MakeDirectoryResponse();
-
-Map<String, dynamic> _$MakeDirectoryResponseToJson(
-  MakeDirectoryResponse instance,
-) => <String, dynamic>{};
-
-MoveFileRequest _$MoveFileRequestFromJson(Map<String, dynamic> json) =>
-    MoveFileRequest(
-      sessionId: json['sessionId'] as String,
-      fromPath: json['fromPath'] as String,
-      toPath: json['toPath'] as String,
-    );
-
-Map<String, dynamic> _$MoveFileRequestToJson(MoveFileRequest instance) =>
-    <String, dynamic>{
-      'sessionId': instance.sessionId,
-      'fromPath': instance.fromPath,
-      'toPath': instance.toPath,
-    };
-
-MoveFileResponse _$MoveFileResponseFromJson(Map<String, dynamic> json) =>
-    MoveFileResponse();
-
-Map<String, dynamic> _$MoveFileResponseToJson(MoveFileResponse instance) =>
-    <String, dynamic>{};
-
-ListDirectoryRequest _$ListDirectoryRequestFromJson(
-  Map<String, dynamic> json,
-) => ListDirectoryRequest(
-  sessionId: json['sessionId'] as String,
-  path: json['path'] as String,
-);
-
-Map<String, dynamic> _$ListDirectoryRequestToJson(
-  ListDirectoryRequest instance,
-) => <String, dynamic>{'sessionId': instance.sessionId, 'path': instance.path};
-
-ListDirectoryResponse _$ListDirectoryResponseFromJson(
-  Map<String, dynamic> json,
-) => ListDirectoryResponse(
-  entries: (json['entries'] as List<dynamic>)
-      .map((e) => DirectoryEntry.fromJson(e as Map<String, dynamic>))
-      .toList(),
-);
-
-Map<String, dynamic> _$ListDirectoryResponseToJson(
-  ListDirectoryResponse instance,
-) => <String, dynamic>{'entries': instance.entries};
-
-DirectoryEntry _$DirectoryEntryFromJson(Map<String, dynamic> json) =>
-    DirectoryEntry(
-      name: json['name'] as String,
-      isDirectory: json['isDirectory'] as bool,
-    );
-
-Map<String, dynamic> _$DirectoryEntryToJson(DirectoryEntry instance) =>
-    <String, dynamic>{
-      'name': instance.name,
-      'isDirectory': instance.isDirectory,
-    };
-
 RequestPermissionRequest _$RequestPermissionRequestFromJson(
   Map<String, dynamic> json,
 ) => RequestPermissionRequest(
@@ -625,12 +536,16 @@ Map<String, dynamic> _$InitializeResponseToJson(InitializeResponse instance) =>
 
 AgentCapabilities _$AgentCapabilitiesFromJson(Map<String, dynamic> json) =>
     AgentCapabilities(
-      mcp: json['mcp'] == null
+      mcp: json['mcpCapabilities'] == null
           ? null
-          : McpCapabilities.fromJson(json['mcp'] as Map<String, dynamic>),
-      prompt: json['prompt'] == null
+          : McpCapabilities.fromJson(
+              json['mcpCapabilities'] as Map<String, dynamic>,
+            ),
+      prompt: json['promptCapabilities'] == null
           ? null
-          : PromptCapabilities.fromJson(json['prompt'] as Map<String, dynamic>),
+          : PromptCapabilities.fromJson(
+              json['promptCapabilities'] as Map<String, dynamic>,
+            ),
       loadSession: json['loadSession'] as bool,
       auth: (json['auth'] as List<dynamic>)
           .map((e) => AuthMethod.fromJson(e as Map<String, dynamic>))
@@ -639,31 +554,31 @@ AgentCapabilities _$AgentCapabilitiesFromJson(Map<String, dynamic> json) =>
 
 Map<String, dynamic> _$AgentCapabilitiesToJson(AgentCapabilities instance) =>
     <String, dynamic>{
-      'mcp': instance.mcp,
-      'prompt': instance.prompt,
+      'mcpCapabilities': instance.mcp,
+      'promptCapabilities': instance.prompt,
       'loadSession': instance.loadSession,
       'auth': instance.auth,
     };
 
 McpCapabilities _$McpCapabilitiesFromJson(Map<String, dynamic> json) =>
-    McpCapabilities(
-      versions: (json['versions'] as List<dynamic>)
-          .map((e) => e as String)
-          .toList(),
-    );
+    McpCapabilities(http: json['http'] as bool, sse: json['sse'] as bool);
 
 Map<String, dynamic> _$McpCapabilitiesToJson(McpCapabilities instance) =>
-    <String, dynamic>{'versions': instance.versions};
+    <String, dynamic>{'http': instance.http, 'sse': instance.sse};
 
 PromptCapabilities _$PromptCapabilitiesFromJson(Map<String, dynamic> json) =>
     PromptCapabilities(
-      sessionModes: (json['sessionModes'] as List<dynamic>)
-          .map((e) => e as String)
-          .toList(),
+      audio: json['audio'] as bool,
+      embeddedContext: json['embeddedContext'] as bool,
+      image: json['image'] as bool,
     );
 
 Map<String, dynamic> _$PromptCapabilitiesToJson(PromptCapabilities instance) =>
-    <String, dynamic>{'sessionModes': instance.sessionModes};
+    <String, dynamic>{
+      'audio': instance.audio,
+      'embeddedContext': instance.embeddedContext,
+      'image': instance.image,
+    };
 
 AuthMethod _$AuthMethodFromJson(Map<String, dynamic> json) => AuthMethod(
   method: json['method'] as String,
@@ -944,6 +859,24 @@ CancelNotification _$CancelNotificationFromJson(Map<String, dynamic> json) =>
 
 Map<String, dynamic> _$CancelNotificationToJson(CancelNotification instance) =>
     <String, dynamic>{'sessionId': instance.sessionId};
+
+ExtNotification _$ExtNotificationFromJson(Map<String, dynamic> json) =>
+    ExtNotification();
+
+Map<String, dynamic> _$ExtNotificationToJson(ExtNotification instance) =>
+    <String, dynamic>{};
+
+ExtMethodRequest _$ExtMethodRequestFromJson(Map<String, dynamic> json) =>
+    ExtMethodRequest();
+
+Map<String, dynamic> _$ExtMethodRequestToJson(ExtMethodRequest instance) =>
+    <String, dynamic>{};
+
+ExtMethodResponse _$ExtMethodResponseFromJson(Map<String, dynamic> json) =>
+    ExtMethodResponse();
+
+Map<String, dynamic> _$ExtMethodResponseToJson(ExtMethodResponse instance) =>
+    <String, dynamic>{};
 
 Annotations _$AnnotationsFromJson(Map<String, dynamic> json) => Annotations(
   audience: (json['audience'] as List<dynamic>?)
