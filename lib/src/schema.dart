@@ -1427,9 +1427,9 @@ class AgentMessageChunkSessionUpdate extends SessionUpdate {
 @JsonSerializable()
 class AgentThoughtChunkSessionUpdate extends SessionUpdate {
   @ContentBlockConverter()
-  final ContentBlock? content;
+  final ContentBlock content;
 
-  AgentThoughtChunkSessionUpdate({this.content});
+  AgentThoughtChunkSessionUpdate({required this.content});
 
   factory AgentThoughtChunkSessionUpdate.fromJson(Map<String, dynamic> json) =>
       _$AgentThoughtChunkSessionUpdateFromJson(json);

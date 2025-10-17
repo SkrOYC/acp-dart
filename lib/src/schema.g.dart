@@ -1069,30 +1069,16 @@ Map<String, dynamic> _$AgentMessageChunkSessionUpdateToJson(
 AgentThoughtChunkSessionUpdate _$AgentThoughtChunkSessionUpdateFromJson(
   Map<String, dynamic> json,
 ) => AgentThoughtChunkSessionUpdate(
-  content: _$JsonConverterFromJson<Map<String, dynamic>, ContentBlock>(
-    json['content'],
-    const ContentBlockConverter().fromJson,
+  content: const ContentBlockConverter().fromJson(
+    json['content'] as Map<String, dynamic>,
   ),
 );
 
 Map<String, dynamic> _$AgentThoughtChunkSessionUpdateToJson(
   AgentThoughtChunkSessionUpdate instance,
 ) => <String, dynamic>{
-  'content': _$JsonConverterToJson<Map<String, dynamic>, ContentBlock>(
-    instance.content,
-    const ContentBlockConverter().toJson,
-  ),
+  'content': const ContentBlockConverter().toJson(instance.content),
 };
-
-Value? _$JsonConverterFromJson<Json, Value>(
-  Object? json,
-  Value? Function(Json json) fromJson,
-) => json == null ? null : fromJson(json as Json);
-
-Json? _$JsonConverterToJson<Json, Value>(
-  Value? value,
-  Json? Function(Value value) toJson,
-) => value == null ? null : toJson(value);
 
 ToolCallSessionUpdate _$ToolCallSessionUpdateFromJson(
   Map<String, dynamic> json,
