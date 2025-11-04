@@ -491,7 +491,6 @@ class AgentSideConnection implements Client {
   }
 
   @override
-  @override
   Future<CreateTerminalResponse>? createTerminal(
     CreateTerminalRequest params,
   ) async {
