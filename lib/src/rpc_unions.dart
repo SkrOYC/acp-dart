@@ -41,8 +41,6 @@
 /// }
 /// ```
 
-library;
-
 import 'package:collection/collection.dart';
 
 import 'schema.dart';
