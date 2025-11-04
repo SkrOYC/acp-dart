@@ -10,7 +10,7 @@ Add the package to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  acp_dart: ^0.1.0
+  acp_dart: ^0.3.0
 ```
 
 Then run:
@@ -45,6 +45,7 @@ The library provides:
 - **Agent-side**: `AgentSideConnection` for implementing AI agents
 - **Client-side**: `ClientSideConnection` for implementing ACP clients
 - **Core types**: Comprehensive schema definitions for all ACP messages
+- **RPC unions**: Type-safe request, response, and notification unions for exhaustive handling
 - **Stream handling**: `ndJsonStream` for NDJSON-based communication
 - **Type safety**: Full Dart type annotations and null safety
 
@@ -55,6 +56,7 @@ If you're building a [Client](https://agentclientprotocol.com/protocol/overview#
 ### Key Features
 
 - **Type Safety**: Full Dart type annotations with null safety
+- **RPC Unions**: Sealed union types for exhaustive request/response handling
 - **JSON Serialization**: Automatic serialization using `json_serializable`
 - **Stream-based Communication**: NDJSON-based communication over stdio
 - **Complete Protocol Coverage**: All ACP request/response types implemented
@@ -105,7 +107,7 @@ class MyClient implements Client {
   ) async {
     // Handle permission requests
     return RequestPermissionResponse(optionId: params.options.first.id);
- }
+  }
 
   @override
   Future<void> sessionUpdate(SessionNotification params) async {
