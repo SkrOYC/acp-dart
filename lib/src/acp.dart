@@ -398,6 +398,15 @@ class AgentSideConnection implements Client {
           );
           final result = await agent.setSessionMode(validatedParams);
           return result ?? {};
+        case 'session/set_config_option':
+          final validatedParams = SetSessionConfigOptionRequest.fromJson(
+            params as Map<String, dynamic>,
+          );
+          final result = await agent.setSessionConfigOption(validatedParams);
+          if (result == null) {
+            throw RequestError.methodNotFound(method);
+          }
+          return result;
         case 'session/set_model':
           final validatedParams = SetSessionModelRequest.fromJson(
             params as Map<String, dynamic>,
@@ -717,6 +726,19 @@ class ClientSideConnection implements Agent {
   }
 
   @override
+  Future<SetSessionConfigOptionResponse> setSessionConfigOption(
+    SetSessionConfigOptionRequest params,
+  ) async {
+    final result = await _connection.sendRequest(
+      agentMethods['sessionSetConfigOption']!,
+      params.toJson(),
+    );
+    return SetSessionConfigOptionResponse.fromJson(
+      result as Map<String, dynamic>,
+    );
+  }
+
+  @override
   Future<SetSessionModelResponse?>? setSessionModel(
     SetSessionModelRequest params,
   ) async {
@@ -822,6 +844,14 @@ abstract class Agent {
   /// This method can be called at any time during a session, whether the Agent is
   /// idle or actively generating a turn.
   Future<SetSessionModeResponse?>? setSessionMode(SetSessionModeRequest params);
+
+  /// Sets the current value for a session configuration option.
+  ///
+  /// This method is available when the agent exposes session config options.
+  /// The response returns the complete, updated configuration state.
+  Future<SetSessionConfigOptionResponse>? setSessionConfigOption(
+    SetSessionConfigOptionRequest params,
+  ) => null;
 
   /// Selects the model for a given session.
   ///

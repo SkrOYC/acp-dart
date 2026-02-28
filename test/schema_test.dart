@@ -85,6 +85,11 @@ void main() {
         modelId: 'gpt-4',
         sessionId: 'session-123',
       );
+      final setConfigOption = SetSessionConfigOptionRequest(
+        sessionId: 'session-123',
+        configId: 'mode',
+        value: 'code',
+      );
 
       final newSessionDecoded = NewSessionRequest.fromJson(
         jsonDecode(jsonEncode(newSession.toJson())) as Map<String, dynamic>,
@@ -98,12 +103,101 @@ void main() {
       final setModelDecoded = SetSessionModelRequest.fromJson(
         jsonDecode(jsonEncode(setModel.toJson())) as Map<String, dynamic>,
       );
+      final setConfigOptionDecoded = SetSessionConfigOptionRequest.fromJson(
+        jsonDecode(jsonEncode(setConfigOption.toJson()))
+            as Map<String, dynamic>,
+      );
 
       expect(newSessionDecoded.cwd, equals('/workspace'));
       expect(newSessionDecoded.mcpServers.length, equals(3));
       expect(loadSessionDecoded.sessionId, equals('session-123'));
       expect(setModeDecoded.modeId, equals('code'));
       expect(setModelDecoded.modelId, equals('gpt-4'));
+      expect(setConfigOptionDecoded.configId, equals('mode'));
+      expect(setConfigOptionDecoded.value, equals('code'));
+    });
+
+    test('Session config option payloads round-trip', () {
+      final option = SessionConfigOption(
+        id: 'mode',
+        name: 'Session Mode',
+        category: 'mode',
+        currentValue: 'code',
+        options: UngroupedSessionConfigSelectOptions(
+          options: [
+            SessionConfigSelectOption(
+              value: 'ask',
+              name: 'Ask',
+              description: 'Request permission before edits',
+            ),
+            SessionConfigSelectOption(value: 'code', name: 'Code'),
+          ],
+        ),
+      );
+
+      final groupedOption = SessionConfigOption(
+        id: 'model',
+        name: 'Model',
+        category: 'model',
+        currentValue: 'model-2',
+        options: GroupedSessionConfigSelectOptions(
+          groups: [
+            SessionConfigSelectGroup(
+              group: 'provider_a',
+              name: 'Provider A',
+              options: [
+                SessionConfigSelectOption(value: 'model-1', name: 'A1'),
+              ],
+            ),
+            SessionConfigSelectGroup(
+              group: 'provider_b',
+              name: 'Provider B',
+              options: [
+                SessionConfigSelectOption(value: 'model-2', name: 'B1'),
+              ],
+            ),
+          ],
+        ),
+      );
+
+      final setConfigResponse = SetSessionConfigOptionResponse(
+        configOptions: [option, groupedOption],
+      );
+      final newSessionResponse = NewSessionResponse(
+        sessionId: 'session-123',
+        configOptions: [option],
+      );
+      final loadSessionResponse = LoadSessionResponse(
+        configOptions: [groupedOption],
+      );
+
+      final setConfigResponseDecoded = SetSessionConfigOptionResponse.fromJson(
+        jsonDecode(jsonEncode(setConfigResponse.toJson()))
+            as Map<String, dynamic>,
+      );
+      final newSessionResponseDecoded = NewSessionResponse.fromJson(
+        jsonDecode(jsonEncode(newSessionResponse.toJson()))
+            as Map<String, dynamic>,
+      );
+      final loadSessionResponseDecoded = LoadSessionResponse.fromJson(
+        jsonDecode(jsonEncode(loadSessionResponse.toJson()))
+            as Map<String, dynamic>,
+      );
+
+      expect(setConfigResponseDecoded.configOptions.length, equals(2));
+      expect(
+        setConfigResponseDecoded.configOptions.first.options,
+        isA<UngroupedSessionConfigSelectOptions>(),
+      );
+      expect(
+        setConfigResponseDecoded.configOptions.last.options,
+        isA<GroupedSessionConfigSelectOptions>(),
+      );
+      expect(newSessionResponseDecoded.configOptions?.first.id, equals('mode'));
+      expect(
+        loadSessionResponseDecoded.configOptions?.first.id,
+        equals('model'),
+      );
     });
 
     test('PromptRequest serializes content blocks correctly', () {

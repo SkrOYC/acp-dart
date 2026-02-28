@@ -304,6 +304,12 @@ abstract class AgentResponseUnion {
               ? SetSessionModeResponse()
               : SetSessionModeResponse.fromJson(result as Map<String, dynamic>),
         );
+      case 'session/set_config_option':
+        return AgentSetSessionConfigOptionResponse(
+          SetSessionConfigOptionResponse.fromJson(
+            result as Map<String, dynamic>,
+          ),
+        );
       case 'session/prompt':
         return AgentPromptResponse(
           PromptResponse.fromJson(result as Map<String, dynamic>),
@@ -353,6 +359,13 @@ class AgentLoadSessionResponse extends AgentResponseUnion {
 class AgentSetSessionModeResponse extends AgentResponseUnion {
   final SetSessionModeResponse response;
   const AgentSetSessionModeResponse(this.response);
+  @override
+  Map<String, dynamic> toJson() => response.toJson();
+}
+
+class AgentSetSessionConfigOptionResponse extends AgentResponseUnion {
+  final SetSessionConfigOptionResponse response;
+  const AgentSetSessionConfigOptionResponse(this.response);
   @override
   Map<String, dynamic> toJson() => response.toJson();
 }
@@ -444,6 +457,12 @@ abstract class ClientRequestUnion {
         return ClientSetSessionModeRequest(
           SetSessionModeRequest.fromJson(params as Map<String, dynamic>),
         );
+      case 'session/set_config_option':
+        return ClientSetSessionConfigOptionRequest(
+          SetSessionConfigOptionRequest.fromJson(
+            params as Map<String, dynamic>,
+          ),
+        );
       case 'session/prompt':
         return ClientPromptRequest(
           PromptRequest.fromJson(params as Map<String, dynamic>),
@@ -499,6 +518,15 @@ class ClientSetSessionModeRequest extends ClientRequestUnion {
   const ClientSetSessionModeRequest(this.params);
   @override
   String get method => agentMethods['sessionSetMode']!;
+  @override
+  Map<String, dynamic> toJson() => params.toJson();
+}
+
+class ClientSetSessionConfigOptionRequest extends ClientRequestUnion {
+  final SetSessionConfigOptionRequest params;
+  const ClientSetSessionConfigOptionRequest(this.params);
+  @override
+  String get method => agentMethods['sessionSetConfigOption']!;
   @override
   Map<String, dynamic> toJson() => params.toJson();
 }

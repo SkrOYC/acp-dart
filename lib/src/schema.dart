@@ -3,6 +3,7 @@ import 'package:json_annotation/json_annotation.dart';
 import 'content_block_converter.dart';
 import 'embedded_resource_converter.dart';
 import 'session_update_converter.dart';
+import 'session_config_select_options_converter.dart';
 import 'tool_call_content_converter.dart';
 import 'mcp_server_converter.dart';
 import 'request_permission_converter.dart';
@@ -11,6 +12,9 @@ part 'schema.g.dart';
 typedef ProtocolVersion = int;
 typedef SessionId = String;
 typedef SessionModeId = String;
+typedef SessionConfigId = String;
+typedef SessionConfigValueId = String;
+typedef SessionConfigGroupId = String;
 typedef ModelId = String;
 typedef AuthMethodId = String;
 typedef ToolCallId = String;
@@ -351,6 +355,27 @@ class SetSessionModeRequest {
       _$SetSessionModeRequestFromJson(json);
 
   Map<String, dynamic> toJson() => _$SetSessionModeRequestToJson(this);
+}
+
+@JsonSerializable()
+class SetSessionConfigOptionRequest {
+  @JsonKey(name: '_meta', includeIfNull: false)
+  final Map<String, dynamic>? meta;
+  final SessionId sessionId;
+  final SessionConfigId configId;
+  final SessionConfigValueId value;
+
+  SetSessionConfigOptionRequest({
+    this.meta,
+    required this.sessionId,
+    required this.configId,
+    required this.value,
+  });
+
+  factory SetSessionConfigOptionRequest.fromJson(Map<String, dynamic> json) =>
+      _$SetSessionConfigOptionRequestFromJson(json);
+
+  Map<String, dynamic> toJson() => _$SetSessionConfigOptionRequestToJson(this);
 }
 
 @JsonSerializable()
@@ -1001,12 +1026,15 @@ class NewSessionResponse {
   @JsonKey(name: '_meta', includeIfNull: false)
   final Map<String, dynamic>? meta;
   final String sessionId;
+  @JsonKey(includeIfNull: false)
+  final List<SessionConfigOption>? configOptions;
   final SessionModeState? modes;
   final SessionModelState? models;
 
   NewSessionResponse({
     this.meta,
     required this.sessionId,
+    this.configOptions,
     this.modes,
     this.models,
   });
@@ -1081,6 +1109,109 @@ class SessionModelState {
 }
 
 @JsonSerializable()
+class SessionConfigOption {
+  @JsonKey(name: '_meta', includeIfNull: false)
+  final Map<String, dynamic>? meta;
+  final SessionConfigId id;
+  final String name;
+  final String? description;
+  final String? category;
+  @JsonKey(defaultValue: 'select')
+  final String type;
+  final SessionConfigValueId currentValue;
+  @SessionConfigSelectOptionsConverter()
+  final SessionConfigSelectOptions options;
+
+  SessionConfigOption({
+    this.meta,
+    required this.id,
+    required this.name,
+    this.description,
+    this.category,
+    this.type = 'select',
+    required this.currentValue,
+    required this.options,
+  });
+
+  factory SessionConfigOption.fromJson(Map<String, dynamic> json) =>
+      _$SessionConfigOptionFromJson(json);
+
+  Map<String, dynamic> toJson() => _$SessionConfigOptionToJson(this);
+}
+
+abstract class SessionConfigSelectOptions {}
+
+@JsonSerializable()
+class UngroupedSessionConfigSelectOptions extends SessionConfigSelectOptions {
+  final List<SessionConfigSelectOption> options;
+
+  UngroupedSessionConfigSelectOptions({required this.options});
+
+  factory UngroupedSessionConfigSelectOptions.fromJson(
+    Map<String, dynamic> json,
+  ) => _$UngroupedSessionConfigSelectOptionsFromJson(json);
+
+  Map<String, dynamic> toJson() =>
+      _$UngroupedSessionConfigSelectOptionsToJson(this);
+}
+
+@JsonSerializable()
+class GroupedSessionConfigSelectOptions extends SessionConfigSelectOptions {
+  final List<SessionConfigSelectGroup> groups;
+
+  GroupedSessionConfigSelectOptions({required this.groups});
+
+  factory GroupedSessionConfigSelectOptions.fromJson(
+    Map<String, dynamic> json,
+  ) => _$GroupedSessionConfigSelectOptionsFromJson(json);
+
+  Map<String, dynamic> toJson() =>
+      _$GroupedSessionConfigSelectOptionsToJson(this);
+}
+
+@JsonSerializable()
+class SessionConfigSelectOption {
+  @JsonKey(name: '_meta', includeIfNull: false)
+  final Map<String, dynamic>? meta;
+  final SessionConfigValueId value;
+  final String name;
+  final String? description;
+
+  SessionConfigSelectOption({
+    this.meta,
+    required this.value,
+    required this.name,
+    this.description,
+  });
+
+  factory SessionConfigSelectOption.fromJson(Map<String, dynamic> json) =>
+      _$SessionConfigSelectOptionFromJson(json);
+
+  Map<String, dynamic> toJson() => _$SessionConfigSelectOptionToJson(this);
+}
+
+@JsonSerializable()
+class SessionConfigSelectGroup {
+  @JsonKey(name: '_meta', includeIfNull: false)
+  final Map<String, dynamic>? meta;
+  final SessionConfigGroupId group;
+  final String name;
+  final List<SessionConfigSelectOption> options;
+
+  SessionConfigSelectGroup({
+    this.meta,
+    required this.group,
+    required this.name,
+    required this.options,
+  });
+
+  factory SessionConfigSelectGroup.fromJson(Map<String, dynamic> json) =>
+      _$SessionConfigSelectGroupFromJson(json);
+
+  Map<String, dynamic> toJson() => _$SessionConfigSelectGroupToJson(this);
+}
+
+@JsonSerializable()
 class ModelInfo {
   @JsonKey(name: '_meta', includeIfNull: false)
   final Map<String, dynamic>? meta;
@@ -1106,10 +1237,12 @@ class ModelInfo {
 class LoadSessionResponse {
   @JsonKey(name: '_meta', includeIfNull: false)
   final Map<String, dynamic>? meta;
+  @JsonKey(includeIfNull: false)
+  final List<SessionConfigOption>? configOptions;
   final SessionModeState? modes;
   final SessionModelState? models;
 
-  LoadSessionResponse({this.meta, this.modes, this.models});
+  LoadSessionResponse({this.meta, this.configOptions, this.modes, this.models});
 
   factory LoadSessionResponse.fromJson(Map<String, dynamic> json) =>
       _$LoadSessionResponseFromJson(json);
@@ -1128,6 +1261,20 @@ class SetSessionModeResponse {
       _$SetSessionModeResponseFromJson(json);
 
   Map<String, dynamic> toJson() => _$SetSessionModeResponseToJson(this);
+}
+
+@JsonSerializable()
+class SetSessionConfigOptionResponse {
+  @JsonKey(name: '_meta', includeIfNull: false)
+  final Map<String, dynamic>? meta;
+  final List<SessionConfigOption> configOptions;
+
+  SetSessionConfigOptionResponse({this.meta, required this.configOptions});
+
+  factory SetSessionConfigOptionResponse.fromJson(Map<String, dynamic> json) =>
+      _$SetSessionConfigOptionResponseFromJson(json);
+
+  Map<String, dynamic> toJson() => _$SetSessionConfigOptionResponseToJson(this);
 }
 
 @JsonSerializable()
@@ -1859,6 +2006,7 @@ const agentMethods = {
   'authenticate': 'authenticate',
   'initialize': 'initialize',
   'modelSelect': 'session/set_model',
+  'sessionSetConfigOption': 'session/set_config_option',
   'sessionCancel': 'session/cancel',
   'sessionLoad': 'session/load',
   'sessionNew': 'session/new',

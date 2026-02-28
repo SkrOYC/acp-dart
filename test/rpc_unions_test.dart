@@ -33,6 +33,19 @@ void main() {
       expect(typed.params.sessionId, equals('abc'));
       expect(typed.params.prompt.first, isA<TextContentBlock>());
     });
+
+    test('parses session/set_config_option request', () {
+      final request = ClientRequestUnion.fromMethod(
+        agentMethods['sessionSetConfigOption']!,
+        {'sessionId': 'abc', 'configId': 'mode', 'value': 'code'},
+      );
+
+      expect(request, isA<ClientSetSessionConfigOptionRequest>());
+      final typed = request as ClientSetSessionConfigOptionRequest;
+      expect(typed.params.sessionId, equals('abc'));
+      expect(typed.params.configId, equals('mode'));
+      expect(typed.method, equals('session/set_config_option'));
+    });
   });
 
   group('AgentResponseUnion', () {
@@ -49,6 +62,30 @@ void main() {
       expect(response, isA<AgentInitializeResponse>());
       final typed = response as AgentInitializeResponse;
       expect(typed.response.protocolVersion, equals(1));
+    });
+
+    test('parses session/set_config_option response', () {
+      final response = AgentResponseUnion.fromJson(
+        agentMethods['sessionSetConfigOption']!,
+        {
+          'configOptions': [
+            {
+              'id': 'mode',
+              'name': 'Session Mode',
+              'type': 'select',
+              'currentValue': 'code',
+              'options': [
+                {'value': 'ask', 'name': 'Ask'},
+                {'value': 'code', 'name': 'Code'},
+              ],
+            },
+          ],
+        },
+      );
+
+      expect(response, isA<AgentSetSessionConfigOptionResponse>());
+      final typed = response as AgentSetSessionConfigOptionResponse;
+      expect(typed.response.configOptions.first.id, equals('mode'));
     });
   });
 
