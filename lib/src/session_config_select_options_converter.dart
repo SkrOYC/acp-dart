@@ -12,24 +12,32 @@ class SessionConfigSelectOptionsConverter
       return UngroupedSessionConfigSelectOptions(options: const []);
     }
 
-    final normalized = json
-        .map((item) => Map<String, dynamic>.from(item as Map))
-        .toList();
-    final isGrouped = normalized.every(
-      (item) => item.containsKey('group') && item.containsKey('options'),
-    );
-    final isUngrouped = normalized.every(
-      (item) => item.containsKey('value') && item.containsKey('name'),
-    );
+    final firstItem = json.first as Map;
+    final isGrouped =
+        firstItem.containsKey('group') && firstItem.containsKey('options');
+    final isUngrouped =
+        firstItem.containsKey('value') && firstItem.containsKey('name');
 
-    if (isGrouped && !isUngrouped) {
+    if (isGrouped) {
       return GroupedSessionConfigSelectOptions(
-        groups: normalized.map(SessionConfigSelectGroup.fromJson).toList(),
+        groups: json
+            .map(
+              (item) => SessionConfigSelectGroup.fromJson(
+                Map<String, dynamic>.from(item as Map),
+              ),
+            )
+            .toList(),
       );
     }
-    if (isUngrouped && !isGrouped) {
+    if (isUngrouped) {
       return UngroupedSessionConfigSelectOptions(
-        options: normalized.map(SessionConfigSelectOption.fromJson).toList(),
+        options: json
+            .map(
+              (item) => SessionConfigSelectOption.fromJson(
+                Map<String, dynamic>.from(item as Map),
+              ),
+            )
+            .toList(),
       );
     }
 
