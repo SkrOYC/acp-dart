@@ -72,6 +72,14 @@ class ExampleAgent implements Agent {
   }
 
   @override
+  Future<SetSessionConfigOptionResponse>? setSessionConfigOption(
+    SetSessionConfigOptionRequest params,
+  ) {
+    // Not implemented in this example
+    return null;
+  }
+
+  @override
   Future<AuthenticateResponse?>? authenticate(
     AuthenticateRequest params,
   ) async {

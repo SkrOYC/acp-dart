@@ -348,6 +348,66 @@ void main() {
       readableController.close();
       writableController.close();
     });
+
+    test('dispatches session/set_config_option requests to Agent', () async {
+      final readableController = StreamController<Map<String, dynamic>>();
+      final writableController = StreamController<Map<String, dynamic>>();
+      final acpStream = AcpStream(
+        readable: readableController.stream,
+        writable: writableController.sink,
+      );
+
+      final agent = ConfigurableMockAgent();
+      final _ = AgentSideConnection((conn) => agent, acpStream);
+
+      readableController.add({
+        'jsonrpc': '2.0',
+        'id': 99,
+        'method': 'session/set_config_option',
+        'params': {'sessionId': 's1', 'configId': 'mode', 'value': 'code'},
+      });
+
+      final response = await writableController.stream.first;
+      expect(response['id'], equals(99));
+      expect(agent.lastSetConfigRequest, isNotNull);
+      expect(agent.lastSetConfigRequest?.configId, equals('mode'));
+      expect(agent.lastSetConfigRequest?.value, equals('code'));
+
+      await readableController.close();
+      await writableController.close();
+    });
+
+    test(
+      'returns method_not_found when session/set_config_option is unimplemented',
+      () async {
+        final readableController = StreamController<Map<String, dynamic>>();
+        final writableController = StreamController<Map<String, dynamic>>();
+        final acpStream = AcpStream(
+          readable: readableController.stream,
+          writable: writableController.sink,
+        );
+
+        final _ = AgentSideConnection((conn) => MockAgent(), acpStream);
+
+        readableController.add({
+          'jsonrpc': '2.0',
+          'id': 100,
+          'method': 'session/set_config_option',
+          'params': {'sessionId': 's1', 'configId': 'mode', 'value': 'code'},
+        });
+
+        final response = await writableController.stream.first;
+        expect(response['id'], equals(100));
+        expect(response['error']['code'], equals(-32601));
+        expect(
+          response['error']['data']['method'],
+          equals('session/set_config_option'),
+        );
+
+        await readableController.close();
+        await writableController.close();
+      },
+    );
   });
 
   group('ClientSideConnection', () {
@@ -390,6 +450,61 @@ void main() {
       readableController.close();
       writableController.close();
     });
+
+    test(
+      'setSessionConfigOption sends typed request and parses response',
+      () async {
+        final readableController = StreamController<Map<String, dynamic>>();
+        final writableController = StreamController<Map<String, dynamic>>();
+        final acpStream = AcpStream(
+          readable: readableController.stream,
+          writable: writableController.sink,
+        );
+
+        final connection = ClientSideConnection(
+          (conn) => MockClient(),
+          acpStream,
+        );
+        final future = connection.setSessionConfigOption(
+          SetSessionConfigOptionRequest(
+            sessionId: 'session-123',
+            configId: 'mode',
+            value: 'code',
+          ),
+        );
+
+        await Future.delayed(Duration.zero);
+        final sentMessage = await writableController.stream.first;
+        expect(sentMessage['method'], equals('session/set_config_option'));
+        expect(sentMessage['params']['configId'], equals('mode'));
+
+        readableController.add({
+          'jsonrpc': '2.0',
+          'id': sentMessage['id'],
+          'result': {
+            'configOptions': [
+              {
+                'id': 'mode',
+                'name': 'Session Mode',
+                'type': 'select',
+                'currentValue': 'code',
+                'options': [
+                  {'value': 'ask', 'name': 'Ask'},
+                  {'value': 'code', 'name': 'Code'},
+                ],
+              },
+            ],
+          },
+        });
+
+        final response = await future;
+        expect(response.configOptions.first.id, equals('mode'));
+        expect(response.configOptions.first.currentValue, equals('code'));
+
+        await readableController.close();
+        await writableController.close();
+      },
+    );
   });
 
   group('TerminalHandle', () {
@@ -513,6 +628,13 @@ class MockAgent implements Agent {
   }
 
   @override
+  Future<SetSessionConfigOptionResponse>? setSessionConfigOption(
+    SetSessionConfigOptionRequest params,
+  ) {
+    return null;
+  }
+
+  @override
   Future<SetSessionModelResponse?>? setSessionModel(
     SetSessionModelRequest params,
   ) async {
@@ -550,6 +672,33 @@ class MockAgent implements Agent {
     Map<String, dynamic> params,
   ) async {
     // Mock implementation
+  }
+}
+
+class ConfigurableMockAgent extends MockAgent {
+  SetSessionConfigOptionRequest? lastSetConfigRequest;
+
+  @override
+  Future<SetSessionConfigOptionResponse>? setSessionConfigOption(
+    SetSessionConfigOptionRequest params,
+  ) async {
+    lastSetConfigRequest = params;
+    return SetSessionConfigOptionResponse(
+      configOptions: [
+        SessionConfigOption(
+          id: params.configId,
+          name: 'Session Mode',
+          category: 'mode',
+          currentValue: params.value,
+          options: UngroupedSessionConfigSelectOptions(
+            options: [
+              SessionConfigSelectOption(value: 'ask', name: 'Ask'),
+              SessionConfigSelectOption(value: 'code', name: 'Code'),
+            ],
+          ),
+        ),
+      ],
+    );
   }
 }
 
