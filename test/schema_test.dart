@@ -423,6 +423,77 @@ void main() {
       );
     });
 
+    test('All stable session update discriminators deserialize correctly', () {
+      final base = {'sessionId': 'session-123'};
+      final notifications = [
+        SessionNotification(
+          sessionId: 'session-123',
+          update: UserMessageChunkSessionUpdate(
+            content: TextContentBlock(text: 'user'),
+          ),
+        ),
+        SessionNotification(
+          sessionId: 'session-123',
+          update: AgentMessageChunkSessionUpdate(
+            content: TextContentBlock(text: 'agent'),
+          ),
+        ),
+        SessionNotification(
+          sessionId: 'session-123',
+          update: AgentThoughtChunkSessionUpdate(
+            content: TextContentBlock(text: 'thinking'),
+          ),
+        ),
+        SessionNotification(
+          sessionId: 'session-123',
+          update: ToolCallSessionUpdate(toolCallId: 'tool-1', title: 'Read'),
+        ),
+        SessionNotification(
+          sessionId: 'session-123',
+          update: ToolCallUpdateSessionUpdate(toolCallId: 'tool-1'),
+        ),
+        SessionNotification(
+          sessionId: 'session-123',
+          update: PlanSessionUpdate(
+            entries: [
+              PlanEntry(
+                content: 'Do work',
+                priority: PlanEntryPriority.medium,
+                status: PlanEntryStatus.pending,
+              ),
+            ],
+          ),
+        ),
+        SessionNotification(
+          sessionId: 'session-123',
+          update: AvailableCommandsUpdateSessionUpdate(availableCommands: []),
+        ),
+        SessionNotification(
+          sessionId: 'session-123',
+          update: CurrentModeUpdateSessionUpdate(currentModeId: 'code'),
+        ),
+      ];
+
+      final decoded = notifications
+          .map(
+            (notification) => SessionNotification.fromJson(
+              jsonDecode(jsonEncode(notification.toJson()))
+                  as Map<String, dynamic>,
+            ),
+          )
+          .toList();
+
+      expect(decoded.every((n) => n.sessionId == base['sessionId']), isTrue);
+      expect(decoded[0].update, isA<UserMessageChunkSessionUpdate>());
+      expect(decoded[1].update, isA<AgentMessageChunkSessionUpdate>());
+      expect(decoded[2].update, isA<AgentThoughtChunkSessionUpdate>());
+      expect(decoded[3].update, isA<ToolCallSessionUpdate>());
+      expect(decoded[4].update, isA<ToolCallUpdateSessionUpdate>());
+      expect(decoded[5].update, isA<PlanSessionUpdate>());
+      expect(decoded[6].update, isA<AvailableCommandsUpdateSessionUpdate>());
+      expect(decoded[7].update, isA<CurrentModeUpdateSessionUpdate>());
+    });
+
     test('Permission flow round-trips', () {
       final request = RequestPermissionRequest(
         sessionId: 'session-123',
