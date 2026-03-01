@@ -29,6 +29,12 @@ class SessionUpdateConverter
         return AvailableCommandsUpdateSessionUpdate.fromJson(data);
       case 'current_mode_update':
         return CurrentModeUpdateSessionUpdate.fromJson(data);
+      case 'config_option_update':
+        return ConfigOptionUpdate.fromJson(data);
+      case 'session_info_update':
+        return SessionInfoUpdate.fromJson(data);
+      case 'usage_update':
+        return UsageUpdate.fromJson(data);
 
       default:
         return UnknownSessionUpdate(rawJson: json);
@@ -38,52 +44,37 @@ class SessionUpdateConverter
   @override
   Map<String, dynamic> toJson(SessionUpdate object) {
     if (object is UserMessageChunkSessionUpdate) {
-      return {
-        'sessionUpdate': 'user_message_chunk',
-        ...object.toJson(),
-      };
+      return {'sessionUpdate': 'user_message_chunk', ...object.toJson()};
     }
     if (object is AgentMessageChunkSessionUpdate) {
-      return {
-        'sessionUpdate': 'agent_message_chunk',
-        ...object.toJson(),
-      };
+      return {'sessionUpdate': 'agent_message_chunk', ...object.toJson()};
     }
     if (object is AgentThoughtChunkSessionUpdate) {
-      return {
-        'sessionUpdate': 'agent_thought_chunk',
-        ...object.toJson(),
-      };
+      return {'sessionUpdate': 'agent_thought_chunk', ...object.toJson()};
     }
     if (object is ToolCallSessionUpdate) {
-      return {
-        'sessionUpdate': 'tool_call',
-        ...object.toJson(),
-      };
+      return {'sessionUpdate': 'tool_call', ...object.toJson()};
     }
     if (object is ToolCallUpdateSessionUpdate) {
-      return {
-        'sessionUpdate': 'tool_call_update',
-        ...object.toJson(),
-      };
+      return {'sessionUpdate': 'tool_call_update', ...object.toJson()};
     }
     if (object is PlanSessionUpdate) {
-      return {
-        'sessionUpdate': 'plan',
-        ...object.toJson(),
-      };
+      return {'sessionUpdate': 'plan', ...object.toJson()};
     }
     if (object is AvailableCommandsUpdateSessionUpdate) {
-      return {
-        'sessionUpdate': 'available_commands_update',
-        ...object.toJson(),
-      };
+      return {'sessionUpdate': 'available_commands_update', ...object.toJson()};
     }
     if (object is CurrentModeUpdateSessionUpdate) {
-      return {
-        'sessionUpdate': 'current_mode_update',
-        ...object.toJson(),
-      };
+      return {'sessionUpdate': 'current_mode_update', ...object.toJson()};
+    }
+    if (object is ConfigOptionUpdate) {
+      return {'sessionUpdate': 'config_option_update', ...object.toJson()};
+    }
+    if (object is SessionInfoUpdate) {
+      return {'sessionUpdate': 'session_info_update', ...object.toJson()};
+    }
+    if (object is UsageUpdate) {
+      return {'sessionUpdate': 'usage_update', ...object.toJson()};
     }
 
     if (object is UnknownSessionUpdate) {
