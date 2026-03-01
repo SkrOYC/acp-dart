@@ -19,6 +19,7 @@ typedef ModelId = String;
 typedef AuthMethodId = String;
 typedef ToolCallId = String;
 typedef PermissionOptionId = String;
+typedef RequestId = Object?;
 
 /// Base class for all MCP Server definitions (HTTP, SSE, Stdio).
 abstract class McpServerBase {}
@@ -1701,6 +1702,25 @@ class CancelNotification {
   Map<String, dynamic> toJson() => _$CancelNotificationToJson(this);
 }
 
+/// Protocol-level notification to cancel a specific in-flight JSON-RPC request.
+///
+/// See protocol docs: [Request Cancellation](https://agentclientprotocol.com/protocol/draft/schema#cancelrequestnotification)
+@JsonSerializable()
+class CancelRequestNotification {
+  @JsonKey(name: '_meta', includeIfNull: false)
+  final Map<String, dynamic>? meta;
+
+  /// The request identifier to cancel (JSON-RPC Request ID).
+  final RequestId requestId;
+
+  CancelRequestNotification({this.meta, required this.requestId});
+
+  factory CancelRequestNotification.fromJson(Map<String, dynamic> json) =>
+      _$CancelRequestNotificationFromJson(json);
+
+  Map<String, dynamic> toJson() => _$CancelRequestNotificationToJson(this);
+}
+
 // --- Extensibility Types ---
 
 @JsonSerializable()
@@ -2235,3 +2255,6 @@ const clientMethods = {
   'terminalRelease': 'terminal/release',
   'terminalWaitForExit': 'terminal/wait_for_exit',
 };
+
+/// Protocol-level notification constants shared by both sides.
+const protocolMethods = {'cancelRequest': r'$/cancel_request'};

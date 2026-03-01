@@ -179,4 +179,35 @@ void main() {
       expect(typed.response.output, equals('lines'));
     });
   });
+
+  group('ClientNotificationUnion', () {
+    test('parses session/cancel notification', () {
+      final notification = ClientNotificationUnion.fromMethod(
+        agentMethods['sessionCancel']!,
+        {'sessionId': 'session-1'},
+      );
+
+      expect(notification, isA<ClientCancelNotification>());
+      final typed = notification as ClientCancelNotification;
+      expect(typed.notification.sessionId, equals('session-1'));
+      expect(typed.method, equals('session/cancel'));
+    });
+
+    test('parses protocol cancel request notification', () {
+      final notification = ClientNotificationUnion.fromMethod(
+        protocolMethods['cancelRequest']!,
+        {
+          'requestId': 7,
+          '_meta': {'reason': 'timeout'},
+        },
+      );
+
+      expect(notification, isA<ClientCancelRequestNotification>());
+      final typed = notification as ClientCancelRequestNotification;
+      expect(typed.notification.requestId, equals(7));
+      expect(typed.notification.meta, equals({'reason': 'timeout'}));
+      expect(typed.method, equals(r'$/cancel_request'));
+      expect(typed.toJson(), containsPair('requestId', 7));
+    });
+  });
 }

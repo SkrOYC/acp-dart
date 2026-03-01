@@ -61,6 +61,7 @@ If you're building a [Client](https://agentclientprotocol.com/protocol/overview#
 - **Stream-based Communication**: NDJSON-based communication over stdio
 - **Complete Protocol Coverage**: All ACP request/response types implemented
 - **Error Handling**: Comprehensive error types and handling mechanisms
+- **Protocol Cancellation**: Typed `$/cancel_request` notifications with `-32800` cancelled error semantics
 - **Extensible**: Support for extension methods and notifications
 
 ## Usage Examples

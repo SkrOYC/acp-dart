@@ -778,6 +778,7 @@ class ClientExtensionMethodResponse extends ClientResponseUnion {
 ///
 /// Supported notification types:
 /// - [ClientCancelNotification] - Cancel a session operation
+/// - [ClientCancelRequestNotification] - Cancel a specific in-flight request
 /// - [ClientExtensionNotification] - Custom extension notifications
 abstract class ClientNotificationUnion {
   const ClientNotificationUnion();
@@ -798,6 +799,10 @@ abstract class ClientNotificationUnion {
         return ClientCancelNotification(
           CancelNotification.fromJson(params as Map<String, dynamic>),
         );
+      case r'$/cancel_request':
+        return ClientCancelRequestNotification(
+          CancelRequestNotification.fromJson(params as Map<String, dynamic>),
+        );
       default:
         return ClientExtensionNotification(method, params);
     }
@@ -809,6 +814,15 @@ class ClientCancelNotification extends ClientNotificationUnion {
   const ClientCancelNotification(this.notification);
   @override
   String get method => agentMethods['sessionCancel']!;
+  @override
+  Map<String, dynamic> toJson() => notification.toJson();
+}
+
+class ClientCancelRequestNotification extends ClientNotificationUnion {
+  final CancelRequestNotification notification;
+  const ClientCancelRequestNotification(this.notification);
+  @override
+  String get method => protocolMethods['cancelRequest']!;
   @override
   Map<String, dynamic> toJson() => notification.toJson();
 }

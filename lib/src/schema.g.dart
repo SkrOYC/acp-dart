@@ -1340,6 +1340,20 @@ CancelNotification _$CancelNotificationFromJson(Map<String, dynamic> json) =>
 Map<String, dynamic> _$CancelNotificationToJson(CancelNotification instance) =>
     <String, dynamic>{'_meta': ?instance.meta, 'sessionId': instance.sessionId};
 
+CancelRequestNotification _$CancelRequestNotificationFromJson(
+  Map<String, dynamic> json,
+) => CancelRequestNotification(
+  meta: json['_meta'] as Map<String, dynamic>?,
+  requestId: json['requestId'],
+);
+
+Map<String, dynamic> _$CancelRequestNotificationToJson(
+  CancelRequestNotification instance,
+) => <String, dynamic>{
+  '_meta': ?instance.meta,
+  'requestId': instance.requestId,
+};
+
 ExtNotification _$ExtNotificationFromJson(Map<String, dynamic> json) =>
     ExtNotification();
 
