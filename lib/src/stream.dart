@@ -21,21 +21,44 @@ class AcpStream {
 ///
 /// `input` - The readable stream to receive encoded messages from
 /// `output` - The writable stream to send encoded messages to
+/// `onParseError` - Optional callback invoked when a non-empty line cannot be
+/// parsed as a JSON object.
 /// Returns an AcpStream for bidirectional ACP communication
-AcpStream ndJsonStream(Stream<List<int>> input, StreamSink<List<int>> output) {
+AcpStream ndJsonStream(
+  Stream<List<int>> input,
+  StreamSink<List<int>> output, {
+  void Function(String line, Object error)? onParseError,
+}) {
   // Create readable stream: transform bytes to messages
   final readable = input
       .transform(utf8.decoder) // Safely decode bytes to string
-      .transform(const LineSplitter()) // Safely split lines, handling partial UTF-8
-      .where((line) => line.trim().isNotEmpty) // Filter empty lines
-      .map((line) {
-        try {
-          return jsonDecode(line) as Map<String, dynamic>;
-        } catch (e) {
-          // Propagate the error to the stream listener
-          throw FormatException('Failed to parse JSON message: $line, error: $e');
-        }
-      });
+      .transform(
+        const LineSplitter(),
+      ) // Safely split lines, handling partial UTF-8
+      .transform(
+        StreamTransformer<String, Map<String, dynamic>>.fromHandlers(
+          handleData: (line, sink) {
+            final trimmed = line.trim();
+            if (trimmed.isEmpty) {
+              return;
+            }
+
+            try {
+              final decoded = jsonDecode(trimmed);
+              if (decoded is Map<String, dynamic>) {
+                sink.add(decoded);
+                return;
+              }
+              onParseError?.call(
+                trimmed,
+                const FormatException('Expected JSON object'),
+              );
+            } catch (e) {
+              onParseError?.call(trimmed, e);
+            }
+          },
+        ),
+      );
 
   // Create writable stream: transform messages to bytes
   final writableController = StreamController<Map<String, dynamic>>();

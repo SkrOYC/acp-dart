@@ -406,6 +406,73 @@ void main() {
       await readableController.close();
       await writableController.close();
     });
+
+    test('maps validation-like exceptions to invalid params', () async {
+      final readableController = StreamController<Map<String, dynamic>>();
+      final writableController = StreamController<Map<String, dynamic>>();
+      final acpStream = AcpStream(
+        readable: readableController.stream,
+        writable: writableController.sink,
+      );
+
+      final connection = Connection(
+        (method, params) async =>
+            throw FormatException('{"field":"cwd","reason":"required"}'),
+        (method, params) async {},
+        acpStream,
+      );
+      // ignore: unused_local_variable
+      final _ = connection;
+
+      readableController.add({
+        'jsonrpc': '2.0',
+        'id': 3,
+        'method': 'test.validation',
+      });
+
+      final response = await writableController.stream.first;
+      expect(response['jsonrpc'], '2.0');
+      expect(response['id'], 3);
+      expect(response['error']['code'], -32602);
+      expect(response['error']['message'], 'Invalid params');
+      expect(response['error']['data'], {'field': 'cwd', 'reason': 'required'});
+
+      await readableController.close();
+      await writableController.close();
+    });
+
+    test('maps unexpected exceptions to internal error', () async {
+      final readableController = StreamController<Map<String, dynamic>>();
+      final writableController = StreamController<Map<String, dynamic>>();
+      final acpStream = AcpStream(
+        readable: readableController.stream,
+        writable: writableController.sink,
+      );
+
+      final connection = Connection(
+        (method, params) async => throw StateError('unexpected failure'),
+        (method, params) async {},
+        acpStream,
+      );
+      // ignore: unused_local_variable
+      final _ = connection;
+
+      readableController.add({
+        'jsonrpc': '2.0',
+        'id': 4,
+        'method': 'test.internal',
+      });
+
+      final response = await writableController.stream.first;
+      expect(response['jsonrpc'], '2.0');
+      expect(response['id'], 4);
+      expect(response['error']['code'], -32603);
+      expect(response['error']['message'], 'Internal error');
+      expect(response['error']['data'], isNull);
+
+      await readableController.close();
+      await writableController.close();
+    });
   });
 
   group('AgentSideConnection', () {
@@ -445,6 +512,22 @@ void main() {
 
       // Verify it implements Client interface
       expect(agentSideConnection, isA<Client>());
+    });
+
+    test('maps invalid request params to invalid params error', () async {
+      final _ = AgentSideConnection((conn) => MockAgent(), acpStream);
+
+      readableController.add({
+        'jsonrpc': '2.0',
+        'id': 109,
+        'method': 'initialize',
+        'params': 'not-a-map',
+      });
+
+      final response = await writableController.stream.first;
+      expect(response['id'], equals(109));
+      expect(response['error']['code'], equals(-32602));
+      expect(response['error']['message'], equals('Invalid params'));
     });
 
     test('dispatches session/set_config_option requests to Agent', () async {
