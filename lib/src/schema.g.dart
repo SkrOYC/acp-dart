@@ -6,6 +6,22 @@ part of 'schema.dart';
 // JsonSerializableGenerator
 // **************************************************************************
 
+Implementation _$ImplementationFromJson(Map<String, dynamic> json) =>
+    Implementation(
+      meta: json['_meta'] as Map<String, dynamic>?,
+      name: json['name'] as String,
+      title: json['title'] as String?,
+      version: json['version'] as String,
+    );
+
+Map<String, dynamic> _$ImplementationToJson(Implementation instance) =>
+    <String, dynamic>{
+      '_meta': ?instance.meta,
+      'name': instance.name,
+      'title': instance.title,
+      'version': instance.version,
+    };
+
 InitializeRequest _$InitializeRequestFromJson(Map<String, dynamic> json) =>
     InitializeRequest(
       meta: json['_meta'] as Map<String, dynamic>?,
@@ -14,6 +30,9 @@ InitializeRequest _$InitializeRequestFromJson(Map<String, dynamic> json) =>
           : ClientCapabilities.fromJson(
               json['clientCapabilities'] as Map<String, dynamic>,
             ),
+      clientInfo: json['clientInfo'] == null
+          ? null
+          : Implementation.fromJson(json['clientInfo'] as Map<String, dynamic>),
       protocolVersion: (json['protocolVersion'] as num).toInt(),
     );
 
@@ -21,6 +40,7 @@ Map<String, dynamic> _$InitializeRequestToJson(InitializeRequest instance) =>
     <String, dynamic>{
       '_meta': ?instance.meta,
       'clientCapabilities': instance.clientCapabilities,
+      'clientInfo': instance.clientInfo,
       'protocolVersion': instance.protocolVersion,
     };
 
@@ -707,6 +727,9 @@ InitializeResponse _$InitializeResponseFromJson(Map<String, dynamic> json) =>
           : AgentCapabilities.fromJson(
               json['agentCapabilities'] as Map<String, dynamic>,
             ),
+      agentInfo: json['agentInfo'] == null
+          ? null
+          : Implementation.fromJson(json['agentInfo'] as Map<String, dynamic>),
       authMethods:
           (json['authMethods'] as List<dynamic>?)
               ?.map((e) => AuthMethod.fromJson(e as Map<String, dynamic>))
@@ -719,6 +742,7 @@ Map<String, dynamic> _$InitializeResponseToJson(InitializeResponse instance) =>
       '_meta': ?instance.meta,
       'protocolVersion': instance.protocolVersion,
       'agentCapabilities': instance.agentCapabilities,
+      'agentInfo': instance.agentInfo,
       'authMethods': instance.authMethods,
     };
 
@@ -1165,16 +1189,38 @@ Map<String, dynamic> _$SetSessionConfigOptionResponseToJson(
   'configOptions': instance.configOptions,
 };
 
+Usage _$UsageFromJson(Map<String, dynamic> json) => Usage(
+  inputTokens: (json['inputTokens'] as num).toInt(),
+  outputTokens: (json['outputTokens'] as num).toInt(),
+  totalTokens: (json['totalTokens'] as num).toInt(),
+  cachedReadTokens: (json['cachedReadTokens'] as num?)?.toInt(),
+  cachedWriteTokens: (json['cachedWriteTokens'] as num?)?.toInt(),
+  thoughtTokens: (json['thoughtTokens'] as num?)?.toInt(),
+);
+
+Map<String, dynamic> _$UsageToJson(Usage instance) => <String, dynamic>{
+  'inputTokens': instance.inputTokens,
+  'outputTokens': instance.outputTokens,
+  'totalTokens': instance.totalTokens,
+  'cachedReadTokens': instance.cachedReadTokens,
+  'cachedWriteTokens': instance.cachedWriteTokens,
+  'thoughtTokens': instance.thoughtTokens,
+};
+
 PromptResponse _$PromptResponseFromJson(Map<String, dynamic> json) =>
     PromptResponse(
       meta: json['_meta'] as Map<String, dynamic>?,
       stopReason: $enumDecode(_$StopReasonEnumMap, json['stopReason']),
+      usage: json['usage'] == null
+          ? null
+          : Usage.fromJson(json['usage'] as Map<String, dynamic>),
     );
 
 Map<String, dynamic> _$PromptResponseToJson(PromptResponse instance) =>
     <String, dynamic>{
       '_meta': ?instance.meta,
       'stopReason': _$StopReasonEnumMap[instance.stopReason]!,
+      'usage': instance.usage,
     };
 
 const _$StopReasonEnumMap = {
@@ -1183,6 +1229,16 @@ const _$StopReasonEnumMap = {
   StopReason.maxTurnRequests: 'max_turn_requests',
   StopReason.refusal: 'refusal',
   StopReason.cancelled: 'cancelled',
+};
+
+Cost _$CostFromJson(Map<String, dynamic> json) => Cost(
+  amount: (json['amount'] as num).toDouble(),
+  currency: json['currency'] as String,
+);
+
+Map<String, dynamic> _$CostToJson(Cost instance) => <String, dynamic>{
+  'amount': instance.amount,
+  'currency': instance.currency,
 };
 
 SetSessionModelResponse _$SetSessionModelResponseFromJson(
@@ -1752,6 +1808,51 @@ Map<String, dynamic> _$CurrentModeUpdateSessionUpdateToJson(
   '_meta': ?instance.meta,
   'currentModeId': instance.currentModeId,
 };
+
+ConfigOptionUpdate _$ConfigOptionUpdateFromJson(Map<String, dynamic> json) =>
+    ConfigOptionUpdate(
+      meta: json['_meta'] as Map<String, dynamic>?,
+      configOptions: (json['configOptions'] as List<dynamic>)
+          .map((e) => SessionConfigOption.fromJson(e as Map<String, dynamic>))
+          .toList(),
+    );
+
+Map<String, dynamic> _$ConfigOptionUpdateToJson(ConfigOptionUpdate instance) =>
+    <String, dynamic>{
+      '_meta': ?instance.meta,
+      'configOptions': instance.configOptions,
+    };
+
+SessionInfoUpdate _$SessionInfoUpdateFromJson(Map<String, dynamic> json) =>
+    SessionInfoUpdate(
+      meta: json['_meta'] as Map<String, dynamic>?,
+      title: json['title'] as String?,
+      updatedAt: json['updatedAt'] as String?,
+    );
+
+Map<String, dynamic> _$SessionInfoUpdateToJson(SessionInfoUpdate instance) =>
+    <String, dynamic>{
+      '_meta': ?instance.meta,
+      'title': instance.title,
+      'updatedAt': instance.updatedAt,
+    };
+
+UsageUpdate _$UsageUpdateFromJson(Map<String, dynamic> json) => UsageUpdate(
+  meta: json['_meta'] as Map<String, dynamic>?,
+  size: (json['size'] as num).toInt(),
+  used: (json['used'] as num).toInt(),
+  cost: json['cost'] == null
+      ? null
+      : Cost.fromJson(json['cost'] as Map<String, dynamic>),
+);
+
+Map<String, dynamic> _$UsageUpdateToJson(UsageUpdate instance) =>
+    <String, dynamic>{
+      '_meta': ?instance.meta,
+      'size': instance.size,
+      'used': instance.used,
+      'cost': instance.cost,
+    };
 
 UnknownSessionUpdate _$UnknownSessionUpdateFromJson(
   Map<String, dynamic> json,

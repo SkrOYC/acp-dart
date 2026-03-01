@@ -129,16 +129,40 @@ enum StopReason {
 }
 
 @JsonSerializable()
+class Implementation {
+  @JsonKey(name: '_meta', includeIfNull: false)
+  final Map<String, dynamic>? meta;
+  final String name;
+  final String? title;
+  final String version;
+
+  Implementation({
+    this.meta,
+    required this.name,
+    this.title,
+    required this.version,
+  });
+
+  factory Implementation.fromJson(Map<String, dynamic> json) =>
+      _$ImplementationFromJson(json);
+
+  Map<String, dynamic> toJson() => _$ImplementationToJson(this);
+}
+
+@JsonSerializable()
 class InitializeRequest {
   @JsonKey(name: '_meta', includeIfNull: false)
   final Map<String, dynamic>? meta;
   @JsonKey(name: 'clientCapabilities')
   final ClientCapabilities? clientCapabilities;
+  @JsonKey(name: 'clientInfo')
+  final Implementation? clientInfo;
   final int protocolVersion;
 
   InitializeRequest({
     this.meta,
     this.clientCapabilities,
+    this.clientInfo,
     required this.protocolVersion,
   });
 
@@ -967,6 +991,8 @@ class InitializeResponse {
   final int protocolVersion;
   @JsonKey(name: 'agentCapabilities')
   final AgentCapabilities? agentCapabilities;
+  @JsonKey(name: 'agentInfo')
+  final Implementation? agentInfo;
   @JsonKey(defaultValue: <AuthMethod>[])
   final List<AuthMethod> authMethods;
 
@@ -974,6 +1000,7 @@ class InitializeResponse {
     this.meta,
     required this.protocolVersion,
     this.agentCapabilities,
+    this.agentInfo,
     List<AuthMethod>? authMethods,
   }) : authMethods = authMethods ?? const [];
 
@@ -1485,19 +1512,55 @@ class SetSessionConfigOptionResponse {
 }
 
 @JsonSerializable()
+class Usage {
+  final int inputTokens;
+  final int outputTokens;
+  final int totalTokens;
+  final int? cachedReadTokens;
+  final int? cachedWriteTokens;
+  final int? thoughtTokens;
+
+  Usage({
+    required this.inputTokens,
+    required this.outputTokens,
+    required this.totalTokens,
+    this.cachedReadTokens,
+    this.cachedWriteTokens,
+    this.thoughtTokens,
+  });
+
+  factory Usage.fromJson(Map<String, dynamic> json) => _$UsageFromJson(json);
+
+  Map<String, dynamic> toJson() => _$UsageToJson(this);
+}
+
+@JsonSerializable()
 class PromptResponse {
   @JsonKey(name: '_meta', includeIfNull: false)
   final Map<String, dynamic>? meta;
 
   /// Indicates why the agent stopped processing the turn.
   final StopReason stopReason;
+  final Usage? usage;
 
-  PromptResponse({this.meta, required this.stopReason});
+  PromptResponse({this.meta, required this.stopReason, this.usage});
 
   factory PromptResponse.fromJson(Map<String, dynamic> json) =>
       _$PromptResponseFromJson(json);
 
   Map<String, dynamic> toJson() => _$PromptResponseToJson(this);
+}
+
+@JsonSerializable()
+class Cost {
+  final double amount;
+  final String currency;
+
+  Cost({required this.amount, required this.currency});
+
+  factory Cost.fromJson(Map<String, dynamic> json) => _$CostFromJson(json);
+
+  Map<String, dynamic> toJson() => _$CostToJson(this);
 }
 
 @JsonSerializable()
@@ -2216,6 +2279,51 @@ class CurrentModeUpdateSessionUpdate extends SessionUpdate {
       _$CurrentModeUpdateSessionUpdateFromJson(json);
 
   Map<String, dynamic> toJson() => _$CurrentModeUpdateSessionUpdateToJson(this);
+}
+
+@JsonSerializable()
+class ConfigOptionUpdate extends SessionUpdate {
+  @JsonKey(name: '_meta', includeIfNull: false)
+  final Map<String, dynamic>? meta;
+  final List<SessionConfigOption> configOptions;
+
+  ConfigOptionUpdate({this.meta, required this.configOptions});
+
+  factory ConfigOptionUpdate.fromJson(Map<String, dynamic> json) =>
+      _$ConfigOptionUpdateFromJson(json);
+
+  Map<String, dynamic> toJson() => _$ConfigOptionUpdateToJson(this);
+}
+
+@JsonSerializable()
+class SessionInfoUpdate extends SessionUpdate {
+  @JsonKey(name: '_meta', includeIfNull: false)
+  final Map<String, dynamic>? meta;
+  final String? title;
+  final String? updatedAt;
+
+  SessionInfoUpdate({this.meta, this.title, this.updatedAt});
+
+  factory SessionInfoUpdate.fromJson(Map<String, dynamic> json) =>
+      _$SessionInfoUpdateFromJson(json);
+
+  Map<String, dynamic> toJson() => _$SessionInfoUpdateToJson(this);
+}
+
+@JsonSerializable()
+class UsageUpdate extends SessionUpdate {
+  @JsonKey(name: '_meta', includeIfNull: false)
+  final Map<String, dynamic>? meta;
+  final int size;
+  final int used;
+  final Cost? cost;
+
+  UsageUpdate({this.meta, required this.size, required this.used, this.cost});
+
+  factory UsageUpdate.fromJson(Map<String, dynamic> json) =>
+      _$UsageUpdateFromJson(json);
+
+  Map<String, dynamic> toJson() => _$UsageUpdateToJson(this);
 }
 
 @JsonSerializable()

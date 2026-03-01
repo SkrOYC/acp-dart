@@ -12,6 +12,11 @@ void main() {
           fs: FileSystemCapability(readTextFile: true, writeTextFile: true),
           terminal: true,
         ),
+        clientInfo: Implementation(
+          name: 'acp-dart-client',
+          title: 'ACP Dart Client',
+          version: '0.3.0',
+        ),
       );
 
       final response = InitializeResponse(
@@ -29,6 +34,11 @@ void main() {
             list: SessionListCapabilities(),
             resume: SessionResumeCapabilities(),
           ),
+        ),
+        agentInfo: Implementation(
+          name: 'acp-dart-agent',
+          title: 'ACP Dart Agent',
+          version: '0.3.0',
         ),
         authMethods: [
           AuthMethod(
@@ -48,7 +58,9 @@ void main() {
 
       expect(requestDecoded.protocolVersion, equals(request.protocolVersion));
       expect(requestDecoded.clientCapabilities?.terminal, isTrue);
+      expect(requestDecoded.clientInfo?.name, equals('acp-dart-client'));
       expect(responseDecoded.agentCapabilities?.loadSession, isTrue);
+      expect(responseDecoded.agentInfo?.name, equals('acp-dart-agent'));
       expect(
         responseDecoded.agentCapabilities?.sessionCapabilities?.fork,
         isA<SessionForkCapabilities>(),
@@ -313,6 +325,102 @@ void main() {
 
       expect(decoded.sessionId, equals('session-123'));
       expect(decoded.prompt.length, equals(3));
+    });
+
+    test('PromptResponse usage round-trips', () {
+      final response = PromptResponse(
+        stopReason: StopReason.endTurn,
+        usage: Usage(
+          inputTokens: 120,
+          outputTokens: 80,
+          totalTokens: 200,
+          cachedReadTokens: 10,
+          cachedWriteTokens: 5,
+          thoughtTokens: 30,
+        ),
+      );
+
+      final decoded = PromptResponse.fromJson(
+        jsonDecode(jsonEncode(response.toJson())) as Map<String, dynamic>,
+      );
+
+      expect(decoded.stopReason, equals(StopReason.endTurn));
+      expect(decoded.usage?.totalTokens, equals(200));
+      expect(decoded.usage?.cachedReadTokens, equals(10));
+      expect(decoded.usage?.thoughtTokens, equals(30));
+    });
+
+    test('Session update variants round-trip and unknown fallback', () {
+      final option = SessionConfigOption(
+        id: 'mode',
+        name: 'Session Mode',
+        currentValue: 'code',
+        options: UngroupedSessionConfigSelectOptions(
+          options: [
+            SessionConfigSelectOption(value: 'ask', name: 'Ask'),
+            SessionConfigSelectOption(value: 'code', name: 'Code'),
+          ],
+        ),
+      );
+
+      final configUpdateNotification = SessionNotification(
+        sessionId: 'session-123',
+        update: ConfigOptionUpdate(configOptions: [option]),
+      );
+      final sessionInfoUpdateNotification = SessionNotification(
+        sessionId: 'session-123',
+        update: SessionInfoUpdate(
+          title: 'Renamed Session',
+          updatedAt: '2026-03-01T12:00:00Z',
+        ),
+      );
+      final usageUpdateNotification = SessionNotification(
+        sessionId: 'session-123',
+        update: UsageUpdate(
+          size: 200000,
+          used: 90000,
+          cost: Cost(amount: 1.23, currency: 'USD'),
+        ),
+      );
+
+      final configDecoded = SessionNotification.fromJson(
+        jsonDecode(jsonEncode(configUpdateNotification.toJson()))
+            as Map<String, dynamic>,
+      );
+      final sessionInfoDecoded = SessionNotification.fromJson(
+        jsonDecode(jsonEncode(sessionInfoUpdateNotification.toJson()))
+            as Map<String, dynamic>,
+      );
+      final usageDecoded = SessionNotification.fromJson(
+        jsonDecode(jsonEncode(usageUpdateNotification.toJson()))
+            as Map<String, dynamic>,
+      );
+
+      expect(configDecoded.update, isA<ConfigOptionUpdate>());
+      expect(
+        (configDecoded.update as ConfigOptionUpdate).configOptions.first.id,
+        equals('mode'),
+      );
+      expect(sessionInfoDecoded.update, isA<SessionInfoUpdate>());
+      expect(
+        (sessionInfoDecoded.update as SessionInfoUpdate).title,
+        equals('Renamed Session'),
+      );
+      expect(usageDecoded.update, isA<UsageUpdate>());
+      expect(
+        (usageDecoded.update as UsageUpdate).cost?.currency,
+        equals('USD'),
+      );
+
+      final unknownDecoded = SessionNotification.fromJson({
+        'sessionId': 'session-123',
+        'update': {'sessionUpdate': 'future_update', 'foo': 'bar'},
+      });
+      expect(unknownDecoded.update, isA<UnknownSessionUpdate>());
+      expect(
+        (unknownDecoded.update as UnknownSessionUpdate).rawJson['foo'],
+        equals('bar'),
+      );
     });
 
     test('Permission flow round-trips', () {
