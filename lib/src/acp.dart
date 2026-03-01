@@ -392,6 +392,33 @@ class AgentSideConnection implements Client {
             throw RequestError.methodNotFound(method);
           }
           return result;
+        case 'session/list':
+          final validatedParams = ListSessionsRequest.fromJson(
+            params as Map<String, dynamic>,
+          );
+          final result = await agent.unstableListSessions(validatedParams);
+          if (result == null) {
+            throw RequestError.methodNotFound(method);
+          }
+          return result;
+        case 'session/fork':
+          final validatedParams = ForkSessionRequest.fromJson(
+            params as Map<String, dynamic>,
+          );
+          final result = await agent.unstableForkSession(validatedParams);
+          if (result == null) {
+            throw RequestError.methodNotFound(method);
+          }
+          return result;
+        case 'session/resume':
+          final validatedParams = ResumeSessionRequest.fromJson(
+            params as Map<String, dynamic>,
+          );
+          final result = await agent.unstableResumeSession(validatedParams);
+          if (result == null) {
+            throw RequestError.methodNotFound(method);
+          }
+          return result;
         case 'session/set_mode':
           final validatedParams = SetSessionModeRequest.fromJson(
             params as Map<String, dynamic>,
@@ -715,6 +742,39 @@ class ClientSideConnection implements Agent {
   }
 
   @override
+  Future<ListSessionsResponse> unstableListSessions(
+    ListSessionsRequest params,
+  ) async {
+    final result = await _connection.sendRequest(
+      agentMethods['sessionList']!,
+      params.toJson(),
+    );
+    return ListSessionsResponse.fromJson(result as Map<String, dynamic>);
+  }
+
+  @override
+  Future<ForkSessionResponse> unstableForkSession(
+    ForkSessionRequest params,
+  ) async {
+    final result = await _connection.sendRequest(
+      agentMethods['sessionFork']!,
+      params.toJson(),
+    );
+    return ForkSessionResponse.fromJson(result as Map<String, dynamic>);
+  }
+
+  @override
+  Future<ResumeSessionResponse> unstableResumeSession(
+    ResumeSessionRequest params,
+  ) async {
+    final result = await _connection.sendRequest(
+      agentMethods['sessionResume']!,
+      params.toJson(),
+    );
+    return ResumeSessionResponse.fromJson(result as Map<String, dynamic>);
+  }
+
+  @override
   Future<SetSessionModeResponse?>? setSessionMode(
     SetSessionModeRequest params,
   ) async {
@@ -831,6 +891,26 @@ abstract class Agent {
   /// - Connect to the specified MCP servers
   /// - Stream the entire conversation history back to the client via notifications
   Future<LoadSessionResponse>? loadSession(LoadSessionRequest params);
+
+  /// Lists existing sessions from the agent.
+  ///
+  /// **UNSTABLE:** This capability is not part of the spec yet, and may be removed or changed at any point.
+  Future<ListSessionsResponse>? unstableListSessions(
+    ListSessionsRequest params,
+  ) => null;
+
+  /// Forks an existing session to create a new independent session.
+  ///
+  /// **UNSTABLE:** This capability is not part of the spec yet, and may be removed or changed at any point.
+  Future<ForkSessionResponse>? unstableForkSession(ForkSessionRequest params) =>
+      null;
+
+  /// Resumes an existing session without replaying previous messages.
+  ///
+  /// **UNSTABLE:** This capability is not part of the spec yet, and may be removed or changed at any point.
+  Future<ResumeSessionResponse>? unstableResumeSession(
+    ResumeSessionRequest params,
+  ) => null;
 
   /// Sets the operational mode for a session.
   ///

@@ -24,6 +24,11 @@ void main() {
             embeddedContext: true,
             image: true,
           ),
+          sessionCapabilities: SessionCapabilities(
+            fork: SessionForkCapabilities(),
+            list: SessionListCapabilities(),
+            resume: SessionResumeCapabilities(),
+          ),
         ),
         authMethods: [
           AuthMethod(
@@ -44,6 +49,10 @@ void main() {
       expect(requestDecoded.protocolVersion, equals(request.protocolVersion));
       expect(requestDecoded.clientCapabilities?.terminal, isTrue);
       expect(responseDecoded.agentCapabilities?.loadSession, isTrue);
+      expect(
+        responseDecoded.agentCapabilities?.sessionCapabilities?.fork,
+        isA<SessionForkCapabilities>(),
+      );
       expect(responseDecoded.authMethods.first.id, equals('password'));
     });
 
@@ -75,6 +84,20 @@ void main() {
         mcpServers: newSession.mcpServers,
         sessionId: 'session-123',
       );
+      final forkSession = ForkSessionRequest(
+        cwd: '/workspace',
+        mcpServers: newSession.mcpServers,
+        sessionId: 'session-123',
+      );
+      final listSessions = ListSessionsRequest(
+        cwd: '/workspace',
+        cursor: 'cursor-1',
+      );
+      final resumeSession = ResumeSessionRequest(
+        cwd: '/workspace',
+        mcpServers: newSession.mcpServers,
+        sessionId: 'session-123',
+      );
 
       final setMode = SetSessionModeRequest(
         sessionId: 'session-123',
@@ -97,6 +120,15 @@ void main() {
       final loadSessionDecoded = LoadSessionRequest.fromJson(
         jsonDecode(jsonEncode(loadSession.toJson())) as Map<String, dynamic>,
       );
+      final forkSessionDecoded = ForkSessionRequest.fromJson(
+        jsonDecode(jsonEncode(forkSession.toJson())) as Map<String, dynamic>,
+      );
+      final listSessionsDecoded = ListSessionsRequest.fromJson(
+        jsonDecode(jsonEncode(listSessions.toJson())) as Map<String, dynamic>,
+      );
+      final resumeSessionDecoded = ResumeSessionRequest.fromJson(
+        jsonDecode(jsonEncode(resumeSession.toJson())) as Map<String, dynamic>,
+      );
       final setModeDecoded = SetSessionModeRequest.fromJson(
         jsonDecode(jsonEncode(setMode.toJson())) as Map<String, dynamic>,
       );
@@ -111,10 +143,65 @@ void main() {
       expect(newSessionDecoded.cwd, equals('/workspace'));
       expect(newSessionDecoded.mcpServers.length, equals(3));
       expect(loadSessionDecoded.sessionId, equals('session-123'));
+      expect(forkSessionDecoded.sessionId, equals('session-123'));
+      expect(listSessionsDecoded.cursor, equals('cursor-1'));
+      expect(resumeSessionDecoded.sessionId, equals('session-123'));
       expect(setModeDecoded.modeId, equals('code'));
       expect(setModelDecoded.modelId, equals('gpt-4'));
       expect(setConfigOptionDecoded.configId, equals('mode'));
       expect(setConfigOptionDecoded.value, equals('code'));
+    });
+
+    test('Unstable session lifecycle responses round-trip', () {
+      final listSessionsResponse = ListSessionsResponse(
+        sessions: [
+          SessionInfo(
+            sessionId: 'session-1',
+            cwd: '/workspace',
+            title: 'My Session',
+            updatedAt: '2026-02-27T10:00:00Z',
+          ),
+        ],
+        nextCursor: 'cursor-2',
+      );
+      final forkSessionResponse = ForkSessionResponse(
+        sessionId: 'session-2',
+        modes: SessionModeState(
+          availableModes: [SessionMode(id: 'code', name: 'Code')],
+          currentModeId: 'code',
+        ),
+      );
+      final resumeSessionResponse = ResumeSessionResponse(
+        models: SessionModelState(
+          availableModels: [ModelInfo(modelId: 'gpt-5', name: 'GPT-5')],
+          currentModelId: 'gpt-5',
+        ),
+      );
+
+      final listSessionsResponseDecoded = ListSessionsResponse.fromJson(
+        jsonDecode(jsonEncode(listSessionsResponse.toJson()))
+            as Map<String, dynamic>,
+      );
+      final forkSessionResponseDecoded = ForkSessionResponse.fromJson(
+        jsonDecode(jsonEncode(forkSessionResponse.toJson()))
+            as Map<String, dynamic>,
+      );
+      final resumeSessionResponseDecoded = ResumeSessionResponse.fromJson(
+        jsonDecode(jsonEncode(resumeSessionResponse.toJson()))
+            as Map<String, dynamic>,
+      );
+
+      expect(
+        listSessionsResponseDecoded.sessions.first.sessionId,
+        equals('session-1'),
+      );
+      expect(listSessionsResponseDecoded.nextCursor, equals('cursor-2'));
+      expect(forkSessionResponseDecoded.sessionId, equals('session-2'));
+      expect(forkSessionResponseDecoded.modes?.currentModeId, equals('code'));
+      expect(
+        resumeSessionResponseDecoded.models?.currentModelId,
+        equals('gpt-5'),
+      );
     });
 
     test('Session config option payloads round-trip', () {

@@ -46,6 +46,45 @@ void main() {
       expect(typed.params.configId, equals('mode'));
       expect(typed.method, equals('session/set_config_option'));
     });
+
+    test('parses session/list request', () {
+      final request = ClientRequestUnion.fromMethod(
+        agentMethods['sessionList']!,
+        {'cwd': '/workspace', 'cursor': 'next'},
+      );
+
+      expect(request, isA<ClientListSessionsRequest>());
+      final typed = request as ClientListSessionsRequest;
+      expect(typed.params.cwd, equals('/workspace'));
+      expect(typed.params.cursor, equals('next'));
+      expect(typed.method, equals('session/list'));
+    });
+
+    test('parses session/fork request', () {
+      final request = ClientRequestUnion.fromMethod(
+        agentMethods['sessionFork']!,
+        {'sessionId': 'abc', 'cwd': '/workspace'},
+      );
+
+      expect(request, isA<ClientForkSessionRequest>());
+      final typed = request as ClientForkSessionRequest;
+      expect(typed.params.sessionId, equals('abc'));
+      expect(typed.params.cwd, equals('/workspace'));
+      expect(typed.method, equals('session/fork'));
+    });
+
+    test('parses session/resume request', () {
+      final request = ClientRequestUnion.fromMethod(
+        agentMethods['sessionResume']!,
+        {'sessionId': 'abc', 'cwd': '/workspace'},
+      );
+
+      expect(request, isA<ClientResumeSessionRequest>());
+      final typed = request as ClientResumeSessionRequest;
+      expect(typed.params.sessionId, equals('abc'));
+      expect(typed.params.cwd, equals('/workspace'));
+      expect(typed.method, equals('session/resume'));
+    });
   });
 
   group('AgentResponseUnion', () {
@@ -86,6 +125,45 @@ void main() {
       expect(response, isA<AgentSetSessionConfigOptionResponse>());
       final typed = response as AgentSetSessionConfigOptionResponse;
       expect(typed.response.configOptions.first.id, equals('mode'));
+    });
+
+    test('parses session/list response', () {
+      final response = AgentResponseUnion.fromJson(
+        agentMethods['sessionList']!,
+        {
+          'sessions': [
+            {'sessionId': 's1', 'cwd': '/workspace', 'title': 'Session 1'},
+          ],
+          'nextCursor': 'next',
+        },
+      );
+
+      expect(response, isA<AgentListSessionsResponse>());
+      final typed = response as AgentListSessionsResponse;
+      expect(typed.response.sessions.first.sessionId, equals('s1'));
+      expect(typed.response.nextCursor, equals('next'));
+    });
+
+    test('parses session/fork response', () {
+      final response = AgentResponseUnion.fromJson(
+        agentMethods['sessionFork']!,
+        {'sessionId': 's2'},
+      );
+
+      expect(response, isA<AgentForkSessionResponse>());
+      final typed = response as AgentForkSessionResponse;
+      expect(typed.response.sessionId, equals('s2'));
+    });
+
+    test('parses session/resume response', () {
+      final response = AgentResponseUnion.fromJson(
+        agentMethods['sessionResume']!,
+        {'modes': null, 'models': null},
+      );
+
+      expect(response, isA<AgentResumeSessionResponse>());
+      final typed = response as AgentResumeSessionResponse;
+      expect(typed.response, isA<ResumeSessionResponse>());
     });
   });
 
