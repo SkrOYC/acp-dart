@@ -338,6 +338,67 @@ class LoadSessionRequest {
   Map<String, dynamic> toJson() => _$LoadSessionRequestToJson(this);
 }
 
+abstract class SessionCloneRequestBase {
+  @JsonKey(name: '_meta', includeIfNull: false)
+  final Map<String, dynamic>? meta;
+  final String cwd;
+  @McpServerConverter()
+  final List<McpServerBase>? mcpServers;
+  final SessionId sessionId;
+
+  const SessionCloneRequestBase({
+    this.meta,
+    required this.cwd,
+    this.mcpServers,
+    required this.sessionId,
+  });
+}
+
+@JsonSerializable()
+class ForkSessionRequest extends SessionCloneRequestBase {
+  ForkSessionRequest({
+    super.meta,
+    required super.cwd,
+    super.mcpServers,
+    required super.sessionId,
+  });
+
+  factory ForkSessionRequest.fromJson(Map<String, dynamic> json) =>
+      _$ForkSessionRequestFromJson(json);
+
+  Map<String, dynamic> toJson() => _$ForkSessionRequestToJson(this);
+}
+
+@JsonSerializable()
+class ListSessionsRequest {
+  @JsonKey(name: '_meta', includeIfNull: false)
+  final Map<String, dynamic>? meta;
+  final String? cursor;
+  final String? cwd;
+
+  ListSessionsRequest({this.meta, this.cursor, this.cwd});
+
+  factory ListSessionsRequest.fromJson(Map<String, dynamic> json) =>
+      _$ListSessionsRequestFromJson(json);
+
+  Map<String, dynamic> toJson() => _$ListSessionsRequestToJson(this);
+}
+
+@JsonSerializable()
+class ResumeSessionRequest extends SessionCloneRequestBase {
+  ResumeSessionRequest({
+    super.meta,
+    required super.cwd,
+    super.mcpServers,
+    required super.sessionId,
+  });
+
+  factory ResumeSessionRequest.fromJson(Map<String, dynamic> json) =>
+      _$ResumeSessionRequestFromJson(json);
+
+  Map<String, dynamic> toJson() => _$ResumeSessionRequestToJson(this);
+}
+
 @JsonSerializable()
 class SetSessionModeRequest {
   @JsonKey(name: '_meta', includeIfNull: false)
@@ -929,6 +990,8 @@ class AgentCapabilities {
   final McpCapabilities? mcpCapabilities;
   @JsonKey(name: 'promptCapabilities')
   final PromptCapabilities? promptCapabilities;
+  @JsonKey(name: 'sessionCapabilities')
+  final SessionCapabilities? sessionCapabilities;
   @JsonKey(defaultValue: false)
   final bool loadSession;
 
@@ -936,6 +999,7 @@ class AgentCapabilities {
     this.meta,
     this.mcpCapabilities,
     this.promptCapabilities,
+    this.sessionCapabilities,
     this.loadSession = false,
   });
 
@@ -943,6 +1007,61 @@ class AgentCapabilities {
       _$AgentCapabilitiesFromJson(json);
 
   Map<String, dynamic> toJson() => _$AgentCapabilitiesToJson(this);
+}
+
+@JsonSerializable()
+class SessionCapabilities {
+  @JsonKey(name: '_meta', includeIfNull: false)
+  final Map<String, dynamic>? meta;
+  final SessionForkCapabilities? fork;
+  final SessionListCapabilities? list;
+  final SessionResumeCapabilities? resume;
+
+  SessionCapabilities({this.meta, this.fork, this.list, this.resume});
+
+  factory SessionCapabilities.fromJson(Map<String, dynamic> json) =>
+      _$SessionCapabilitiesFromJson(json);
+
+  Map<String, dynamic> toJson() => _$SessionCapabilitiesToJson(this);
+}
+
+@JsonSerializable()
+class SessionForkCapabilities {
+  @JsonKey(name: '_meta', includeIfNull: false)
+  final Map<String, dynamic>? meta;
+
+  SessionForkCapabilities({this.meta});
+
+  factory SessionForkCapabilities.fromJson(Map<String, dynamic> json) =>
+      _$SessionForkCapabilitiesFromJson(json);
+
+  Map<String, dynamic> toJson() => _$SessionForkCapabilitiesToJson(this);
+}
+
+@JsonSerializable()
+class SessionListCapabilities {
+  @JsonKey(name: '_meta', includeIfNull: false)
+  final Map<String, dynamic>? meta;
+
+  SessionListCapabilities({this.meta});
+
+  factory SessionListCapabilities.fromJson(Map<String, dynamic> json) =>
+      _$SessionListCapabilitiesFromJson(json);
+
+  Map<String, dynamic> toJson() => _$SessionListCapabilitiesToJson(this);
+}
+
+@JsonSerializable()
+class SessionResumeCapabilities {
+  @JsonKey(name: '_meta', includeIfNull: false)
+  final Map<String, dynamic>? meta;
+
+  SessionResumeCapabilities({this.meta});
+
+  factory SessionResumeCapabilities.fromJson(Map<String, dynamic> json) =>
+      _$SessionResumeCapabilitiesFromJson(json);
+
+  Map<String, dynamic> toJson() => _$SessionResumeCapabilitiesToJson(this);
 }
 
 @JsonSerializable()
@@ -1234,6 +1353,29 @@ class ModelInfo {
 }
 
 @JsonSerializable()
+class SessionInfo {
+  @JsonKey(name: '_meta', includeIfNull: false)
+  final Map<String, dynamic>? meta;
+  final String cwd;
+  final SessionId sessionId;
+  final String? title;
+  final String? updatedAt;
+
+  SessionInfo({
+    this.meta,
+    required this.cwd,
+    required this.sessionId,
+    this.title,
+    this.updatedAt,
+  });
+
+  factory SessionInfo.fromJson(Map<String, dynamic> json) =>
+      _$SessionInfoFromJson(json);
+
+  Map<String, dynamic> toJson() => _$SessionInfoToJson(this);
+}
+
+@JsonSerializable()
 class LoadSessionResponse {
   @JsonKey(name: '_meta', includeIfNull: false)
   final Map<String, dynamic>? meta;
@@ -1248,6 +1390,70 @@ class LoadSessionResponse {
       _$LoadSessionResponseFromJson(json);
 
   Map<String, dynamic> toJson() => _$LoadSessionResponseToJson(this);
+}
+
+abstract class SessionStateResponseBase {
+  @JsonKey(name: '_meta', includeIfNull: false)
+  final Map<String, dynamic>? meta;
+  @JsonKey(includeIfNull: false)
+  final List<SessionConfigOption>? configOptions;
+  final SessionModeState? modes;
+  final SessionModelState? models;
+
+  const SessionStateResponseBase({
+    this.meta,
+    this.configOptions,
+    this.modes,
+    this.models,
+  });
+}
+
+@JsonSerializable()
+class ListSessionsResponse {
+  @JsonKey(name: '_meta', includeIfNull: false)
+  final Map<String, dynamic>? meta;
+  final String? nextCursor;
+  final List<SessionInfo> sessions;
+
+  ListSessionsResponse({this.meta, this.nextCursor, required this.sessions});
+
+  factory ListSessionsResponse.fromJson(Map<String, dynamic> json) =>
+      _$ListSessionsResponseFromJson(json);
+
+  Map<String, dynamic> toJson() => _$ListSessionsResponseToJson(this);
+}
+
+@JsonSerializable()
+class ForkSessionResponse extends SessionStateResponseBase {
+  final SessionId sessionId;
+
+  ForkSessionResponse({
+    super.meta,
+    super.configOptions,
+    super.modes,
+    super.models,
+    required this.sessionId,
+  });
+
+  factory ForkSessionResponse.fromJson(Map<String, dynamic> json) =>
+      _$ForkSessionResponseFromJson(json);
+
+  Map<String, dynamic> toJson() => _$ForkSessionResponseToJson(this);
+}
+
+@JsonSerializable()
+class ResumeSessionResponse extends SessionStateResponseBase {
+  ResumeSessionResponse({
+    super.meta,
+    super.configOptions,
+    super.modes,
+    super.models,
+  });
+
+  factory ResumeSessionResponse.fromJson(Map<String, dynamic> json) =>
+      _$ResumeSessionResponseFromJson(json);
+
+  Map<String, dynamic> toJson() => _$ResumeSessionResponseToJson(this);
 }
 
 @JsonSerializable()
@@ -2006,11 +2212,14 @@ const agentMethods = {
   'authenticate': 'authenticate',
   'initialize': 'initialize',
   'modelSelect': 'session/set_model',
+  'sessionFork': 'session/fork',
+  'sessionList': 'session/list',
   'sessionSetConfigOption': 'session/set_config_option',
   'sessionCancel': 'session/cancel',
   'sessionLoad': 'session/load',
   'sessionNew': 'session/new',
   'sessionPrompt': 'session/prompt',
+  'sessionResume': 'session/resume',
   'sessionSetMode': 'session/set_mode',
 };
 

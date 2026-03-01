@@ -371,6 +371,20 @@ class AgentSideConnection implements Client {
   ) {
     final agent = toAgent(this);
 
+    Future<dynamic> handleOptionalRequest<T>(
+      String method,
+      dynamic params,
+      T Function(Map<String, dynamic>) fromJson,
+      Future<dynamic>? Function(T) handler,
+    ) async {
+      final validatedParams = fromJson(params as Map<String, dynamic>);
+      final result = await handler(validatedParams);
+      if (result == null) {
+        throw RequestError.methodNotFound(method);
+      }
+      return result;
+    }
+
     Future<dynamic> requestHandler(String method, dynamic params) async {
       switch (method) {
         case 'initialize':
@@ -384,14 +398,33 @@ class AgentSideConnection implements Client {
           );
           return agent.newSession(validatedParams);
         case 'session/load':
-          final validatedParams = LoadSessionRequest.fromJson(
-            params as Map<String, dynamic>,
+          return handleOptionalRequest(
+            method,
+            params,
+            LoadSessionRequest.fromJson,
+            agent.loadSession,
           );
-          final result = await agent.loadSession(validatedParams);
-          if (result == null) {
-            throw RequestError.methodNotFound(method);
-          }
-          return result;
+        case 'session/list':
+          return handleOptionalRequest(
+            method,
+            params,
+            ListSessionsRequest.fromJson,
+            agent.unstableListSessions,
+          );
+        case 'session/fork':
+          return handleOptionalRequest(
+            method,
+            params,
+            ForkSessionRequest.fromJson,
+            agent.unstableForkSession,
+          );
+        case 'session/resume':
+          return handleOptionalRequest(
+            method,
+            params,
+            ResumeSessionRequest.fromJson,
+            agent.unstableResumeSession,
+          );
         case 'session/set_mode':
           final validatedParams = SetSessionModeRequest.fromJson(
             params as Map<String, dynamic>,
@@ -399,14 +432,12 @@ class AgentSideConnection implements Client {
           final result = await agent.setSessionMode(validatedParams);
           return result ?? {};
         case 'session/set_config_option':
-          final validatedParams = SetSessionConfigOptionRequest.fromJson(
-            params as Map<String, dynamic>,
+          return handleOptionalRequest(
+            method,
+            params,
+            SetSessionConfigOptionRequest.fromJson,
+            agent.setSessionConfigOption,
           );
-          final result = await agent.setSessionConfigOption(validatedParams);
-          if (result == null) {
-            throw RequestError.methodNotFound(method);
-          }
-          return result;
         case 'session/set_model':
           final validatedParams = SetSessionModelRequest.fromJson(
             params as Map<String, dynamic>,
@@ -687,54 +718,94 @@ class ClientSideConnection implements Agent {
     _connection = Connection(requestHandler, notificationHandler, stream);
   }
 
+  Future<T> _sendTypedRequest<T>(
+    String method,
+    Map<String, dynamic> params,
+    T Function(Map<String, dynamic>) fromJson,
+  ) async {
+    final result = await _connection.sendRequest(method, params);
+    return fromJson(result as Map<String, dynamic>);
+  }
+
   @override
   Future<InitializeResponse> initialize(InitializeRequest params) async {
-    final result = await _connection.sendRequest(
+    return _sendTypedRequest(
       agentMethods['initialize']!,
       params.toJson(),
+      InitializeResponse.fromJson,
     );
-    return InitializeResponse.fromJson(result as Map<String, dynamic>);
   }
 
   @override
   Future<NewSessionResponse> newSession(NewSessionRequest params) async {
-    final result = await _connection.sendRequest(
+    return _sendTypedRequest(
       agentMethods['sessionNew']!,
       params.toJson(),
+      NewSessionResponse.fromJson,
     );
-    return NewSessionResponse.fromJson(result as Map<String, dynamic>);
   }
 
   @override
   Future<LoadSessionResponse>? loadSession(LoadSessionRequest params) async {
-    final result = await _connection.sendRequest(
+    return _sendTypedRequest(
       agentMethods['sessionLoad']!,
       params.toJson(),
+      LoadSessionResponse.fromJson,
     );
-    return LoadSessionResponse.fromJson(result as Map<String, dynamic>);
+  }
+
+  @override
+  Future<ListSessionsResponse> unstableListSessions(
+    ListSessionsRequest params,
+  ) async {
+    return _sendTypedRequest(
+      agentMethods['sessionList']!,
+      params.toJson(),
+      ListSessionsResponse.fromJson,
+    );
+  }
+
+  @override
+  Future<ForkSessionResponse> unstableForkSession(
+    ForkSessionRequest params,
+  ) async {
+    return _sendTypedRequest(
+      agentMethods['sessionFork']!,
+      params.toJson(),
+      ForkSessionResponse.fromJson,
+    );
+  }
+
+  @override
+  Future<ResumeSessionResponse> unstableResumeSession(
+    ResumeSessionRequest params,
+  ) async {
+    return _sendTypedRequest(
+      agentMethods['sessionResume']!,
+      params.toJson(),
+      ResumeSessionResponse.fromJson,
+    );
   }
 
   @override
   Future<SetSessionModeResponse?>? setSessionMode(
     SetSessionModeRequest params,
   ) async {
-    final result = await _connection.sendRequest(
+    return _sendTypedRequest(
       agentMethods['sessionSetMode']!,
       params.toJson(),
+      SetSessionModeResponse.fromJson,
     );
-    return SetSessionModeResponse.fromJson(result as Map<String, dynamic>);
   }
 
   @override
   Future<SetSessionConfigOptionResponse> setSessionConfigOption(
     SetSessionConfigOptionRequest params,
   ) async {
-    final result = await _connection.sendRequest(
+    return _sendTypedRequest(
       agentMethods['sessionSetConfigOption']!,
       params.toJson(),
-    );
-    return SetSessionConfigOptionResponse.fromJson(
-      result as Map<String, dynamic>,
+      SetSessionConfigOptionResponse.fromJson,
     );
   }
 
@@ -742,31 +813,31 @@ class ClientSideConnection implements Agent {
   Future<SetSessionModelResponse?>? setSessionModel(
     SetSessionModelRequest params,
   ) async {
-    final result = await _connection.sendRequest(
+    return _sendTypedRequest(
       agentMethods['modelSelect']!,
       params.toJson(),
+      SetSessionModelResponse.fromJson,
     );
-    return SetSessionModelResponse.fromJson(result as Map<String, dynamic>);
   }
 
   @override
   Future<AuthenticateResponse?>? authenticate(
     AuthenticateRequest params,
   ) async {
-    final result = await _connection.sendRequest(
+    return _sendTypedRequest(
       agentMethods['authenticate']!,
       params.toJson(),
+      AuthenticateResponse.fromJson,
     );
-    return AuthenticateResponse.fromJson(result as Map<String, dynamic>);
   }
 
   @override
   Future<PromptResponse> prompt(PromptRequest params) async {
-    final result = await _connection.sendRequest(
+    return _sendTypedRequest(
       agentMethods['sessionPrompt']!,
       params.toJson(),
+      PromptResponse.fromJson,
     );
-    return PromptResponse.fromJson(result as Map<String, dynamic>);
   }
 
   @override
@@ -831,6 +902,26 @@ abstract class Agent {
   /// - Connect to the specified MCP servers
   /// - Stream the entire conversation history back to the client via notifications
   Future<LoadSessionResponse>? loadSession(LoadSessionRequest params);
+
+  /// Lists existing sessions from the agent.
+  ///
+  /// **UNSTABLE:** This capability is not part of the spec yet, and may be removed or changed at any point.
+  Future<ListSessionsResponse>? unstableListSessions(
+    ListSessionsRequest params,
+  ) => null;
+
+  /// Forks an existing session to create a new independent session.
+  ///
+  /// **UNSTABLE:** This capability is not part of the spec yet, and may be removed or changed at any point.
+  Future<ForkSessionResponse>? unstableForkSession(ForkSessionRequest params) =>
+      null;
+
+  /// Resumes an existing session without replaying previous messages.
+  ///
+  /// **UNSTABLE:** This capability is not part of the spec yet, and may be removed or changed at any point.
+  Future<ResumeSessionResponse>? unstableResumeSession(
+    ResumeSessionRequest params,
+  ) => null;
 
   /// Sets the operational mode for a session.
   ///

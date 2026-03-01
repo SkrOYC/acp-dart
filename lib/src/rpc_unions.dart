@@ -298,6 +298,18 @@ abstract class AgentResponseUnion {
         return AgentLoadSessionResponse(
           LoadSessionResponse.fromJson(result as Map<String, dynamic>),
         );
+      case 'session/list':
+        return AgentListSessionsResponse(
+          ListSessionsResponse.fromJson(result as Map<String, dynamic>),
+        );
+      case 'session/fork':
+        return AgentForkSessionResponse(
+          ForkSessionResponse.fromJson(result as Map<String, dynamic>),
+        );
+      case 'session/resume':
+        return AgentResumeSessionResponse(
+          ResumeSessionResponse.fromJson(result as Map<String, dynamic>),
+        );
       case 'session/set_mode':
         return AgentSetSessionModeResponse(
           result == null
@@ -352,6 +364,27 @@ class AgentNewSessionResponse extends AgentResponseUnion {
 class AgentLoadSessionResponse extends AgentResponseUnion {
   final LoadSessionResponse response;
   const AgentLoadSessionResponse(this.response);
+  @override
+  Map<String, dynamic> toJson() => response.toJson();
+}
+
+class AgentListSessionsResponse extends AgentResponseUnion {
+  final ListSessionsResponse response;
+  const AgentListSessionsResponse(this.response);
+  @override
+  Map<String, dynamic> toJson() => response.toJson();
+}
+
+class AgentForkSessionResponse extends AgentResponseUnion {
+  final ForkSessionResponse response;
+  const AgentForkSessionResponse(this.response);
+  @override
+  Map<String, dynamic> toJson() => response.toJson();
+}
+
+class AgentResumeSessionResponse extends AgentResponseUnion {
+  final ResumeSessionResponse response;
+  const AgentResumeSessionResponse(this.response);
   @override
   Map<String, dynamic> toJson() => response.toJson();
 }
@@ -453,6 +486,18 @@ abstract class ClientRequestUnion {
         return ClientLoadSessionRequest(
           LoadSessionRequest.fromJson(params as Map<String, dynamic>),
         );
+      case 'session/list':
+        return ClientListSessionsRequest(
+          ListSessionsRequest.fromJson(params as Map<String, dynamic>),
+        );
+      case 'session/fork':
+        return ClientForkSessionRequest(
+          ForkSessionRequest.fromJson(params as Map<String, dynamic>),
+        );
+      case 'session/resume':
+        return ClientResumeSessionRequest(
+          ResumeSessionRequest.fromJson(params as Map<String, dynamic>),
+        );
       case 'session/set_mode':
         return ClientSetSessionModeRequest(
           SetSessionModeRequest.fromJson(params as Map<String, dynamic>),
@@ -509,6 +554,33 @@ class ClientLoadSessionRequest extends ClientRequestUnion {
   const ClientLoadSessionRequest(this.params);
   @override
   String get method => agentMethods['sessionLoad']!;
+  @override
+  Map<String, dynamic> toJson() => params.toJson();
+}
+
+class ClientListSessionsRequest extends ClientRequestUnion {
+  final ListSessionsRequest params;
+  const ClientListSessionsRequest(this.params);
+  @override
+  String get method => agentMethods['sessionList']!;
+  @override
+  Map<String, dynamic> toJson() => params.toJson();
+}
+
+class ClientForkSessionRequest extends ClientRequestUnion {
+  final ForkSessionRequest params;
+  const ClientForkSessionRequest(this.params);
+  @override
+  String get method => agentMethods['sessionFork']!;
+  @override
+  Map<String, dynamic> toJson() => params.toJson();
+}
+
+class ClientResumeSessionRequest extends ClientRequestUnion {
+  final ResumeSessionRequest params;
+  const ClientResumeSessionRequest(this.params);
+  @override
+  String get method => agentMethods['sessionResume']!;
   @override
   Map<String, dynamic> toJson() => params.toJson();
 }

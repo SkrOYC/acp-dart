@@ -195,6 +195,68 @@ Map<String, dynamic> _$LoadSessionRequestToJson(LoadSessionRequest instance) =>
       'sessionId': instance.sessionId,
     };
 
+ForkSessionRequest _$ForkSessionRequestFromJson(Map<String, dynamic> json) =>
+    ForkSessionRequest(
+      meta: json['_meta'] as Map<String, dynamic>?,
+      cwd: json['cwd'] as String,
+      mcpServers: (json['mcpServers'] as List<dynamic>?)
+          ?.map(
+            (e) =>
+                const McpServerConverter().fromJson(e as Map<String, dynamic>),
+          )
+          .toList(),
+      sessionId: json['sessionId'] as String,
+    );
+
+Map<String, dynamic> _$ForkSessionRequestToJson(ForkSessionRequest instance) =>
+    <String, dynamic>{
+      '_meta': ?instance.meta,
+      'cwd': instance.cwd,
+      'mcpServers': instance.mcpServers
+          ?.map(const McpServerConverter().toJson)
+          .toList(),
+      'sessionId': instance.sessionId,
+    };
+
+ListSessionsRequest _$ListSessionsRequestFromJson(Map<String, dynamic> json) =>
+    ListSessionsRequest(
+      meta: json['_meta'] as Map<String, dynamic>?,
+      cursor: json['cursor'] as String?,
+      cwd: json['cwd'] as String?,
+    );
+
+Map<String, dynamic> _$ListSessionsRequestToJson(
+  ListSessionsRequest instance,
+) => <String, dynamic>{
+  '_meta': ?instance.meta,
+  'cursor': instance.cursor,
+  'cwd': instance.cwd,
+};
+
+ResumeSessionRequest _$ResumeSessionRequestFromJson(
+  Map<String, dynamic> json,
+) => ResumeSessionRequest(
+  meta: json['_meta'] as Map<String, dynamic>?,
+  cwd: json['cwd'] as String,
+  mcpServers: (json['mcpServers'] as List<dynamic>?)
+      ?.map(
+        (e) => const McpServerConverter().fromJson(e as Map<String, dynamic>),
+      )
+      .toList(),
+  sessionId: json['sessionId'] as String,
+);
+
+Map<String, dynamic> _$ResumeSessionRequestToJson(
+  ResumeSessionRequest instance,
+) => <String, dynamic>{
+  '_meta': ?instance.meta,
+  'cwd': instance.cwd,
+  'mcpServers': instance.mcpServers
+      ?.map(const McpServerConverter().toJson)
+      .toList(),
+  'sessionId': instance.sessionId,
+};
+
 SetSessionModeRequest _$SetSessionModeRequestFromJson(
   Map<String, dynamic> json,
 ) => SetSessionModeRequest(
@@ -673,6 +735,11 @@ AgentCapabilities _$AgentCapabilitiesFromJson(Map<String, dynamic> json) =>
           : PromptCapabilities.fromJson(
               json['promptCapabilities'] as Map<String, dynamic>,
             ),
+      sessionCapabilities: json['sessionCapabilities'] == null
+          ? null
+          : SessionCapabilities.fromJson(
+              json['sessionCapabilities'] as Map<String, dynamic>,
+            ),
       loadSession: json['loadSession'] as bool? ?? false,
     );
 
@@ -681,8 +748,59 @@ Map<String, dynamic> _$AgentCapabilitiesToJson(AgentCapabilities instance) =>
       '_meta': ?instance.meta,
       'mcpCapabilities': instance.mcpCapabilities,
       'promptCapabilities': instance.promptCapabilities,
+      'sessionCapabilities': instance.sessionCapabilities,
       'loadSession': instance.loadSession,
     };
+
+SessionCapabilities _$SessionCapabilitiesFromJson(
+  Map<String, dynamic> json,
+) => SessionCapabilities(
+  meta: json['_meta'] as Map<String, dynamic>?,
+  fork: json['fork'] == null
+      ? null
+      : SessionForkCapabilities.fromJson(json['fork'] as Map<String, dynamic>),
+  list: json['list'] == null
+      ? null
+      : SessionListCapabilities.fromJson(json['list'] as Map<String, dynamic>),
+  resume: json['resume'] == null
+      ? null
+      : SessionResumeCapabilities.fromJson(
+          json['resume'] as Map<String, dynamic>,
+        ),
+);
+
+Map<String, dynamic> _$SessionCapabilitiesToJson(
+  SessionCapabilities instance,
+) => <String, dynamic>{
+  '_meta': ?instance.meta,
+  'fork': instance.fork,
+  'list': instance.list,
+  'resume': instance.resume,
+};
+
+SessionForkCapabilities _$SessionForkCapabilitiesFromJson(
+  Map<String, dynamic> json,
+) => SessionForkCapabilities(meta: json['_meta'] as Map<String, dynamic>?);
+
+Map<String, dynamic> _$SessionForkCapabilitiesToJson(
+  SessionForkCapabilities instance,
+) => <String, dynamic>{'_meta': ?instance.meta};
+
+SessionListCapabilities _$SessionListCapabilitiesFromJson(
+  Map<String, dynamic> json,
+) => SessionListCapabilities(meta: json['_meta'] as Map<String, dynamic>?);
+
+Map<String, dynamic> _$SessionListCapabilitiesToJson(
+  SessionListCapabilities instance,
+) => <String, dynamic>{'_meta': ?instance.meta};
+
+SessionResumeCapabilities _$SessionResumeCapabilitiesFromJson(
+  Map<String, dynamic> json,
+) => SessionResumeCapabilities(meta: json['_meta'] as Map<String, dynamic>?);
+
+Map<String, dynamic> _$SessionResumeCapabilitiesToJson(
+  SessionResumeCapabilities instance,
+) => <String, dynamic>{'_meta': ?instance.meta};
 
 McpCapabilities _$McpCapabilitiesFromJson(Map<String, dynamic> json) =>
     McpCapabilities(
@@ -916,6 +1034,23 @@ Map<String, dynamic> _$ModelInfoToJson(ModelInfo instance) => <String, dynamic>{
   'description': instance.description,
 };
 
+SessionInfo _$SessionInfoFromJson(Map<String, dynamic> json) => SessionInfo(
+  meta: json['_meta'] as Map<String, dynamic>?,
+  cwd: json['cwd'] as String,
+  sessionId: json['sessionId'] as String,
+  title: json['title'] as String?,
+  updatedAt: json['updatedAt'] as String?,
+);
+
+Map<String, dynamic> _$SessionInfoToJson(SessionInfo instance) =>
+    <String, dynamic>{
+      '_meta': ?instance.meta,
+      'cwd': instance.cwd,
+      'sessionId': instance.sessionId,
+      'title': instance.title,
+      'updatedAt': instance.updatedAt,
+    };
+
 LoadSessionResponse _$LoadSessionResponseFromJson(Map<String, dynamic> json) =>
     LoadSessionResponse(
       meta: json['_meta'] as Map<String, dynamic>?,
@@ -932,6 +1067,73 @@ LoadSessionResponse _$LoadSessionResponseFromJson(Map<String, dynamic> json) =>
 
 Map<String, dynamic> _$LoadSessionResponseToJson(
   LoadSessionResponse instance,
+) => <String, dynamic>{
+  '_meta': ?instance.meta,
+  'configOptions': ?instance.configOptions,
+  'modes': instance.modes,
+  'models': instance.models,
+};
+
+ListSessionsResponse _$ListSessionsResponseFromJson(
+  Map<String, dynamic> json,
+) => ListSessionsResponse(
+  meta: json['_meta'] as Map<String, dynamic>?,
+  nextCursor: json['nextCursor'] as String?,
+  sessions: (json['sessions'] as List<dynamic>)
+      .map((e) => SessionInfo.fromJson(e as Map<String, dynamic>))
+      .toList(),
+);
+
+Map<String, dynamic> _$ListSessionsResponseToJson(
+  ListSessionsResponse instance,
+) => <String, dynamic>{
+  '_meta': ?instance.meta,
+  'nextCursor': instance.nextCursor,
+  'sessions': instance.sessions,
+};
+
+ForkSessionResponse _$ForkSessionResponseFromJson(Map<String, dynamic> json) =>
+    ForkSessionResponse(
+      meta: json['_meta'] as Map<String, dynamic>?,
+      configOptions: (json['configOptions'] as List<dynamic>?)
+          ?.map((e) => SessionConfigOption.fromJson(e as Map<String, dynamic>))
+          .toList(),
+      modes: json['modes'] == null
+          ? null
+          : SessionModeState.fromJson(json['modes'] as Map<String, dynamic>),
+      models: json['models'] == null
+          ? null
+          : SessionModelState.fromJson(json['models'] as Map<String, dynamic>),
+      sessionId: json['sessionId'] as String,
+    );
+
+Map<String, dynamic> _$ForkSessionResponseToJson(
+  ForkSessionResponse instance,
+) => <String, dynamic>{
+  '_meta': ?instance.meta,
+  'configOptions': ?instance.configOptions,
+  'modes': instance.modes,
+  'models': instance.models,
+  'sessionId': instance.sessionId,
+};
+
+ResumeSessionResponse _$ResumeSessionResponseFromJson(
+  Map<String, dynamic> json,
+) => ResumeSessionResponse(
+  meta: json['_meta'] as Map<String, dynamic>?,
+  configOptions: (json['configOptions'] as List<dynamic>?)
+      ?.map((e) => SessionConfigOption.fromJson(e as Map<String, dynamic>))
+      .toList(),
+  modes: json['modes'] == null
+      ? null
+      : SessionModeState.fromJson(json['modes'] as Map<String, dynamic>),
+  models: json['models'] == null
+      ? null
+      : SessionModelState.fromJson(json['models'] as Map<String, dynamic>),
+);
+
+Map<String, dynamic> _$ResumeSessionResponseToJson(
+  ResumeSessionResponse instance,
 ) => <String, dynamic>{
   '_meta': ?instance.meta,
   'configOptions': ?instance.configOptions,

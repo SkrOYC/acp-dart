@@ -309,14 +309,25 @@ void main() {
   });
 
   group('AgentSideConnection', () {
-    test('constructor creates connection with agent', () {
-      final readableController = StreamController<Map<String, dynamic>>();
-      final writableController = StreamController<Map<String, dynamic>>();
-      final acpStream = AcpStream(
+    late StreamController<Map<String, dynamic>> readableController;
+    late StreamController<Map<String, dynamic>> writableController;
+    late AcpStream acpStream;
+
+    setUp(() {
+      readableController = StreamController<Map<String, dynamic>>();
+      writableController = StreamController<Map<String, dynamic>>();
+      acpStream = AcpStream(
         readable: readableController.stream,
         writable: writableController.sink,
       );
+    });
 
+    tearDown(() {
+      readableController.close();
+      writableController.close();
+    });
+
+    test('constructor creates connection with agent', () {
       final agentSideConnection = AgentSideConnection(
         (conn) => MockAgent(),
         acpStream,
@@ -324,19 +335,9 @@ void main() {
 
       // Verify the connection was created
       expect(agentSideConnection, isNotNull);
-
-      readableController.close();
-      writableController.close();
     });
 
     test('implements Client interface', () {
-      final readableController = StreamController<Map<String, dynamic>>();
-      final writableController = StreamController<Map<String, dynamic>>();
-      final acpStream = AcpStream(
-        readable: readableController.stream,
-        writable: writableController.sink,
-      );
-
       final agentSideConnection = AgentSideConnection(
         (conn) => MockAgent(),
         acpStream,
@@ -344,19 +345,9 @@ void main() {
 
       // Verify it implements Client interface
       expect(agentSideConnection, isA<Client>());
-
-      readableController.close();
-      writableController.close();
     });
 
     test('dispatches session/set_config_option requests to Agent', () async {
-      final readableController = StreamController<Map<String, dynamic>>();
-      final writableController = StreamController<Map<String, dynamic>>();
-      final acpStream = AcpStream(
-        readable: readableController.stream,
-        writable: writableController.sink,
-      );
-
       final agent = ConfigurableMockAgent();
       final _ = AgentSideConnection((conn) => agent, acpStream);
 
@@ -372,21 +363,11 @@ void main() {
       expect(agent.lastSetConfigRequest, isNotNull);
       expect(agent.lastSetConfigRequest?.configId, equals('mode'));
       expect(agent.lastSetConfigRequest?.value, equals('code'));
-
-      await readableController.close();
-      await writableController.close();
     });
 
     test(
       'returns method_not_found when session/set_config_option is unimplemented',
       () async {
-        final readableController = StreamController<Map<String, dynamic>>();
-        final writableController = StreamController<Map<String, dynamic>>();
-        final acpStream = AcpStream(
-          readable: readableController.stream,
-          writable: writableController.sink,
-        );
-
         final _ = AgentSideConnection((conn) => MockAgent(), acpStream);
 
         readableController.add({
@@ -403,22 +384,140 @@ void main() {
           response['error']['data']['method'],
           equals('session/set_config_option'),
         );
+      },
+    );
 
-        await readableController.close();
-        await writableController.close();
+    test('dispatches session/list requests to Agent', () async {
+      final agent = ConfigurableMockAgent();
+      final _ = AgentSideConnection((conn) => agent, acpStream);
+
+      readableController.add({
+        'jsonrpc': '2.0',
+        'id': 101,
+        'method': 'session/list',
+        'params': {'cwd': '/workspace'},
+      });
+
+      final response = await writableController.stream.first;
+      expect(response['id'], equals(101));
+      expect(agent.lastListSessionsRequest, isNotNull);
+      expect(agent.lastListSessionsRequest?.cwd, equals('/workspace'));
+    });
+
+    test(
+      'returns method_not_found when session/list is unimplemented',
+      () async {
+        final _ = AgentSideConnection((conn) => MockAgent(), acpStream);
+
+        readableController.add({
+          'jsonrpc': '2.0',
+          'id': 102,
+          'method': 'session/list',
+          'params': {'cwd': '/workspace'},
+        });
+
+        final response = await writableController.stream.first;
+        expect(response['id'], equals(102));
+        expect(response['error']['code'], equals(-32601));
+        expect(response['error']['data']['method'], equals('session/list'));
+      },
+    );
+
+    test('dispatches session/fork requests to Agent', () async {
+      final agent = ConfigurableMockAgent();
+      final _ = AgentSideConnection((conn) => agent, acpStream);
+
+      readableController.add({
+        'jsonrpc': '2.0',
+        'id': 103,
+        'method': 'session/fork',
+        'params': {'sessionId': 's1', 'cwd': '/workspace'},
+      });
+
+      final response = await writableController.stream.first;
+      expect(response['id'], equals(103));
+      expect(agent.lastForkSessionRequest, isNotNull);
+      expect(agent.lastForkSessionRequest?.sessionId, equals('s1'));
+      expect(agent.lastForkSessionRequest?.cwd, equals('/workspace'));
+    });
+
+    test(
+      'returns method_not_found when session/fork is unimplemented',
+      () async {
+        final _ = AgentSideConnection((conn) => MockAgent(), acpStream);
+
+        readableController.add({
+          'jsonrpc': '2.0',
+          'id': 104,
+          'method': 'session/fork',
+          'params': {'sessionId': 's1', 'cwd': '/workspace'},
+        });
+
+        final response = await writableController.stream.first;
+        expect(response['id'], equals(104));
+        expect(response['error']['code'], equals(-32601));
+        expect(response['error']['data']['method'], equals('session/fork'));
+      },
+    );
+
+    test('dispatches session/resume requests to Agent', () async {
+      final agent = ConfigurableMockAgent();
+      final _ = AgentSideConnection((conn) => agent, acpStream);
+
+      readableController.add({
+        'jsonrpc': '2.0',
+        'id': 105,
+        'method': 'session/resume',
+        'params': {'sessionId': 's1', 'cwd': '/workspace'},
+      });
+
+      final response = await writableController.stream.first;
+      expect(response['id'], equals(105));
+      expect(agent.lastResumeSessionRequest, isNotNull);
+      expect(agent.lastResumeSessionRequest?.sessionId, equals('s1'));
+      expect(agent.lastResumeSessionRequest?.cwd, equals('/workspace'));
+    });
+
+    test(
+      'returns method_not_found when session/resume is unimplemented',
+      () async {
+        final _ = AgentSideConnection((conn) => MockAgent(), acpStream);
+
+        readableController.add({
+          'jsonrpc': '2.0',
+          'id': 106,
+          'method': 'session/resume',
+          'params': {'sessionId': 's1', 'cwd': '/workspace'},
+        });
+
+        final response = await writableController.stream.first;
+        expect(response['id'], equals(106));
+        expect(response['error']['code'], equals(-32601));
+        expect(response['error']['data']['method'], equals('session/resume'));
       },
     );
   });
 
   group('ClientSideConnection', () {
-    test('constructor creates connection with client', () {
-      final readableController = StreamController<Map<String, dynamic>>();
-      final writableController = StreamController<Map<String, dynamic>>();
-      final acpStream = AcpStream(
+    late StreamController<Map<String, dynamic>> readableController;
+    late StreamController<Map<String, dynamic>> writableController;
+    late AcpStream acpStream;
+
+    setUp(() {
+      readableController = StreamController<Map<String, dynamic>>();
+      writableController = StreamController<Map<String, dynamic>>();
+      acpStream = AcpStream(
         readable: readableController.stream,
         writable: writableController.sink,
       );
+    });
 
+    tearDown(() {
+      readableController.close();
+      writableController.close();
+    });
+
+    test('constructor creates connection with client', () {
       final clientSideConnection = ClientSideConnection(
         (conn) => MockClient(),
         acpStream,
@@ -426,19 +525,9 @@ void main() {
 
       // Verify the connection was created
       expect(clientSideConnection, isNotNull);
-
-      readableController.close();
-      writableController.close();
     });
 
     test('implements Agent interface', () {
-      final readableController = StreamController<Map<String, dynamic>>();
-      final writableController = StreamController<Map<String, dynamic>>();
-      final acpStream = AcpStream(
-        readable: readableController.stream,
-        writable: writableController.sink,
-      );
-
       final clientSideConnection = ClientSideConnection(
         (conn) => MockClient(),
         acpStream,
@@ -446,21 +535,11 @@ void main() {
 
       // Verify it implements Agent interface
       expect(clientSideConnection, isA<Agent>());
-
-      readableController.close();
-      writableController.close();
     });
 
     test(
       'setSessionConfigOption sends typed request and parses response',
       () async {
-        final readableController = StreamController<Map<String, dynamic>>();
-        final writableController = StreamController<Map<String, dynamic>>();
-        final acpStream = AcpStream(
-          readable: readableController.stream,
-          writable: writableController.sink,
-        );
-
         final connection = ClientSideConnection(
           (conn) => MockClient(),
           acpStream,
@@ -500,9 +579,93 @@ void main() {
         final response = await future;
         expect(response.configOptions.first.id, equals('mode'));
         expect(response.configOptions.first.currentValue, equals('code'));
+      },
+    );
 
-        await readableController.close();
-        await writableController.close();
+    test(
+      'unstableListSessions sends typed request and parses response',
+      () async {
+        final connection = ClientSideConnection(
+          (conn) => MockClient(),
+          acpStream,
+        );
+        final future = connection.unstableListSessions(
+          ListSessionsRequest(cwd: '/workspace'),
+        );
+
+        await Future.delayed(Duration.zero);
+        final sentMessage = await writableController.stream.first;
+        expect(sentMessage['method'], equals('session/list'));
+        expect(sentMessage['params']['cwd'], equals('/workspace'));
+
+        readableController.add({
+          'jsonrpc': '2.0',
+          'id': sentMessage['id'],
+          'result': {
+            'sessions': [
+              {'sessionId': 's1', 'cwd': '/workspace', 'title': 'Session 1'},
+            ],
+            'nextCursor': 'next',
+          },
+        });
+
+        final response = await future;
+        expect(response.sessions.first.sessionId, equals('s1'));
+        expect(response.nextCursor, equals('next'));
+      },
+    );
+
+    test(
+      'unstableForkSession sends typed request and parses response',
+      () async {
+        final connection = ClientSideConnection(
+          (conn) => MockClient(),
+          acpStream,
+        );
+        final future = connection.unstableForkSession(
+          ForkSessionRequest(sessionId: 's1', cwd: '/workspace'),
+        );
+
+        await Future.delayed(Duration.zero);
+        final sentMessage = await writableController.stream.first;
+        expect(sentMessage['method'], equals('session/fork'));
+        expect(sentMessage['params']['sessionId'], equals('s1'));
+
+        readableController.add({
+          'jsonrpc': '2.0',
+          'id': sentMessage['id'],
+          'result': {'sessionId': 's2'},
+        });
+
+        final response = await future;
+        expect(response.sessionId, equals('s2'));
+      },
+    );
+
+    test(
+      'unstableResumeSession sends typed request and parses response',
+      () async {
+        final connection = ClientSideConnection(
+          (conn) => MockClient(),
+          acpStream,
+        );
+        final future = connection.unstableResumeSession(
+          ResumeSessionRequest(sessionId: 's1', cwd: '/workspace'),
+        );
+
+        await Future.delayed(Duration.zero);
+        final sentMessage = await writableController.stream.first;
+        expect(sentMessage['method'], equals('session/resume'));
+        expect(sentMessage['params']['sessionId'], equals('s1'));
+
+        readableController.add({
+          'jsonrpc': '2.0',
+          'id': sentMessage['id'],
+          'result': {'modes': null, 'models': null},
+        });
+
+        final response = await future;
+        expect(response, isA<ResumeSessionResponse>());
       },
     );
   });
@@ -621,6 +784,25 @@ class MockAgent implements Agent {
   }
 
   @override
+  Future<ListSessionsResponse>? unstableListSessions(
+    ListSessionsRequest params,
+  ) {
+    return null;
+  }
+
+  @override
+  Future<ForkSessionResponse>? unstableForkSession(ForkSessionRequest params) {
+    return null;
+  }
+
+  @override
+  Future<ResumeSessionResponse>? unstableResumeSession(
+    ResumeSessionRequest params,
+  ) {
+    return null;
+  }
+
+  @override
   Future<SetSessionModeResponse?>? setSessionMode(
     SetSessionModeRequest params,
   ) async {
@@ -677,6 +859,41 @@ class MockAgent implements Agent {
 
 class ConfigurableMockAgent extends MockAgent {
   SetSessionConfigOptionRequest? lastSetConfigRequest;
+  ListSessionsRequest? lastListSessionsRequest;
+  ForkSessionRequest? lastForkSessionRequest;
+  ResumeSessionRequest? lastResumeSessionRequest;
+
+  @override
+  Future<ListSessionsResponse>? unstableListSessions(
+    ListSessionsRequest params,
+  ) async {
+    lastListSessionsRequest = params;
+    return ListSessionsResponse(
+      sessions: [
+        SessionInfo(
+          sessionId: 'session-1',
+          cwd: params.cwd ?? '/workspace',
+          title: 'Session 1',
+        ),
+      ],
+    );
+  }
+
+  @override
+  Future<ForkSessionResponse>? unstableForkSession(
+    ForkSessionRequest params,
+  ) async {
+    lastForkSessionRequest = params;
+    return ForkSessionResponse(sessionId: 'forked-session');
+  }
+
+  @override
+  Future<ResumeSessionResponse>? unstableResumeSession(
+    ResumeSessionRequest params,
+  ) async {
+    lastResumeSessionRequest = params;
+    return ResumeSessionResponse();
+  }
 
   @override
   Future<SetSessionConfigOptionResponse>? setSessionConfigOption(
