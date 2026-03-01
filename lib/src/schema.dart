@@ -338,8 +338,7 @@ class LoadSessionRequest {
   Map<String, dynamic> toJson() => _$LoadSessionRequestToJson(this);
 }
 
-@JsonSerializable()
-class ForkSessionRequest {
+abstract class SessionCloneRequestBase {
   @JsonKey(name: '_meta', includeIfNull: false)
   final Map<String, dynamic>? meta;
   final String cwd;
@@ -347,11 +346,21 @@ class ForkSessionRequest {
   final List<McpServerBase>? mcpServers;
   final SessionId sessionId;
 
-  ForkSessionRequest({
+  const SessionCloneRequestBase({
     this.meta,
     required this.cwd,
     this.mcpServers,
     required this.sessionId,
+  });
+}
+
+@JsonSerializable()
+class ForkSessionRequest extends SessionCloneRequestBase {
+  ForkSessionRequest({
+    super.meta,
+    required super.cwd,
+    super.mcpServers,
+    required super.sessionId,
   });
 
   factory ForkSessionRequest.fromJson(Map<String, dynamic> json) =>
@@ -376,19 +385,12 @@ class ListSessionsRequest {
 }
 
 @JsonSerializable()
-class ResumeSessionRequest {
-  @JsonKey(name: '_meta', includeIfNull: false)
-  final Map<String, dynamic>? meta;
-  final String cwd;
-  @McpServerConverter()
-  final List<McpServerBase>? mcpServers;
-  final SessionId sessionId;
-
+class ResumeSessionRequest extends SessionCloneRequestBase {
   ResumeSessionRequest({
-    this.meta,
-    required this.cwd,
-    this.mcpServers,
-    required this.sessionId,
+    super.meta,
+    required super.cwd,
+    super.mcpServers,
+    required super.sessionId,
   });
 
   factory ResumeSessionRequest.fromJson(Map<String, dynamic> json) =>
@@ -1390,6 +1392,22 @@ class LoadSessionResponse {
   Map<String, dynamic> toJson() => _$LoadSessionResponseToJson(this);
 }
 
+abstract class SessionStateResponseBase {
+  @JsonKey(name: '_meta', includeIfNull: false)
+  final Map<String, dynamic>? meta;
+  @JsonKey(includeIfNull: false)
+  final List<SessionConfigOption>? configOptions;
+  final SessionModeState? modes;
+  final SessionModelState? models;
+
+  const SessionStateResponseBase({
+    this.meta,
+    this.configOptions,
+    this.modes,
+    this.models,
+  });
+}
+
 @JsonSerializable()
 class ListSessionsResponse {
   @JsonKey(name: '_meta', includeIfNull: false)
@@ -1406,20 +1424,14 @@ class ListSessionsResponse {
 }
 
 @JsonSerializable()
-class ForkSessionResponse {
-  @JsonKey(name: '_meta', includeIfNull: false)
-  final Map<String, dynamic>? meta;
-  @JsonKey(includeIfNull: false)
-  final List<SessionConfigOption>? configOptions;
-  final SessionModeState? modes;
-  final SessionModelState? models;
+class ForkSessionResponse extends SessionStateResponseBase {
   final SessionId sessionId;
 
   ForkSessionResponse({
-    this.meta,
-    this.configOptions,
-    this.modes,
-    this.models,
+    super.meta,
+    super.configOptions,
+    super.modes,
+    super.models,
     required this.sessionId,
   });
 
@@ -1430,19 +1442,12 @@ class ForkSessionResponse {
 }
 
 @JsonSerializable()
-class ResumeSessionResponse {
-  @JsonKey(name: '_meta', includeIfNull: false)
-  final Map<String, dynamic>? meta;
-  @JsonKey(includeIfNull: false)
-  final List<SessionConfigOption>? configOptions;
-  final SessionModeState? modes;
-  final SessionModelState? models;
-
+class ResumeSessionResponse extends SessionStateResponseBase {
   ResumeSessionResponse({
-    this.meta,
-    this.configOptions,
-    this.modes,
-    this.models,
+    super.meta,
+    super.configOptions,
+    super.modes,
+    super.models,
   });
 
   factory ResumeSessionResponse.fromJson(Map<String, dynamic> json) =>
