@@ -35,6 +35,11 @@ typedef RequestHandler =
 typedef NotificationHandler =
     Future<void> Function(String method, dynamic params);
 
+/// Optional interface for participants that handle `$/cancel_request`.
+abstract class ProtocolCancellationHandler {
+  Future<void> cancelRequest(CancelRequestNotification params);
+}
+
 /// Pending response promise container
 class _PendingResponse {
   final void Function(dynamic) resolve;
@@ -45,6 +50,8 @@ class _PendingResponse {
 
 /// Request error for ACP/JSON-RPC communication
 class RequestError implements Exception {
+  static const int requestCancelledCode = -32800;
+
   final int code;
   final String message;
   final dynamic data;
@@ -90,6 +97,11 @@ class RequestError implements Exception {
     );
   }
 
+  /// The request was cancelled.
+  static RequestError requestCancelled([dynamic data]) {
+    return RequestError(requestCancelledCode, 'Cancelled', data);
+  }
+
   /// Converts this error to a JSON-RPC Result type (error variant)
   Map<String, dynamic> toResult() {
     return {'error': toErrorResponse().toJson()};
@@ -104,6 +116,7 @@ class RequestError implements Exception {
 /// Base connection class for managing JSON-RPC communication over ACP streams
 class Connection {
   final Map<dynamic, _PendingResponse> _pendingResponses = {};
+  final Set<dynamic> _locallyCancelledRequests = {};
   int _nextRequestId = 0;
   final RequestHandler _requestHandler;
   final NotificationHandler _notificationHandler;
@@ -138,6 +151,33 @@ class Connection {
       'method': method,
       if (params != null) 'params': params,
     });
+  }
+
+  /// Sends the protocol-level cancellation notification `$/cancel_request`.
+  Future<void> sendCancelRequestNotification(CancelRequestNotification params) {
+    return sendNotification(protocolMethods['cancelRequest']!, params.toJson());
+  }
+
+  /// Cancels a pending outbound request and notifies the peer.
+  ///
+  /// Returns `true` if the request ID was still pending locally.
+  Future<bool> cancelPendingRequest(
+    RequestId requestId, {
+    Map<String, dynamic>? meta,
+  }) async {
+    final pending = _pendingResponses.remove(requestId);
+    if (pending != null) {
+      pending.reject(
+        RequestError.requestCancelled({
+          'requestId': requestId,
+        }).toErrorResponse().toJson(),
+      );
+    }
+    _locallyCancelledRequests.add(requestId);
+    await sendCancelRequestNotification(
+      CancelRequestNotification(meta: meta, requestId: requestId),
+    );
+    return pending != null;
   }
 
   /// Starts receiving messages from the stream
@@ -218,6 +258,9 @@ class Connection {
   /// Handles incoming response
   void _handleResponse(Map<String, dynamic> message) {
     final id = message['id'];
+    if (_locallyCancelledRequests.remove(id)) {
+      return;
+    }
     final pending = _pendingResponses.remove(id);
 
     if (pending != null) {
@@ -477,12 +520,27 @@ class AgentSideConnection implements Client {
             params as Map<String, dynamic>,
           );
           return agent.cancel(validatedParams);
+        case r'$/cancel_request':
+          final validatedParams = CancelRequestNotification.fromJson(
+            params as Map<String, dynamic>,
+          );
+          if (agent is ProtocolCancellationHandler) {
+            return (agent as ProtocolCancellationHandler).cancelRequest(
+              validatedParams,
+            );
+          }
+          return;
         default:
           if (method.startsWith('_')) {
             await agent.extNotification(
               method.substring(1),
               params as Map<String, dynamic>,
             );
+            return;
+          }
+          if (method.startsWith(r'$/')) {
+            // Protocol-level notifications may be ignored by implementations.
+            return;
           }
           throw RequestError.methodNotFound(method);
       }
@@ -601,6 +659,19 @@ class AgentSideConnection implements Client {
   ) async {
     return _connection.sendNotification('_$method', params);
   }
+
+  /// Sends the protocol-level `$/cancel_request` notification.
+  Future<void> sendCancelRequest(CancelRequestNotification params) {
+    return _connection.sendCancelRequestNotification(params);
+  }
+
+  /// Cancels a pending outbound request and sends `$/cancel_request`.
+  Future<bool> cancelPendingRequest(
+    RequestId requestId, {
+    Map<String, dynamic>? meta,
+  }) {
+    return _connection.cancelPendingRequest(requestId, meta: meta);
+  }
 }
 
 /// A client-side connection to an agent.
@@ -704,12 +775,27 @@ class ClientSideConnection implements Agent {
             params as Map<String, dynamic>,
           );
           return client.sessionUpdate(validatedParams);
+        case r'$/cancel_request':
+          final validatedParams = CancelRequestNotification.fromJson(
+            params as Map<String, dynamic>,
+          );
+          if (client is ProtocolCancellationHandler) {
+            return (client as ProtocolCancellationHandler).cancelRequest(
+              validatedParams,
+            );
+          }
+          return;
         default:
           if (method.startsWith('_')) {
             await client.extNotification(
               method.substring(1),
               params as Map<String, dynamic>,
             );
+            return;
+          }
+          if (method.startsWith(r'$/')) {
+            // Protocol-level notifications may be ignored by implementations.
+            return;
           }
           throw RequestError.methodNotFound(method);
       }
@@ -863,6 +949,19 @@ class ClientSideConnection implements Agent {
     Map<String, dynamic> params,
   ) async {
     return _connection.sendNotification('_$method', params);
+  }
+
+  /// Sends the protocol-level `$/cancel_request` notification.
+  Future<void> sendCancelRequest(CancelRequestNotification params) {
+    return _connection.sendCancelRequestNotification(params);
+  }
+
+  /// Cancels a pending outbound request and sends `$/cancel_request`.
+  Future<bool> cancelPendingRequest(
+    RequestId requestId, {
+    Map<String, dynamic>? meta,
+  }) {
+    return _connection.cancelPendingRequest(requestId, meta: meta);
   }
 }
 

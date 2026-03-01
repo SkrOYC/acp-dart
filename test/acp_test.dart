@@ -71,6 +71,14 @@ void main() {
       expect(error.data, isNull);
     });
 
+    test('requestCancelled creates correct error', () {
+      final error = RequestError.requestCancelled({'requestId': 9});
+
+      expect(error.code, -32800);
+      expect(error.message, 'Cancelled');
+      expect(error.data, {'requestId': 9});
+    });
+
     test('toErrorResponse converts correctly', () {
       final error = RequestError.methodNotFound('test.method');
       final response = error.toErrorResponse();
@@ -193,6 +201,98 @@ void main() {
       await readableController.close();
       await writableController.close();
     });
+
+    test(
+      'sendCancelRequestNotification sends protocol cancellation message',
+      () async {
+        final readableController = StreamController<Map<String, dynamic>>();
+        final writableController = StreamController<Map<String, dynamic>>();
+        final acpStream = AcpStream(
+          readable: readableController.stream,
+          writable: writableController.sink,
+        );
+
+        final connection = Connection(
+          (method, params) async => 'response to $method',
+          (method, params) async {},
+          acpStream,
+        );
+
+        await connection.sendCancelRequestNotification(
+          CancelRequestNotification(requestId: 5, meta: {'reason': 'timeout'}),
+        );
+        await Future.delayed(Duration.zero);
+
+        final sentMessage = await writableController.stream.first;
+        expect(sentMessage['method'], equals(r'$/cancel_request'));
+        expect(sentMessage['params'], {
+          'requestId': 5,
+          '_meta': {'reason': 'timeout'},
+        });
+
+        await readableController.close();
+        await writableController.close();
+      },
+    );
+
+    test(
+      'cancelPendingRequest rejects local future and ignores late response',
+      () async {
+        final readableController = StreamController<Map<String, dynamic>>();
+        final writableController = StreamController<Map<String, dynamic>>();
+        final acpStream = AcpStream(
+          readable: readableController.stream,
+          writable: writableController.sink,
+        );
+
+        final connection = Connection(
+          (method, params) async => 'response to $method',
+          (method, params) async {},
+          acpStream,
+        );
+
+        final sentMessages = <Map<String, dynamic>>[];
+        final subscription = writableController.stream.listen(sentMessages.add);
+
+        final responseFuture = connection.sendRequest<String>('long.running');
+        final responseErrorExpectation = expectLater(
+          responseFuture,
+          throwsA(
+            predicate(
+              (error) =>
+                  error is Map<String, dynamic> &&
+                  error['code'] == -32800 &&
+                  error['message'] == 'Cancelled',
+            ),
+          ),
+        );
+        await Future.delayed(Duration.zero);
+
+        final requestMessage = sentMessages.first;
+        final requestId = requestMessage['id'];
+        expect(requestMessage['method'], equals('long.running'));
+
+        final wasPending = await connection.cancelPendingRequest(requestId);
+        await Future.delayed(Duration.zero);
+
+        expect(wasPending, isTrue);
+        expect(sentMessages[1]['method'], equals(r'$/cancel_request'));
+        expect(sentMessages[1]['params'], {'requestId': requestId});
+
+        await responseErrorExpectation;
+
+        readableController.add({
+          'jsonrpc': '2.0',
+          'id': requestId,
+          'result': 'late response',
+        });
+        await Future.delayed(Duration(milliseconds: 20));
+
+        await subscription.cancel();
+        await readableController.close();
+        await writableController.close();
+      },
+    );
 
     test('handles incoming request correctly', () async {
       final readableController = StreamController<Map<String, dynamic>>();
@@ -496,6 +596,42 @@ void main() {
         expect(response['error']['data']['method'], equals('session/resume'));
       },
     );
+
+    test('dispatches protocol cancel notification to Agent', () async {
+      final agent = ConfigurableMockAgent();
+      final _ = AgentSideConnection((conn) => agent, acpStream);
+      final sentMessages = <Map<String, dynamic>>[];
+      final subscription = writableController.stream.listen(sentMessages.add);
+
+      readableController.add({
+        'jsonrpc': '2.0',
+        'method': r'$/cancel_request',
+        'params': {'requestId': 77},
+      });
+      await Future.delayed(Duration(milliseconds: 20));
+
+      expect(agent.lastCancelRequestNotification?.requestId, equals(77));
+      expect(sentMessages, isEmpty);
+      await subscription.cancel();
+    });
+
+    test(
+      'sendCancelRequest sends protocol cancellation notification',
+      () async {
+        final connection = AgentSideConnection(
+          (conn) => MockAgent(),
+          acpStream,
+        );
+        await connection.sendCancelRequest(
+          CancelRequestNotification(requestId: 'req-2'),
+        );
+        await Future.delayed(Duration.zero);
+
+        final sentMessage = await writableController.stream.first;
+        expect(sentMessage['method'], equals(r'$/cancel_request'));
+        expect(sentMessage['params'], {'requestId': 'req-2'});
+      },
+    );
   });
 
   group('ClientSideConnection', () {
@@ -668,6 +804,45 @@ void main() {
         expect(response, isA<ResumeSessionResponse>());
       },
     );
+
+    test(
+      'sendCancelRequest sends protocol cancellation notification',
+      () async {
+        final connection = ClientSideConnection(
+          (conn) => MockClient(),
+          acpStream,
+        );
+        await connection.sendCancelRequest(
+          CancelRequestNotification(requestId: 3, meta: {'reason': 'user'}),
+        );
+        await Future.delayed(Duration.zero);
+
+        final sentMessage = await writableController.stream.first;
+        expect(sentMessage['method'], equals(r'$/cancel_request'));
+        expect(sentMessage['params'], {
+          'requestId': 3,
+          '_meta': {'reason': 'user'},
+        });
+      },
+    );
+
+    test('dispatches protocol cancel notification to Client', () async {
+      final client = ConfigurableMockClient();
+      final _ = ClientSideConnection((conn) => client, acpStream);
+      final sentMessages = <Map<String, dynamic>>[];
+      final subscription = writableController.stream.listen(sentMessages.add);
+
+      readableController.add({
+        'jsonrpc': '2.0',
+        'method': r'$/cancel_request',
+        'params': {'requestId': 'req-5'},
+      });
+      await Future.delayed(Duration(milliseconds: 20));
+
+      expect(client.lastCancelRequestNotification?.requestId, equals('req-5'));
+      expect(sentMessages, isEmpty);
+      await subscription.cancel();
+    });
   });
 
   group('TerminalHandle', () {
@@ -857,11 +1032,13 @@ class MockAgent implements Agent {
   }
 }
 
-class ConfigurableMockAgent extends MockAgent {
+class ConfigurableMockAgent extends MockAgent
+    implements ProtocolCancellationHandler {
   SetSessionConfigOptionRequest? lastSetConfigRequest;
   ListSessionsRequest? lastListSessionsRequest;
   ForkSessionRequest? lastForkSessionRequest;
   ResumeSessionRequest? lastResumeSessionRequest;
+  CancelRequestNotification? lastCancelRequestNotification;
 
   @override
   Future<ListSessionsResponse>? unstableListSessions(
@@ -916,6 +1093,11 @@ class ConfigurableMockAgent extends MockAgent {
         ),
       ],
     );
+  }
+
+  @override
+  Future<void> cancelRequest(CancelRequestNotification params) async {
+    lastCancelRequestNotification = params;
   }
 }
 
@@ -997,6 +1179,16 @@ class MockClient implements Client {
   }
 }
 
+class ConfigurableMockClient extends MockClient
+    implements ProtocolCancellationHandler {
+  CancelRequestNotification? lastCancelRequestNotification;
+
+  @override
+  Future<void> cancelRequest(CancelRequestNotification params) async {
+    lastCancelRequestNotification = params;
+  }
+}
+
 /// Mock connection for testing TerminalHandle
 class MockConnection implements Connection {
   dynamic mockResponse;
@@ -1014,5 +1206,22 @@ class MockConnection implements Connection {
   Future<void> sendNotification(String method, [dynamic params]) async {
     lastMethod = method;
     lastParams = params;
+  }
+
+  @override
+  Future<void> sendCancelRequestNotification(CancelRequestNotification params) {
+    lastMethod = r'$/cancel_request';
+    lastParams = params.toJson();
+    return Future.value();
+  }
+
+  @override
+  Future<bool> cancelPendingRequest(
+    RequestId requestId, {
+    Map<String, dynamic>? meta,
+  }) {
+    lastMethod = 'cancelPendingRequest';
+    lastParams = {'requestId': requestId, if (meta != null) '_meta': meta};
+    return Future.value(false);
   }
 }

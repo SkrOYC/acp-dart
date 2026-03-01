@@ -412,5 +412,33 @@ void main() {
       expect(diffDecoded.newText, equals('void main() {}'));
       expect(terminalDecoded.terminalId, equals('term-1'));
     });
+
+    test('CancelRequestNotification round-trips request IDs and metadata', () {
+      final withStringId = CancelRequestNotification(
+        requestId: 'req-1',
+        meta: {'source': 'ui'},
+      );
+      final withNumericId = CancelRequestNotification(requestId: 42);
+      final withNullId = CancelRequestNotification(requestId: null);
+
+      final decodedString = CancelRequestNotification.fromJson(
+        jsonDecode(jsonEncode(withStringId.toJson())) as Map<String, dynamic>,
+      );
+      final decodedNumber = CancelRequestNotification.fromJson(
+        jsonDecode(jsonEncode(withNumericId.toJson())) as Map<String, dynamic>,
+      );
+      final decodedNull = CancelRequestNotification.fromJson(
+        jsonDecode(jsonEncode(withNullId.toJson())) as Map<String, dynamic>,
+      );
+
+      expect(decodedString.requestId, equals('req-1'));
+      expect(decodedString.meta, equals({'source': 'ui'}));
+      expect(decodedNumber.requestId, equals(42));
+      expect(decodedNull.requestId, isNull);
+    });
+
+    test('protocol method constants include cancel request', () {
+      expect(protocolMethods['cancelRequest'], equals(r'$/cancel_request'));
+    });
   });
 }
