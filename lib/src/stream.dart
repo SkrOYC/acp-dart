@@ -21,8 +21,14 @@ class AcpStream {
 ///
 /// `input` - The readable stream to receive encoded messages from
 /// `output` - The writable stream to send encoded messages to
+/// `onParseError` - Optional callback invoked when a non-empty line cannot be
+/// parsed as a JSON object.
 /// Returns an AcpStream for bidirectional ACP communication
-AcpStream ndJsonStream(Stream<List<int>> input, StreamSink<List<int>> output) {
+AcpStream ndJsonStream(
+  Stream<List<int>> input,
+  StreamSink<List<int>> output, {
+  void Function(String line, Object error)? onParseError,
+}) {
   // Create readable stream: transform bytes to messages
   final readable = input
       .transform(utf8.decoder) // Safely decode bytes to string
@@ -43,11 +49,12 @@ AcpStream ndJsonStream(Stream<List<int>> input, StreamSink<List<int>> output) {
                 sink.add(decoded);
                 return;
               }
-              print(
-                'Failed to parse JSON message: $trimmed, error: expected JSON object',
+              onParseError?.call(
+                trimmed,
+                const FormatException('Expected JSON object'),
               );
             } catch (e) {
-              print('Failed to parse JSON message: $trimmed, error: $e');
+              onParseError?.call(trimmed, e);
             }
           },
         ),

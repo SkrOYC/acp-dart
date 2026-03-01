@@ -68,8 +68,8 @@ If you're building a [Client](https://agentclientprotocol.com/protocol/overview#
 ### Error and Stream Behavior
 
 - Incoming request parameter/validation failures are returned as JSON-RPC `Invalid params` (`-32602`).
-- Unexpected runtime failures are returned as JSON-RPC `Internal error` (`-32603`).
-- `ndJsonStream` skips malformed non-empty lines, logs the parse failure, and continues processing subsequent valid messages.
+- Unexpected runtime failures are returned as JSON-RPC `Internal error` (`-32603`) without exposing raw internal exception details.
+- `ndJsonStream` skips malformed non-empty lines and continues processing subsequent valid messages. Use the optional `onParseError` callback to handle parse diagnostics (for example, routing logs to `stderr` or a structured logger).
 
 ## Usage Examples
 

@@ -242,13 +242,13 @@ class Connection {
       return error;
     }
 
-    final errorData = _extractErrorData(error);
     if (error is TypeError ||
         error is FormatException ||
         error is ArgumentError) {
+      final errorData = _extractErrorData(error);
       return RequestError.invalidParams(errorData);
     }
-    return RequestError.internalError(errorData);
+    return RequestError.internalError();
   }
 
   dynamic _extractErrorData(Object error) {

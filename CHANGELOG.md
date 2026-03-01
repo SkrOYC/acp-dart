@@ -1,7 +1,8 @@
 ## Unreleased
 
 - **Error Mapping Parity:** Connection request error handling now maps parameter/validation exceptions to JSON-RPC `-32602` (`Invalid params`) and unexpected exceptions to `-32603` (`Internal error`), preserving structured error payloads when available.
-- **NDJSON Tolerant Parsing:** `ndJsonStream` now logs malformed non-empty JSON lines and continues streaming subsequent valid messages instead of terminating the stream.
+- **Internal Error Sanitization:** Unexpected internal exceptions no longer echo raw exception text in protocol error `data`.
+- **NDJSON Tolerant Parsing:** `ndJsonStream` now skips malformed non-empty JSON lines and continues streaming subsequent valid messages instead of terminating the stream, with an optional `onParseError` callback for consumer-controlled diagnostics.
 - **Regression Tests:** Added coverage for invalid-params mapping, internal-error fallback, and malformed-line tolerant stream behavior.
 - **Extension Semantics:** `extMethod` and `extNotification` now preserve caller-provided method names instead of auto-prefixing `_`; callers must provide the leading underscore for protocol extension methods.
 - **Extension Dispatch:** Incoming extension request/notification handlers now pass full method names through to callbacks and avoid spurious method-not-found handling after successful extension notification dispatch.

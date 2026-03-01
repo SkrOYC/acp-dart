@@ -208,5 +208,37 @@ void main() {
 
       outputController.close();
     });
+
+    test('invokes onParseError callback for malformed lines', () async {
+      final inputController = StreamController<List<int>>();
+      final outputController = StreamController<List<int>>();
+      final parseErrors = <String>[];
+
+      final acpStream = ndJsonStream(
+        inputController.stream,
+        outputController.sink,
+        onParseError: (line, error) {
+          parseErrors.add('$line|$error');
+        },
+      );
+
+      inputController.add(utf8.encode('invalid json\n'));
+      inputController.add(utf8.encode('{"ok": true}\n'));
+      inputController.close();
+
+      final received = <Map<String, dynamic>>[];
+      await acpStream.readable.forEach(received.add);
+
+      expect(parseErrors, hasLength(1));
+      expect(parseErrors.first, contains('invalid json'));
+      expect(
+        received,
+        equals([
+          {'ok': true},
+        ]),
+      );
+
+      outputController.close();
+    });
   });
 }

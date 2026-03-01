@@ -468,7 +468,7 @@ void main() {
       expect(response['id'], 4);
       expect(response['error']['code'], -32603);
       expect(response['error']['message'], 'Internal error');
-      expect(response['error']['data'], contains('unexpected failure'));
+      expect(response['error']['data'], isNull);
 
       await readableController.close();
       await writableController.close();
