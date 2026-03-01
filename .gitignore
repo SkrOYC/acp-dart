@@ -2,3 +2,15 @@
 # Created by `dart pub`
 .dart_tool/
 doc/
+
+# Devenv
+.devenv*
+devenv.local.nix
+devenv.local.yaml
+
+# direnv
+.envrc
+.direnv
+
+# pre-commit
+.pre-commit-config.yaml
