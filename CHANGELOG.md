@@ -1,3 +1,9 @@
+## Unreleased
+
+- **Extension Semantics:** `extMethod` and `extNotification` now preserve caller-provided method names instead of auto-prefixing `_`; callers must provide the leading underscore for protocol extension methods.
+- **Extension Dispatch:** Incoming extension request/notification handlers now pass full method names through to callbacks and avoid spurious method-not-found handling after successful extension notification dispatch.
+- **Tests:** Added regression coverage for extension method pass-through, handled extension notifications, and unknown non-extension method-not-found behavior.
+
 ## 0.3.0
 
 - **Protocol Parity:** Rebuilt every data model to match the official ACP `schema.json`, including sessions, permissions, plans, content payloads, terminal updates, MCP server descriptors, and `_meta` envelopes; regenerated `schema.g.dart` to keep serialization in lock-step.

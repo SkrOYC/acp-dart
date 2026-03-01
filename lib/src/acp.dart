@@ -378,8 +378,9 @@ abstract class Client {
   ///
   /// Allows the Agent to send an arbitrary request that is not part of the ACP spec.
   ///
-  /// To help avoid conflicts, it's a good practice to prefix extension
-  /// methods with a unique identifier such as domain name.
+  /// The method name is sent exactly as provided and is not rewritten.
+  /// ACP reserves extension methods under the `_` prefix, so callers should
+  /// include the leading underscore explicitly when needed.
   Future<Map<String, dynamic>>? extMethod(
     String method,
     Map<String, dynamic> params,
@@ -501,7 +502,7 @@ class AgentSideConnection implements Client {
         default:
           if (method.startsWith('_')) {
             final result = await agent.extMethod(
-              method.substring(1),
+              method,
               params as Map<String, dynamic>,
             );
             if (result == null) {
@@ -532,10 +533,7 @@ class AgentSideConnection implements Client {
           return;
         default:
           if (method.startsWith('_')) {
-            await agent.extNotification(
-              method.substring(1),
-              params as Map<String, dynamic>,
-            );
+            await agent.extNotification(method, params as Map<String, dynamic>);
             return;
           }
           if (method.startsWith(r'$/')) {
@@ -648,7 +646,7 @@ class AgentSideConnection implements Client {
     String method,
     Map<String, dynamic> params,
   ) async {
-    final result = await _connection.sendRequest('_$method', params);
+    final result = await _connection.sendRequest(method, params);
     return result as Map<String, dynamic>;
   }
 
@@ -657,7 +655,7 @@ class AgentSideConnection implements Client {
     String method,
     Map<String, dynamic> params,
   ) async {
-    return _connection.sendNotification('_$method', params);
+    return _connection.sendNotification(method, params);
   }
 
   /// Sends the protocol-level `$/cancel_request` notification.
@@ -756,7 +754,7 @@ class ClientSideConnection implements Agent {
         default:
           if (method.startsWith('_')) {
             final result = await client.extMethod(
-              method.substring(1),
+              method,
               params as Map<String, dynamic>,
             );
             if (result == null) {
@@ -788,7 +786,7 @@ class ClientSideConnection implements Agent {
         default:
           if (method.startsWith('_')) {
             await client.extNotification(
-              method.substring(1),
+              method,
               params as Map<String, dynamic>,
             );
             return;
@@ -939,7 +937,7 @@ class ClientSideConnection implements Agent {
     String method,
     Map<String, dynamic> params,
   ) async {
-    final result = await _connection.sendRequest('_$method', params);
+    final result = await _connection.sendRequest(method, params);
     return result as Map<String, dynamic>;
   }
 
@@ -948,7 +946,7 @@ class ClientSideConnection implements Agent {
     String method,
     Map<String, dynamic> params,
   ) async {
-    return _connection.sendNotification('_$method', params);
+    return _connection.sendNotification(method, params);
   }
 
   /// Sends the protocol-level `$/cancel_request` notification.
@@ -1085,8 +1083,9 @@ abstract class Agent {
   ///
   /// Allows the Client to send an arbitrary request that is not part of the ACP spec.
   ///
-  /// To help avoid conflicts, it's a good practice to prefix extension
-  /// methods with a unique identifier such as domain name.
+  /// The method name is sent exactly as provided and is not rewritten.
+  /// ACP reserves extension methods under the `_` prefix, so callers should
+  /// include the leading underscore explicitly when needed.
   Future<Map<String, dynamic>>? extMethod(
     String method,
     Map<String, dynamic> params,
