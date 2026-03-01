@@ -632,6 +632,115 @@ void main() {
         expect(sentMessage['params'], {'requestId': 'req-2'});
       },
     );
+
+    test('extMethod sends provided extension method name as-is', () async {
+      final connection = AgentSideConnection((conn) => MockAgent(), acpStream);
+      final responseFuture = connection.extMethod('_acme/ping', {'value': 1});
+
+      await Future.delayed(Duration.zero);
+      final sentMessage = await writableController.stream.first;
+      expect(sentMessage['method'], equals('_acme/ping'));
+      expect(sentMessage['params'], equals({'value': 1}));
+
+      readableController.add({
+        'jsonrpc': '2.0',
+        'id': sentMessage['id'],
+        'result': {'ok': true},
+      });
+
+      final response = await responseFuture;
+      expect(response, equals({'ok': true}));
+    });
+
+    test(
+      'extNotification sends provided extension method name as-is',
+      () async {
+        final connection = AgentSideConnection(
+          (conn) => MockAgent(),
+          acpStream,
+        );
+        await connection.extNotification('_acme/notify', {'value': 2});
+        await Future.delayed(Duration.zero);
+
+        final sentMessage = await writableController.stream.first;
+        expect(sentMessage['method'], equals('_acme/notify'));
+        expect(sentMessage['params'], equals({'value': 2}));
+      },
+    );
+
+    test(
+      'dispatches extension request with full method name to Agent',
+      () async {
+        final agent = ExtensionTrackingAgent();
+        final _ = AgentSideConnection((conn) => agent, acpStream);
+
+        readableController.add({
+          'jsonrpc': '2.0',
+          'id': 107,
+          'method': '_acme/request',
+          'params': {'value': 3},
+        });
+
+        final response = await writableController.stream.first;
+        expect(response['id'], equals(107));
+        expect(response['result'], equals({'handledMethod': '_acme/request'}));
+        expect(agent.lastExtMethodName, equals('_acme/request'));
+        expect(agent.lastExtMethodParams, equals({'value': 3}));
+      },
+    );
+
+    test(
+      'handled extension notification does not log method-not-found error',
+      () async {
+        final logs = <String>[];
+
+        await runZoned(
+          () async {
+            final agent = ExtensionTrackingAgent();
+            final _ = AgentSideConnection((conn) => agent, acpStream);
+
+            readableController.add({
+              'jsonrpc': '2.0',
+              'method': '_acme/notify',
+              'params': {'value': 4},
+            });
+
+            await Future.delayed(Duration(milliseconds: 20));
+            expect(agent.lastExtNotificationName, equals('_acme/notify'));
+            expect(agent.lastExtNotificationParams, equals({'value': 4}));
+          },
+          zoneSpecification: ZoneSpecification(
+            print: (self, parent, zone, line) {
+              logs.add(line);
+            },
+          ),
+        );
+
+        expect(
+          logs.where((line) => line.startsWith('Error handling notification')),
+          isEmpty,
+        );
+      },
+    );
+
+    test(
+      'unknown non-extension request still returns method_not_found',
+      () async {
+        final _ = AgentSideConnection((conn) => MockAgent(), acpStream);
+
+        readableController.add({
+          'jsonrpc': '2.0',
+          'id': 108,
+          'method': 'acme/request',
+          'params': {'value': 5},
+        });
+
+        final response = await writableController.stream.first;
+        expect(response['id'], equals(108));
+        expect(response['error']['code'], equals(-32601));
+        expect(response['error']['data']['method'], equals('acme/request'));
+      },
+    );
   });
 
   group('ClientSideConnection', () {
@@ -843,6 +952,118 @@ void main() {
       expect(sentMessages, isEmpty);
       await subscription.cancel();
     });
+
+    test('extMethod sends provided extension method name as-is', () async {
+      final connection = ClientSideConnection(
+        (conn) => MockClient(),
+        acpStream,
+      );
+      final responseFuture = connection.extMethod('_acme/ping', {'value': 1});
+
+      await Future.delayed(Duration.zero);
+      final sentMessage = await writableController.stream.first;
+      expect(sentMessage['method'], equals('_acme/ping'));
+      expect(sentMessage['params'], equals({'value': 1}));
+
+      readableController.add({
+        'jsonrpc': '2.0',
+        'id': sentMessage['id'],
+        'result': {'ok': true},
+      });
+
+      final response = await responseFuture;
+      expect(response, equals({'ok': true}));
+    });
+
+    test(
+      'extNotification sends provided extension method name as-is',
+      () async {
+        final connection = ClientSideConnection(
+          (conn) => MockClient(),
+          acpStream,
+        );
+        await connection.extNotification('_acme/notify', {'value': 2});
+        await Future.delayed(Duration.zero);
+
+        final sentMessage = await writableController.stream.first;
+        expect(sentMessage['method'], equals('_acme/notify'));
+        expect(sentMessage['params'], equals({'value': 2}));
+      },
+    );
+
+    test(
+      'dispatches extension request with full method name to Client',
+      () async {
+        final client = ExtensionTrackingClient();
+        final _ = ClientSideConnection((conn) => client, acpStream);
+
+        readableController.add({
+          'jsonrpc': '2.0',
+          'id': 109,
+          'method': '_acme/request',
+          'params': {'value': 3},
+        });
+
+        final response = await writableController.stream.first;
+        expect(response['id'], equals(109));
+        expect(response['result'], equals({'handledMethod': '_acme/request'}));
+        expect(client.lastExtMethodName, equals('_acme/request'));
+        expect(client.lastExtMethodParams, equals({'value': 3}));
+      },
+    );
+
+    test(
+      'handled extension notification does not log method-not-found error',
+      () async {
+        final logs = <String>[];
+
+        await runZoned(
+          () async {
+            final client = ExtensionTrackingClient();
+            final _ = ClientSideConnection((conn) => client, acpStream);
+
+            readableController.add({
+              'jsonrpc': '2.0',
+              'method': '_acme/notify',
+              'params': {'value': 4},
+            });
+
+            await Future.delayed(Duration(milliseconds: 20));
+            expect(client.lastExtNotificationName, equals('_acme/notify'));
+            expect(client.lastExtNotificationParams, equals({'value': 4}));
+          },
+          zoneSpecification: ZoneSpecification(
+            print: (self, parent, zone, line) {
+              logs.add(line);
+            },
+          ),
+        );
+
+        expect(
+          logs.where((line) => line.startsWith('Error handling notification')),
+          isEmpty,
+        );
+      },
+    );
+
+    test(
+      'unknown non-extension request still returns method_not_found',
+      () async {
+        final _ = ClientSideConnection((conn) => MockClient(), acpStream);
+
+        readableController.add({
+          'jsonrpc': '2.0',
+          'id': 110,
+          'method': 'acme/request',
+          'params': {'value': 5},
+        });
+
+        final response = await writableController.stream.first;
+        expect(response['id'], equals(110));
+        expect(response['error']['code'], equals(-32601));
+        expect(response['error']['data']['method'], equals('acme/request'));
+      },
+    );
   });
 
   group('TerminalHandle', () {
@@ -1186,6 +1407,58 @@ class ConfigurableMockClient extends MockClient
   @override
   Future<void> cancelRequest(CancelRequestNotification params) async {
     lastCancelRequestNotification = params;
+  }
+}
+
+class ExtensionTrackingAgent extends MockAgent {
+  String? lastExtMethodName;
+  Map<String, dynamic>? lastExtMethodParams;
+  String? lastExtNotificationName;
+  Map<String, dynamic>? lastExtNotificationParams;
+
+  @override
+  Future<Map<String, dynamic>>? extMethod(
+    String method,
+    Map<String, dynamic> params,
+  ) async {
+    lastExtMethodName = method;
+    lastExtMethodParams = params;
+    return {'handledMethod': method};
+  }
+
+  @override
+  Future<void>? extNotification(
+    String method,
+    Map<String, dynamic> params,
+  ) async {
+    lastExtNotificationName = method;
+    lastExtNotificationParams = params;
+  }
+}
+
+class ExtensionTrackingClient extends MockClient {
+  String? lastExtMethodName;
+  Map<String, dynamic>? lastExtMethodParams;
+  String? lastExtNotificationName;
+  Map<String, dynamic>? lastExtNotificationParams;
+
+  @override
+  Future<Map<String, dynamic>>? extMethod(
+    String method,
+    Map<String, dynamic> params,
+  ) async {
+    lastExtMethodName = method;
+    lastExtMethodParams = params;
+    return {'handledMethod': method};
+  }
+
+  @override
+  Future<void>? extNotification(
+    String method,
+    Map<String, dynamic> params,
+  ) async {
+    lastExtNotificationName = method;
+    lastExtNotificationParams = params;
   }
 }
 

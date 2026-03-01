@@ -62,7 +62,7 @@ If you're building a [Client](https://agentclientprotocol.com/protocol/overview#
 - **Complete Protocol Coverage**: All ACP request/response types implemented
 - **Error Handling**: Comprehensive error types and handling mechanisms
 - **Protocol Cancellation**: Typed `$/cancel_request` notifications with `-32800` cancelled error semantics
-- **Extensible**: Support for extension methods and notifications
+- **Extensible**: Support for extension methods and notifications (method names are passed through as provided; include leading `_` for protocol extension methods)
 
 ## Usage Examples
 
