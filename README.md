@@ -59,11 +59,37 @@ If you're building a [Client](https://agentclientprotocol.com/protocol/overview#
 - **RPC Unions**: Sealed union types for exhaustive request/response handling
 - **JSON Serialization**: Automatic serialization using `json_serializable`
 - **Stream-based Communication**: NDJSON-based communication over stdio
-- **Complete Protocol Coverage**: All ACP request/response types implemented
 - **Error Handling**: Comprehensive error types and handling mechanisms
 - **JSON-RPC Error Mapping**: Parameter-validation failures map to `-32602 Invalid params`, while unexpected failures map to `-32603 Internal error`
 - **Protocol Cancellation**: Typed `$/cancel_request` notifications with `-32800` cancelled error semantics
 - **Extensible**: Support for extension methods and notifications (method names are passed through as provided; include leading `_` for protocol extension methods)
+
+## Protocol Support Matrix
+
+The implementation tracks ACP stable and unstable surfaces explicitly.
+
+### Stable Supported
+
+- Agent methods: `initialize`, `authenticate`, `session/new`, `session/load`, `session/prompt`, `session/cancel`, `session/set_mode`, `session/set_config_option`
+- Client methods: `fs/read_text_file`, `fs/write_text_file`, `session/request_permission`, `session/update`
+- Terminal methods: `terminal/create`, `terminal/output`, `terminal/wait_for_exit`, `terminal/kill`, `terminal/release`
+- Protocol cancellation notification: `$/cancel_request`
+- Session updates: `user_message_chunk`, `agent_message_chunk`, `agent_thought_chunk`, `tool_call`, `tool_call_update`, `plan`, `available_commands_update`, `current_mode_update`, `config_option_update`
+
+### Unstable Supported
+
+- `session/list`
+- `session/fork`
+- `session/resume`
+- `session/set_model`
+- Additional update variants implemented for parity tracking: `session_info_update`, `usage_update`
+
+### Known Unsupported / Partial
+
+- Filesystem methods beyond ACP stable surface (for example delete/move/mkdir/list operations)
+- Any ACP methods or update variants not represented in `agentMethods`, `clientMethods`, and typed schema unions in this package
+
+See [`parity_verification_checklist.md`](parity_verification_checklist.md) for the release-time parity verification process.
 
 ### Error and Stream Behavior
 

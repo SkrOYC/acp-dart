@@ -423,6 +423,71 @@ void main() {
       );
     });
 
+    test('All stable session update discriminators deserialize correctly', () {
+      final cases = <({SessionUpdate update, Matcher matcher})>[
+        (
+          update: UserMessageChunkSessionUpdate(
+            content: TextContentBlock(text: 'user'),
+          ),
+          matcher: isA<UserMessageChunkSessionUpdate>(),
+        ),
+        (
+          update: AgentMessageChunkSessionUpdate(
+            content: TextContentBlock(text: 'agent'),
+          ),
+          matcher: isA<AgentMessageChunkSessionUpdate>(),
+        ),
+        (
+          update: AgentThoughtChunkSessionUpdate(
+            content: TextContentBlock(text: 'thinking'),
+          ),
+          matcher: isA<AgentThoughtChunkSessionUpdate>(),
+        ),
+        (
+          update: ToolCallSessionUpdate(toolCallId: 'tool-1', title: 'Read'),
+          matcher: isA<ToolCallSessionUpdate>(),
+        ),
+        (
+          update: ToolCallUpdateSessionUpdate(toolCallId: 'tool-1'),
+          matcher: isA<ToolCallUpdateSessionUpdate>(),
+        ),
+        (
+          update: PlanSessionUpdate(
+            entries: [
+              PlanEntry(
+                content: 'Do work',
+                priority: PlanEntryPriority.medium,
+                status: PlanEntryStatus.pending,
+              ),
+            ],
+          ),
+          matcher: isA<PlanSessionUpdate>(),
+        ),
+        (
+          update: AvailableCommandsUpdateSessionUpdate(availableCommands: []),
+          matcher: isA<AvailableCommandsUpdateSessionUpdate>(),
+        ),
+        (
+          update: CurrentModeUpdateSessionUpdate(currentModeId: 'code'),
+          matcher: isA<CurrentModeUpdateSessionUpdate>(),
+        ),
+      ];
+
+      for (final testCase in cases) {
+        final notification = SessionNotification(
+          sessionId: 'session-123',
+          update: testCase.update,
+        );
+
+        final decoded = SessionNotification.fromJson(
+          jsonDecode(jsonEncode(notification.toJson())) as Map<String, dynamic>,
+        );
+
+        expect(decoded.sessionId, equals('session-123'));
+        expect(decoded.update, testCase.matcher);
+      }
+    });
+
     test('Permission flow round-trips', () {
       final request = RequestPermissionRequest(
         sessionId: 'session-123',

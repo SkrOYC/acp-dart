@@ -14,6 +14,15 @@ void main() {
       expect(typed.params.content, equals('hello'));
       expect(typed.method, equals('fs/write_text_file'));
     });
+
+    test('unknown request falls back to extension method request', () {
+      final request = AgentRequestUnion.fromMethod('custom/method', {'k': 'v'});
+
+      expect(request, isA<AgentExtensionMethodRequest>());
+      final typed = request as AgentExtensionMethodRequest;
+      expect(typed.method, equals('custom/method'));
+      expect(typed.toJson(), equals({'k': 'v'}));
+    });
   });
 
   group('ClientRequestUnion', () {
@@ -84,6 +93,17 @@ void main() {
       expect(typed.params.sessionId, equals('abc'));
       expect(typed.params.cwd, equals('/workspace'));
       expect(typed.method, equals('session/resume'));
+    });
+
+    test('unknown request falls back to extension method request', () {
+      final request = ClientRequestUnion.fromMethod('custom/method', {
+        'k': 'v',
+      });
+
+      expect(request, isA<ClientExtensionMethodRequest>());
+      final typed = request as ClientExtensionMethodRequest;
+      expect(typed.method, equals('custom/method'));
+      expect(typed.toJson(), equals({'k': 'v'}));
     });
   });
 
@@ -165,9 +185,52 @@ void main() {
       final typed = response as AgentResumeSessionResponse;
       expect(typed.response, isA<ResumeSessionResponse>());
     });
+
+    test('unknown response falls back to extension response', () {
+      final response = AgentResponseUnion.fromJson('custom/method', {
+        'ok': true,
+      });
+
+      expect(response, isA<AgentExtensionMethodResponse>());
+      final typed = response as AgentExtensionMethodResponse;
+      expect(typed.toJson(), equals({'ok': true}));
+    });
   });
 
   group('ClientResponseUnion', () {
+    test('parses write_text_file response with null payload', () {
+      final response = ClientResponseUnion.fromMethod(
+        clientMethods['fsWriteTextFile']!,
+        null,
+      );
+
+      expect(response, isA<ClientWriteTextFileResponse>());
+      final typed = response as ClientWriteTextFileResponse;
+      expect(typed.toJson(), equals({}));
+    });
+
+    test('parses terminal/release response with null payload', () {
+      final response = ClientResponseUnion.fromMethod(
+        clientMethods['terminalRelease']!,
+        null,
+      );
+
+      expect(response, isA<ClientReleaseTerminalResponse>());
+      final typed = response as ClientReleaseTerminalResponse;
+      expect(typed.toJson(), equals({}));
+    });
+
+    test('parses terminal/kill response with null payload', () {
+      final response = ClientResponseUnion.fromMethod(
+        clientMethods['terminalKill']!,
+        null,
+      );
+
+      expect(response, isA<ClientKillTerminalResponse>());
+      final typed = response as ClientKillTerminalResponse;
+      expect(typed.toJson(), equals({}));
+    });
+
     test('parses terminal/output response', () {
       final response = ClientResponseUnion.fromMethod(
         clientMethods['terminalOutput']!,
@@ -177,6 +240,16 @@ void main() {
       expect(response, isA<ClientTerminalOutputResponse>());
       final typed = response as ClientTerminalOutputResponse;
       expect(typed.response.output, equals('lines'));
+    });
+
+    test('unknown response falls back to extension response', () {
+      final response = ClientResponseUnion.fromMethod('custom/method', {
+        'ok': true,
+      });
+
+      expect(response, isA<ClientExtensionMethodResponse>());
+      final typed = response as ClientExtensionMethodResponse;
+      expect(typed.toJson(), equals({'ok': true}));
     });
   });
 
@@ -208,6 +281,41 @@ void main() {
       expect(typed.notification.meta, equals({'reason': 'timeout'}));
       expect(typed.method, equals(r'$/cancel_request'));
       expect(typed.toJson(), containsPair('requestId', 7));
+    });
+
+    test('unknown notification falls back to extension notification', () {
+      final notification = ClientNotificationUnion.fromMethod('custom/notify', {
+        'k': 'v',
+      });
+
+      expect(notification, isA<ClientExtensionNotification>());
+      final typed = notification as ClientExtensionNotification;
+      expect(typed.method, equals('custom/notify'));
+      expect(typed.toJson(), equals({'k': 'v'}));
+    });
+  });
+
+  group('AgentNotificationUnion', () {
+    test('parses session notification payload', () {
+      final notification = AgentNotificationUnion.fromJson({
+        'sessionId': 'session-1',
+        'update': {
+          'sessionUpdate': 'agent_message_chunk',
+          'content': {'type': 'text', 'text': 'hello'},
+        },
+      });
+
+      expect(notification, isA<SessionAgentNotification>());
+      final typed = notification as SessionAgentNotification;
+      expect(typed.notification.sessionId, equals('session-1'));
+    });
+
+    test('unknown payload falls back to extension notification', () {
+      final notification = AgentNotificationUnion.fromJson('raw');
+
+      expect(notification, isA<AgentExtensionNotification>());
+      final typed = notification as AgentExtensionNotification;
+      expect(typed.toJson(), equals({'payload': 'raw'}));
     });
   });
 }

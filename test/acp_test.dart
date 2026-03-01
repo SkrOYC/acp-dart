@@ -514,6 +514,106 @@ void main() {
       expect(agentSideConnection, isA<Client>());
     });
 
+    test('requestPermission sends typed request and parses response', () async {
+      final connection = AgentSideConnection((conn) => MockAgent(), acpStream);
+      final future = connection.requestPermission(
+        RequestPermissionRequest(
+          sessionId: 'session-1',
+          toolCall: ToolCallUpdate(toolCallId: 'tool-1'),
+          options: [
+            PermissionOption(
+              optionId: 'allow',
+              name: 'Allow once',
+              kind: PermissionOptionKind.allowOnce,
+            ),
+          ],
+        ),
+      );
+
+      await Future.delayed(Duration.zero);
+      final sentMessage = await writableController.stream.first;
+      expect(sentMessage['method'], equals('session/request_permission'));
+      expect(sentMessage['params']['sessionId'], equals('session-1'));
+
+      readableController.add({
+        'jsonrpc': '2.0',
+        'id': sentMessage['id'],
+        'result': RequestPermissionResponse(
+          outcome: SelectedOutcome(optionId: 'allow'),
+        ).toJson(),
+      });
+
+      final response = await future;
+      expect((response.outcome as SelectedOutcome).optionId, equals('allow'));
+    });
+
+    test('readTextFile sends typed request and parses response', () async {
+      final connection = AgentSideConnection((conn) => MockAgent(), acpStream);
+      final future = connection.readTextFile(
+        ReadTextFileRequest(sessionId: 'session-1', path: '/tmp/readme.md'),
+      );
+
+      await Future.delayed(Duration.zero);
+      final sentMessage = await writableController.stream.first;
+      expect(sentMessage['method'], equals('fs/read_text_file'));
+      expect(sentMessage['params']['path'], equals('/tmp/readme.md'));
+
+      readableController.add({
+        'jsonrpc': '2.0',
+        'id': sentMessage['id'],
+        'result': ReadTextFileResponse(content: 'hello').toJson(),
+      });
+
+      final response = await future;
+      expect(response.content, equals('hello'));
+    });
+
+    test('createTerminal sends typed request and parses response', () async {
+      final connection = AgentSideConnection((conn) => MockAgent(), acpStream);
+      final future = connection.createTerminal(
+        CreateTerminalRequest(
+          sessionId: 'session-1',
+          command: 'echo',
+          args: ['hi'],
+        ),
+      );
+
+      await Future.delayed(Duration.zero);
+      final sentMessage = await writableController.stream.first;
+      expect(sentMessage['method'], equals('terminal/create'));
+      expect(sentMessage['params']['command'], equals('echo'));
+
+      readableController.add({
+        'jsonrpc': '2.0',
+        'id': sentMessage['id'],
+        'result': CreateTerminalResponse(terminalId: 'term-1').toJson(),
+      });
+
+      final response = await future;
+      expect(response?.terminalId, equals('term-1'));
+    });
+
+    test('sessionUpdate sends notification payload', () async {
+      final connection = AgentSideConnection((conn) => MockAgent(), acpStream);
+      await connection.sessionUpdate(
+        SessionNotification(
+          sessionId: 'session-1',
+          update: AgentMessageChunkSessionUpdate(
+            content: TextContentBlock(text: 'hello'),
+          ),
+        ),
+      );
+      await Future.delayed(Duration.zero);
+
+      final sentMessage = await writableController.stream.first;
+      expect(sentMessage['method'], equals('session/update'));
+      expect(sentMessage['params']['sessionId'], equals('session-1'));
+      expect(
+        sentMessage['params']['update']['sessionUpdate'],
+        equals('agent_message_chunk'),
+      );
+    });
+
     test('maps invalid request params to invalid params error', () async {
       final _ = AgentSideConnection((conn) => MockAgent(), acpStream);
 
@@ -546,6 +646,59 @@ void main() {
       expect(agent.lastSetConfigRequest, isNotNull);
       expect(agent.lastSetConfigRequest?.configId, equals('mode'));
       expect(agent.lastSetConfigRequest?.value, equals('code'));
+    });
+
+    test('dispatches session/load requests to Agent', () async {
+      final agent = MockAgent();
+      final _ = AgentSideConnection((conn) => agent, acpStream);
+
+      readableController.add({
+        'jsonrpc': '2.0',
+        'id': 98,
+        'method': 'session/load',
+        'params': {'sessionId': 's1', 'cwd': '/workspace', 'mcpServers': []},
+      });
+
+      final response = await writableController.stream.first;
+      expect(response['id'], equals(98));
+      expect(response['result'], isA<LoadSessionResponse>());
+    });
+
+    test(
+      'returns method_not_found when session/load is unimplemented',
+      () async {
+        final _ = AgentSideConnection(
+          (conn) => UnimplementedLoadAgent(),
+          acpStream,
+        );
+
+        readableController.add({
+          'jsonrpc': '2.0',
+          'id': 97,
+          'method': 'session/load',
+          'params': {'sessionId': 's1', 'cwd': '/workspace', 'mcpServers': []},
+        });
+
+        final response = await writableController.stream.first;
+        expect(response['id'], equals(97));
+        expect(response['error']['code'], equals(-32601));
+        expect(response['error']['data']['method'], equals('session/load'));
+      },
+    );
+
+    test('dispatches session/set_model requests to Agent', () async {
+      final _ = AgentSideConnection((conn) => MockAgent(), acpStream);
+
+      readableController.add({
+        'jsonrpc': '2.0',
+        'id': 96,
+        'method': 'session/set_model',
+        'params': {'sessionId': 's1', 'modelId': 'gpt-5'},
+      });
+
+      final response = await writableController.stream.first;
+      expect(response['id'], equals(96));
+      expect(response['result'], isA<SetSessionModelResponse>());
     });
 
     test(
@@ -865,6 +1018,100 @@ void main() {
       expect(clientSideConnection, isA<Agent>());
     });
 
+    test('initialize sends typed request and parses response', () async {
+      final connection = ClientSideConnection(
+        (conn) => MockClient(),
+        acpStream,
+      );
+      final future = connection.initialize(
+        InitializeRequest(
+          protocolVersion: 1,
+          clientCapabilities: ClientCapabilities(),
+        ),
+      );
+
+      await Future.delayed(Duration.zero);
+      final sentMessage = await writableController.stream.first;
+      expect(sentMessage['method'], equals('initialize'));
+
+      readableController.add({
+        'jsonrpc': '2.0',
+        'id': sentMessage['id'],
+        'result': {
+          'protocolVersion': 1,
+          'agentCapabilities': {'loadSession': false},
+          'authMethods': const [],
+        },
+      });
+
+      final response = await future;
+      expect(response.protocolVersion, equals(1));
+    });
+
+    test('newSession sends typed request and parses response', () async {
+      final connection = ClientSideConnection(
+        (conn) => MockClient(),
+        acpStream,
+      );
+      final future = connection.newSession(
+        NewSessionRequest(cwd: '/workspace', mcpServers: []),
+      );
+
+      await Future.delayed(Duration.zero);
+      final sentMessage = await writableController.stream.first;
+      expect(sentMessage['method'], equals('session/new'));
+      expect(sentMessage['params']['cwd'], equals('/workspace'));
+
+      readableController.add({
+        'jsonrpc': '2.0',
+        'id': sentMessage['id'],
+        'result': NewSessionResponse(sessionId: 'session-1').toJson(),
+      });
+
+      final response = await future;
+      expect(response.sessionId, equals('session-1'));
+    });
+
+    test('prompt sends typed request and parses response', () async {
+      final connection = ClientSideConnection(
+        (conn) => MockClient(),
+        acpStream,
+      );
+      final future = connection.prompt(
+        PromptRequest(
+          sessionId: 'session-1',
+          prompt: [TextContentBlock(text: 'hello')],
+        ),
+      );
+
+      await Future.delayed(Duration.zero);
+      final sentMessage = await writableController.stream.first;
+      expect(sentMessage['method'], equals('session/prompt'));
+      expect(sentMessage['params']['sessionId'], equals('session-1'));
+
+      readableController.add({
+        'jsonrpc': '2.0',
+        'id': sentMessage['id'],
+        'result': PromptResponse(stopReason: StopReason.endTurn).toJson(),
+      });
+
+      final response = await future;
+      expect(response.stopReason, equals(StopReason.endTurn));
+    });
+
+    test('cancel sends session/cancel notification payload', () async {
+      final connection = ClientSideConnection(
+        (conn) => MockClient(),
+        acpStream,
+      );
+      await connection.cancel(CancelNotification(sessionId: 'session-1'));
+      await Future.delayed(Duration.zero);
+
+      final sentMessage = await writableController.stream.first;
+      expect(sentMessage['method'], equals('session/cancel'));
+      expect(sentMessage['params']['sessionId'], equals('session-1'));
+    });
+
     test(
       'setSessionConfigOption sends typed request and parses response',
       () async {
@@ -909,6 +1156,71 @@ void main() {
         expect(response.configOptions.first.currentValue, equals('code'));
       },
     );
+
+    test('dispatches fs/write_text_file requests to Client', () async {
+      final _ = ClientSideConnection((conn) => MockClient(), acpStream);
+
+      readableController.add({
+        'jsonrpc': '2.0',
+        'id': 90,
+        'method': 'fs/write_text_file',
+        'params': {
+          'sessionId': 's1',
+          'path': '/workspace/lib/main.dart',
+          'content': 'void main() {}',
+        },
+      });
+
+      final response = await writableController.stream.first;
+      expect(response['id'], equals(90));
+      expect(response['result'], isA<WriteTextFileResponse>());
+    });
+
+    test(
+      'returns method_not_found when terminal/create is unimplemented',
+      () async {
+        final _ = ClientSideConnection(
+          (conn) => UnimplementedTerminalClient(),
+          acpStream,
+        );
+
+        readableController.add({
+          'jsonrpc': '2.0',
+          'id': 91,
+          'method': 'terminal/create',
+          'params': {'sessionId': 's1', 'command': 'echo', 'args': []},
+        });
+
+        final response = await writableController.stream.first;
+        expect(response['id'], equals(91));
+        expect(response['error']['code'], equals(-32601));
+        expect(response['error']['data']['method'], equals('terminal/create'));
+      },
+    );
+
+    test('dispatches session/update notifications to Client', () async {
+      final client = SessionUpdateTrackingClient();
+      final _ = ClientSideConnection((conn) => client, acpStream);
+      final sentMessages = <Map<String, dynamic>>[];
+      final subscription = writableController.stream.listen(sentMessages.add);
+
+      readableController.add({
+        'jsonrpc': '2.0',
+        'method': 'session/update',
+        'params': {
+          'sessionId': 'session-1',
+          'update': {
+            'sessionUpdate': 'agent_message_chunk',
+            'content': {'type': 'text', 'text': 'hello'},
+          },
+        },
+      });
+      await Future.delayed(Duration(milliseconds: 20));
+
+      expect(client.lastSessionUpdate?.sessionId, equals('session-1'));
+      expect(sentMessages, isEmpty);
+      await subscription.cancel();
+    });
 
     test(
       'unstableListSessions sends typed request and parses response',
@@ -1336,6 +1648,13 @@ class MockAgent implements Agent {
   }
 }
 
+class UnimplementedLoadAgent extends MockAgent {
+  @override
+  Future<LoadSessionResponse>? loadSession(LoadSessionRequest params) {
+    return null;
+  }
+}
+
 class ConfigurableMockAgent extends MockAgent
     implements ProtocolCancellationHandler {
   SetSessionConfigOptionRequest? lastSetConfigRequest;
@@ -1480,6 +1799,22 @@ class MockClient implements Client {
     Map<String, dynamic> params,
   ) async {
     // Mock implementation
+  }
+}
+
+class UnimplementedTerminalClient extends MockClient {
+  @override
+  Future<CreateTerminalResponse>? createTerminal(CreateTerminalRequest params) {
+    return null;
+  }
+}
+
+class SessionUpdateTrackingClient extends MockClient {
+  SessionNotification? lastSessionUpdate;
+
+  @override
+  Future<void> sessionUpdate(SessionNotification params) async {
+    lastSessionUpdate = params;
   }
 }
 
