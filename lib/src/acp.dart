@@ -3,6 +3,7 @@
 library;
 
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:acp_dart/src/schema.dart';
 import 'package:acp_dart/src/stream.dart';
@@ -231,15 +232,35 @@ class Connection {
       final result = await _requestHandler(method, params);
       _sendMessage({'jsonrpc': '2.0', 'id': id, 'result': result});
     } catch (error) {
-      late Map<String, dynamic> errorResponse;
-      if (error is RequestError) {
-        errorResponse = error.toErrorResponse().toJson();
-      } else {
-        errorResponse = RequestError.internalError(
-          error.toString(),
-        ).toErrorResponse().toJson();
-      }
+      final errorResponse = _mapRequestError(error).toErrorResponse().toJson();
       _sendMessage({'jsonrpc': '2.0', 'id': id, 'error': errorResponse});
+    }
+  }
+
+  RequestError _mapRequestError(Object error) {
+    if (error is RequestError) {
+      return error;
+    }
+
+    final errorData = _extractErrorData(error);
+    if (error is TypeError ||
+        error is FormatException ||
+        error is ArgumentError) {
+      return RequestError.invalidParams(errorData);
+    }
+    return RequestError.internalError(errorData);
+  }
+
+  dynamic _extractErrorData(Object error) {
+    final message = switch (error) {
+      FormatException() => error.message.toString(),
+      ArgumentError() => error.message?.toString() ?? error.toString(),
+      _ => error.toString(),
+    };
+    try {
+      return jsonDecode(message);
+    } catch (_) {
+      return message;
     }
   }
 

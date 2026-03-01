@@ -26,16 +26,32 @@ AcpStream ndJsonStream(Stream<List<int>> input, StreamSink<List<int>> output) {
   // Create readable stream: transform bytes to messages
   final readable = input
       .transform(utf8.decoder) // Safely decode bytes to string
-      .transform(const LineSplitter()) // Safely split lines, handling partial UTF-8
-      .where((line) => line.trim().isNotEmpty) // Filter empty lines
-      .map((line) {
-        try {
-          return jsonDecode(line) as Map<String, dynamic>;
-        } catch (e) {
-          // Propagate the error to the stream listener
-          throw FormatException('Failed to parse JSON message: $line, error: $e');
-        }
-      });
+      .transform(
+        const LineSplitter(),
+      ) // Safely split lines, handling partial UTF-8
+      .transform(
+        StreamTransformer<String, Map<String, dynamic>>.fromHandlers(
+          handleData: (line, sink) {
+            final trimmed = line.trim();
+            if (trimmed.isEmpty) {
+              return;
+            }
+
+            try {
+              final decoded = jsonDecode(trimmed);
+              if (decoded is Map<String, dynamic>) {
+                sink.add(decoded);
+                return;
+              }
+              print(
+                'Failed to parse JSON message: $trimmed, error: expected JSON object',
+              );
+            } catch (e) {
+              print('Failed to parse JSON message: $trimmed, error: $e');
+            }
+          },
+        ),
+      );
 
   // Create writable stream: transform messages to bytes
   final writableController = StreamController<Map<String, dynamic>>();

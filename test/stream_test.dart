@@ -171,7 +171,7 @@ void main() {
       outputController.close();
     });
 
-    test('propagates JSON parsing errors and stops stream', () async {
+    test('skips malformed JSON lines and continues processing', () async {
       final inputController = StreamController<List<int>>();
       final outputController = StreamController<List<int>>();
 
@@ -180,49 +180,31 @@ void main() {
         outputController.sink,
       );
 
-      // Send a valid message, then an invalid message
+      // Send valid, invalid, and valid messages.
       inputController.add(utf8.encode('{"valid": "json"}\n'));
       inputController.add(utf8.encode('invalid json\n'));
+      inputController.add(utf8.encode('{"valid": "json-2"}\n'));
       inputController.close();
 
       final received = <Map<String, dynamic>>[];
-      final errorCompleter = Completer<Object?>();
       final doneCompleter = Completer<void>();
-      var completed = false;
-
-      void complete() {
-        if (!completed) {
-          completed = true;
-          doneCompleter.complete();
-        }
-      }
 
       acpStream.readable.listen(
         (msg) => received.add(msg),
-        onError: (e) {
-          errorCompleter.complete(e);
-          complete();
-        },
-        onDone: () {
-          if (!errorCompleter.isCompleted) {
-            errorCompleter.complete(null); // No error occurred
-          }
-          complete();
-        },
+        onError: (e) => fail('Unexpected parse error: $e'),
+        onDone: () => doneCompleter.complete(),
       );
 
       await doneCompleter.future;
 
-      // Expect the valid message to be received
+      // Malformed line should be ignored, stream continues.
       expect(
         received,
         equals([
           {'valid': 'json'},
+          {'valid': 'json-2'},
         ]),
       );
-      // Expect the stream to have terminated with a FormatException
-      expect(errorCompleter.isCompleted, isTrue);
-      expect(await errorCompleter.future, isA<FormatException>());
 
       outputController.close();
     });
