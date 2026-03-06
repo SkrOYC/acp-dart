@@ -1,5 +1,8 @@
 # ACP Dart Library
 
+[![pub](https://img.shields.io/pub/v/acp_dart)](https://pub.dev/packages/acp_dart)
+[![Mintlify Docs](https://img.shields.io/badge/Mintlify-Docs-blue)](https://mintlify.com/SkrOYC/acp-dart/)
+
 The official Dart implementation of the Agent Client Protocol (ACP) — a standardized communication protocol between code editors and AI-powered coding agents.
 
 Learn more at https://agentclientprotocol.com
