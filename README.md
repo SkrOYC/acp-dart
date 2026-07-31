@@ -13,7 +13,7 @@ Add the package to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  acp_dart: ^0.5.0
+  acp_dart: ^0.6.0
 ```
 
 Then run:
@@ -85,23 +85,26 @@ The implementation tracks ACP stable and unstable surfaces explicitly.
 - `session/resume`
 - Additional update variants implemented for parity tracking: `session_info_update`, `usage_update`
 
+### Newer Surfaces
+
+Present in the published schema but newer than the stable v1 surface. Several are still at RFD stage, so their shapes may change — pin a version if you depend on them.
+
+- **Providers** — `providers/list`, `providers/set`, `providers/disable`. Inspect and configure the LLM endpoints an agent can reach.
+- **Document sync** — `document/didOpen`, `document/didChange`, `document/didClose`, `document/didSave`, `document/didFocus`. Keeps the agent's view of open buffers current, including unsaved edits.
+- **MCP over ACP** — `mcp/connect`, `mcp/message`, `mcp/disconnect`. Tunnels MCP JSON-RPC through the ACP connection. Note `mcp/message` is bidirectional and arrives as either a request or a notification.
+- **Next Edit Suggestions** — `nes/start`, `nes/suggest`, `nes/accept`, `nes/reject`, `nes/close`. Proposes the edit a developer is likely to make next; works best alongside document sync.
+
 ### Deprecated
 
 - `session/set_model`, along with `SessionModelState`, `ModelInfo`, and the `ModelId` typedef. These have no counterpart in the ACP schema — model selection is expressed through `session/set_config_option` with a model config category. They still dispatch, and will be removed in the next major release.
 
-### Known Unsupported
+### Coverage
 
-These appear in the published schema but are not implemented here. Several are still at RFD stage and may change shape:
+Every method in the published ACP schema is implemented — all 28 agent methods, 14 client methods, and the protocol cancellation notification. Verify with the diff command in [`parity_verification_checklist.md`](parity_verification_checklist.md).
 
-- `providers/list`, `providers/set`, `providers/disable`
-- `nes/start`, `nes/suggest`, `nes/accept`, `nes/reject`, `nes/close` (Next Edit Suggestions)
-- `document/didOpen`, `document/didChange`, `document/didClose`, `document/didSave`, `document/didFocus`
-- `mcp/connect`, `mcp/message`, `mcp/disconnect` (MCP-over-ACP)
-- Filesystem methods beyond the ACP stable surface (for example delete/move/mkdir/list operations)
+Note that `providers/*`, `nes/*`, `document/did*`, and `mcp/*` are newer than the stable v1 surface, and several are still at RFD stage — their shapes may change. They are implemented here for completeness; pin a version if you depend on them.
 
-Anything not represented in `agentMethods`, `clientMethods`, and the typed schema unions in this package is unsupported.
-
-See [`parity_verification_checklist.md`](parity_verification_checklist.md) for the release-time parity verification process.
+Filesystem methods beyond the ACP surface (delete/move/mkdir/list) do not exist in the schema and are not implemented.
 
 ### Error and Stream Behavior
 

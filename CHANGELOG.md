@@ -1,3 +1,50 @@
+## 0.6.0
+
+Completes the method inventory: every method in the published ACP schema is
+now implemented. Verified by diffing `agentMethods`/`clientMethods` against
+the generated schema constants — 28 agent methods, 14 client methods, and the
+protocol cancellation notification, with no gaps.
+
+These surfaces are newer than the stable v1 set and several are still at RFD
+stage, so their shapes may change. Pin a version if you depend on them.
+
+### Added
+
+- **Providers:** `providers/list`, `providers/set`, `providers/disable`, with
+  `ProviderInfo`, `ProviderCurrentConfig`, and `ProvidersCapabilities`.
+  `LlmProtocol` is an open string union in the schema, so it maps to a String
+  typedef with known values on `LlmProtocols` rather than an enum — an
+  unrecognised protocol has to round-trip, not throw. `SetProviderRequest`
+  overrides `toString` to redact `headers`, which carries credentials.
+- **Document sync:** `document/didOpen`, `didChange`, `didClose`, `didSave`,
+  and `didFocus`, plus `Position`, `Range`,
+  `TextDocumentContentChangeEvent`, and `TextDocumentSyncKind`. A null range
+  on a content change means a full-document replacement.
+- **MCP over ACP:** `mcp/connect`, `mcp/message`, `mcp/disconnect`, and the
+  `acp` variant of the McpServer union. `mcp/message` is unusual twice over:
+  it sits on both method tables so it is wired in both directions, and it
+  arrives as either a request or a notification depending on whether the
+  tunnelled MCP message carries an id. Its reply is `Object?` rather than a
+  typed model — it is the MCP server's own result, and reshaping it would
+  corrupt the tunnel.
+- **Next Edit Suggestions:** `nes/start`, `nes/suggest`, `nes/accept`,
+  `nes/reject`, `nes/close`. Suggestions are a union over edit, jump, rename,
+  and searchAndReplace with an `UnknownNesSuggestion` fallback. Includes the
+  context types (recent files, related snippets, edit history, user actions,
+  open files, diagnostics) and the capability trees on both sides:
+  `NesCapabilities` for what context an agent accepts,
+  `ClientNesCapabilities` for what suggestion kinds a client can act on.
+  Also adds `WorkspaceFolder`.
+
+### Compatibility Notes
+
+- **Breaking for `implements`:** As in 0.5.0, adding members to the `Agent`
+  and `Client` interfaces breaks implementors using `implements`, which
+  requires every member to be declared. Every new member carries a `=> null`
+  default, so `extends` users are unaffected, and returning `null` yields
+  `-32601 Method not found` — the behaviour an agent without these
+  capabilities should have anyway.
+
 ## 0.5.0
 
 Brings the package in line with the stable ACP v1 method inventory. The
