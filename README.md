@@ -1,7 +1,7 @@
 # ACP Dart Library
 
 [![pub](https://img.shields.io/pub/v/acp_dart)](https://pub.dev/packages/acp_dart)
-[![Mintlify Docs](https://img.shields.io/badge/Mintlify-Docs-blue)](https://mintlify.com/SkrOYC/acp-dart/)
+[![Mintlify Docs](https://img.shields.io/badge/Mintlify-Docs-blue)](https://mintlify.wiki/SkrOYC/acp-dart)
 
 The official Dart implementation of the Agent Client Protocol (ACP) — a standardized communication protocol between code editors and AI-powered coding agents.
 
@@ -183,11 +183,16 @@ class MyClient implements Client {
 
 ## Resources
 
-- [Protocol Documentation](https://agentclientprotocol.com)
+- [Package Documentation](https://mintlify.wiki/SkrOYC/acp-dart) — installation, quickstart, API reference, and examples for this package
+- [Protocol Documentation](https://agentclientprotocol.com) — the ACP specification itself
 - [GitHub Repository](https://github.com/SkrOYC/acp-dart)
-- [Zed ACP GitHub Repository](https://github.com/zed-industries/agent-client-protocol)
 - [Examples](https://github.com/SkrOYC/acp-dart/tree/master/example)
+- [ACP Reference Implementation](https://github.com/agentclientprotocol/agent-client-protocol) — the schema and Rust SDK this package tracks
 
 ## Contributing
 
-See the official [ACP repository](https://github.com/zed-industries/agent-client-protocol) for contribution guidelines.
+Issues and pull requests for this package belong on [SkrOYC/acp-dart](https://github.com/SkrOYC/acp-dart/issues).
+
+For the protocol itself — proposing a new method, changing a message shape — see the [ACP repository](https://github.com/agentclientprotocol/agent-client-protocol) and its [RFD process](https://agentclientprotocol.com/rfds/about).
+
+Before releasing, work through [`parity_verification_checklist.md`](parity_verification_checklist.md).

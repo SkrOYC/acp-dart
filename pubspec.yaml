@@ -2,6 +2,8 @@ name: acp_dart
 description: A Dart implementation of the Agent-Client Protocol (ACP) for building AI-powered applications.
 version: 0.5.0
 repository: https://github.com/SkrOYC/acp-dart
+documentation: https://mintlify.wiki/SkrOYC/acp-dart
+issue_tracker: https://github.com/SkrOYC/acp-dart/issues
 
 environment:
   sdk: ^3.9.2
