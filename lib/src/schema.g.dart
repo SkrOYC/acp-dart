@@ -2282,3 +2282,121 @@ Map<String, dynamic> _$ElicitationCapabilitiesToJson(
   'form': instance.form,
   'url': instance.url,
 };
+
+ProviderCurrentConfig _$ProviderCurrentConfigFromJson(
+  Map<String, dynamic> json,
+) => ProviderCurrentConfig(
+  meta: json['_meta'] as Map<String, dynamic>?,
+  apiType: json['apiType'] as String,
+  baseUrl: json['baseUrl'] as String,
+);
+
+Map<String, dynamic> _$ProviderCurrentConfigToJson(
+  ProviderCurrentConfig instance,
+) => <String, dynamic>{
+  '_meta': ?instance.meta,
+  'apiType': instance.apiType,
+  'baseUrl': instance.baseUrl,
+};
+
+ProviderInfo _$ProviderInfoFromJson(Map<String, dynamic> json) => ProviderInfo(
+  meta: json['_meta'] as Map<String, dynamic>?,
+  providerId: json['providerId'] as String,
+  supported: (json['supported'] as List<dynamic>)
+      .map((e) => e as String)
+      .toList(),
+  required: json['required'] as bool,
+  current: json['current'] == null
+      ? null
+      : ProviderCurrentConfig.fromJson(json['current'] as Map<String, dynamic>),
+);
+
+Map<String, dynamic> _$ProviderInfoToJson(ProviderInfo instance) =>
+    <String, dynamic>{
+      '_meta': ?instance.meta,
+      'providerId': instance.providerId,
+      'supported': instance.supported,
+      'required': instance.required,
+      'current': instance.current,
+    };
+
+ProvidersCapabilities _$ProvidersCapabilitiesFromJson(
+  Map<String, dynamic> json,
+) => ProvidersCapabilities(meta: json['_meta'] as Map<String, dynamic>?);
+
+Map<String, dynamic> _$ProvidersCapabilitiesToJson(
+  ProvidersCapabilities instance,
+) => <String, dynamic>{'_meta': ?instance.meta};
+
+ListProvidersRequest _$ListProvidersRequestFromJson(
+  Map<String, dynamic> json,
+) => ListProvidersRequest(meta: json['_meta'] as Map<String, dynamic>?);
+
+Map<String, dynamic> _$ListProvidersRequestToJson(
+  ListProvidersRequest instance,
+) => <String, dynamic>{'_meta': ?instance.meta};
+
+ListProvidersResponse _$ListProvidersResponseFromJson(
+  Map<String, dynamic> json,
+) => ListProvidersResponse(
+  meta: json['_meta'] as Map<String, dynamic>?,
+  providers: (json['providers'] as List<dynamic>)
+      .map((e) => ProviderInfo.fromJson(e as Map<String, dynamic>))
+      .toList(),
+);
+
+Map<String, dynamic> _$ListProvidersResponseToJson(
+  ListProvidersResponse instance,
+) => <String, dynamic>{
+  '_meta': ?instance.meta,
+  'providers': instance.providers,
+};
+
+SetProviderRequest _$SetProviderRequestFromJson(Map<String, dynamic> json) =>
+    SetProviderRequest(
+      meta: json['_meta'] as Map<String, dynamic>?,
+      providerId: json['providerId'] as String,
+      apiType: json['apiType'] as String,
+      baseUrl: json['baseUrl'] as String,
+      headers: (json['headers'] as Map<String, dynamic>?)?.map(
+        (k, e) => MapEntry(k, e as String),
+      ),
+    );
+
+Map<String, dynamic> _$SetProviderRequestToJson(SetProviderRequest instance) =>
+    <String, dynamic>{
+      '_meta': ?instance.meta,
+      'providerId': instance.providerId,
+      'apiType': instance.apiType,
+      'baseUrl': instance.baseUrl,
+      'headers': ?instance.headers,
+    };
+
+SetProviderResponse _$SetProviderResponseFromJson(Map<String, dynamic> json) =>
+    SetProviderResponse(meta: json['_meta'] as Map<String, dynamic>?);
+
+Map<String, dynamic> _$SetProviderResponseToJson(
+  SetProviderResponse instance,
+) => <String, dynamic>{'_meta': ?instance.meta};
+
+DisableProviderRequest _$DisableProviderRequestFromJson(
+  Map<String, dynamic> json,
+) => DisableProviderRequest(
+  meta: json['_meta'] as Map<String, dynamic>?,
+  providerId: json['providerId'] as String,
+);
+
+Map<String, dynamic> _$DisableProviderRequestToJson(
+  DisableProviderRequest instance,
+) => <String, dynamic>{
+  '_meta': ?instance.meta,
+  'providerId': instance.providerId,
+};
+
+DisableProviderResponse _$DisableProviderResponseFromJson(
+  Map<String, dynamic> json,
+) => DisableProviderResponse(meta: json['_meta'] as Map<String, dynamic>?);
+
+Map<String, dynamic> _$DisableProviderResponseToJson(
+  DisableProviderResponse instance,
+) => <String, dynamic>{'_meta': ?instance.meta};

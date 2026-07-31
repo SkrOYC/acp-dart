@@ -1609,6 +1609,23 @@ class MockAgent implements Agent {
   }
 
   @override
+  Future<ListProvidersResponse>? listProviders(ListProvidersRequest params) {
+    return null;
+  }
+
+  @override
+  Future<SetProviderResponse>? setProvider(SetProviderRequest params) {
+    return null;
+  }
+
+  @override
+  Future<DisableProviderResponse>? disableProvider(
+    DisableProviderRequest params,
+  ) {
+    return null;
+  }
+
+  @override
   Future<SetSessionModeResponse?>? setSessionMode(
     SetSessionModeRequest params,
   ) async {

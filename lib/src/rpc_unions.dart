@@ -400,10 +400,49 @@ abstract class AgentResponseUnion {
               ? LogoutResponse()
               : LogoutResponse.fromJson(result as Map<String, dynamic>),
         );
+      case 'providers/list':
+        return AgentListProvidersResponse(
+          ListProvidersResponse.fromJson(result as Map<String, dynamic>),
+        );
+      case 'providers/set':
+        return AgentSetProviderResponse(
+          result == null
+              ? SetProviderResponse()
+              : SetProviderResponse.fromJson(result as Map<String, dynamic>),
+        );
+      case 'providers/disable':
+        return AgentDisableProviderResponse(
+          result == null
+              ? DisableProviderResponse()
+              : DisableProviderResponse.fromJson(
+                  result as Map<String, dynamic>,
+                ),
+        );
       default:
         return AgentExtensionMethodResponse(method, result);
     }
   }
+}
+
+class AgentListProvidersResponse extends AgentResponseUnion {
+  final ListProvidersResponse response;
+  const AgentListProvidersResponse(this.response);
+  @override
+  Map<String, dynamic> toJson() => response.toJson();
+}
+
+class AgentSetProviderResponse extends AgentResponseUnion {
+  final SetProviderResponse response;
+  const AgentSetProviderResponse(this.response);
+  @override
+  Map<String, dynamic> toJson() => response.toJson();
+}
+
+class AgentDisableProviderResponse extends AgentResponseUnion {
+  final DisableProviderResponse response;
+  const AgentDisableProviderResponse(this.response);
+  @override
+  Map<String, dynamic> toJson() => response.toJson();
 }
 
 class AgentCloseSessionResponse extends AgentResponseUnion {
@@ -615,6 +654,18 @@ abstract class ClientRequestUnion {
         return ClientLogoutRequest(
           LogoutRequest.fromJson(params as Map<String, dynamic>),
         );
+      case 'providers/list':
+        return ClientListProvidersRequest(
+          ListProvidersRequest.fromJson(params as Map<String, dynamic>),
+        );
+      case 'providers/set':
+        return ClientSetProviderRequest(
+          SetProviderRequest.fromJson(params as Map<String, dynamic>),
+        );
+      case 'providers/disable':
+        return ClientDisableProviderRequest(
+          DisableProviderRequest.fromJson(params as Map<String, dynamic>),
+        );
       default:
         return ClientExtensionMethodRequest(method, params);
     }
@@ -716,6 +767,33 @@ class ClientSetSessionModelRequest extends ClientRequestUnion {
   const ClientSetSessionModelRequest(this.params);
   @override
   String get method => agentMethods['modelSelect']!;
+  @override
+  Map<String, dynamic> toJson() => params.toJson();
+}
+
+class ClientListProvidersRequest extends ClientRequestUnion {
+  final ListProvidersRequest params;
+  const ClientListProvidersRequest(this.params);
+  @override
+  String get method => agentMethods['providersList']!;
+  @override
+  Map<String, dynamic> toJson() => params.toJson();
+}
+
+class ClientSetProviderRequest extends ClientRequestUnion {
+  final SetProviderRequest params;
+  const ClientSetProviderRequest(this.params);
+  @override
+  String get method => agentMethods['providersSet']!;
+  @override
+  Map<String, dynamic> toJson() => params.toJson();
+}
+
+class ClientDisableProviderRequest extends ClientRequestUnion {
+  final DisableProviderRequest params;
+  const ClientDisableProviderRequest(this.params);
+  @override
+  String get method => agentMethods['providersDisable']!;
   @override
   Map<String, dynamic> toJson() => params.toJson();
 }

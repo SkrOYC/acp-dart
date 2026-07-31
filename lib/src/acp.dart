@@ -533,6 +533,27 @@ class AgentSideConnection implements Client {
             LogoutRequest.fromJson,
             agent.logout,
           );
+        case 'providers/list':
+          return handleOptionalRequest(
+            method,
+            params,
+            ListProvidersRequest.fromJson,
+            agent.listProviders,
+          );
+        case 'providers/set':
+          return handleOptionalRequest(
+            method,
+            params,
+            SetProviderRequest.fromJson,
+            agent.setProvider,
+          );
+        case 'providers/disable':
+          return handleOptionalRequest(
+            method,
+            params,
+            DisableProviderRequest.fromJson,
+            agent.disableProvider,
+          );
         case 'session/set_mode':
           final validatedParams = SetSessionModeRequest.fromJson(
             params as Map<String, dynamic>,
@@ -1027,6 +1048,37 @@ class ClientSideConnection implements Agent {
   }
 
   @override
+  Future<ListProvidersResponse>? listProviders(
+    ListProvidersRequest params,
+  ) async {
+    return _sendTypedRequest(
+      agentMethods['providersList']!,
+      params.toJson(),
+      ListProvidersResponse.fromJson,
+    );
+  }
+
+  @override
+  Future<SetProviderResponse>? setProvider(SetProviderRequest params) async {
+    return _sendTypedRequest(
+      agentMethods['providersSet']!,
+      params.toJson(),
+      SetProviderResponse.fromJson,
+    );
+  }
+
+  @override
+  Future<DisableProviderResponse>? disableProvider(
+    DisableProviderRequest params,
+  ) async {
+    return _sendTypedRequest(
+      agentMethods['providersDisable']!,
+      params.toJson(),
+      DisableProviderResponse.fromJson,
+    );
+  }
+
+  @override
   Future<CloseSessionResponse>? closeSession(CloseSessionRequest params) async {
     return _sendTypedRequest(
       agentMethods['sessionClose']!,
@@ -1222,6 +1274,26 @@ abstract class Agent {
   ///
   /// See protocol docs: [Authentication](https://agentclientprotocol.com/protocol/authentication)
   Future<LogoutResponse>? logout(LogoutRequest params) => null;
+
+  /// Lists the LLM providers this agent can reach, and how each is configured.
+  ///
+  /// Returning `null` reports `-32601 Method not found` to the client.
+  Future<ListProvidersResponse>? listProviders(ListProvidersRequest params) =>
+      null;
+
+  /// Points a provider at an endpoint.
+  ///
+  /// `params.headers` typically carries credentials — do not log it.
+  ///
+  /// Returning `null` reports `-32601 Method not found` to the client.
+  Future<SetProviderResponse>? setProvider(SetProviderRequest params) => null;
+
+  /// Disables a provider, clearing any configuration held for it.
+  ///
+  /// Returning `null` reports `-32601 Method not found` to the client.
+  Future<DisableProviderResponse>? disableProvider(
+    DisableProviderRequest params,
+  ) => null;
 
   /// Processes a user prompt within a session.
   ///

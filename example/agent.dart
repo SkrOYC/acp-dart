@@ -93,6 +93,34 @@ class ExampleAgent implements Agent {
   }
 
   @override
+  Future<ListProvidersResponse>? listProviders(
+    ListProvidersRequest params,
+  ) async {
+    return ListProvidersResponse(
+      providers: [
+        ProviderInfo(
+          providerId: 'example',
+          supported: const [LlmProtocols.anthropic, LlmProtocols.openai],
+          required: false,
+        ),
+      ],
+    );
+  }
+
+  @override
+  Future<SetProviderResponse>? setProvider(SetProviderRequest params) async {
+    // Never log params.headers -- it carries credentials.
+    return SetProviderResponse();
+  }
+
+  @override
+  Future<DisableProviderResponse>? disableProvider(
+    DisableProviderRequest params,
+  ) async {
+    return DisableProviderResponse();
+  }
+
+  @override
   Future<LogoutResponse>? logout(LogoutRequest params) async {
     // This example holds no credentials, so logging out is a no-op.
     return LogoutResponse();

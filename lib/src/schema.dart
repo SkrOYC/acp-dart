@@ -2978,11 +2978,206 @@ class ElicitationCapabilities {
   Map<String, dynamic> toJson() => _$ElicitationCapabilitiesToJson(this);
 }
 
+// ---------------------------------------------------------------------------
+// Providers
+//
+// Lets a client inspect and configure the LLM providers an agent can reach.
+// ---------------------------------------------------------------------------
+
+/// Wire protocol an LLM endpoint speaks.
+///
+/// An open string union: `anthropic`, `openai`, `azure`, `vertex`, and
+/// `bedrock` are the known values, but agents may report others.
+typedef LlmProtocol = String;
+
+/// Known [LlmProtocol] values.
+abstract final class LlmProtocols {
+  static const anthropic = 'anthropic';
+  static const openai = 'openai';
+  static const azure = 'azure';
+  static const vertex = 'vertex';
+  static const bedrock = 'bedrock';
+}
+
+/// The endpoint a provider is currently pointed at.
+@JsonSerializable()
+class ProviderCurrentConfig {
+  @JsonKey(name: '_meta', includeIfNull: false)
+  final Map<String, dynamic>? meta;
+  final LlmProtocol apiType;
+  final String baseUrl;
+
+  ProviderCurrentConfig({
+    this.meta,
+    required this.apiType,
+    required this.baseUrl,
+  });
+
+  factory ProviderCurrentConfig.fromJson(Map<String, dynamic> json) =>
+      _$ProviderCurrentConfigFromJson(json);
+
+  Map<String, dynamic> toJson() => _$ProviderCurrentConfigToJson(this);
+}
+
+/// A provider the agent knows about.
+@JsonSerializable()
+class ProviderInfo {
+  @JsonKey(name: '_meta', includeIfNull: false)
+  final Map<String, dynamic>? meta;
+  final String providerId;
+
+  /// Protocols this provider can speak.
+  final List<LlmProtocol> supported;
+
+  /// Whether the agent needs this provider configured to function.
+  final bool required;
+
+  /// Present when the provider is configured.
+  final ProviderCurrentConfig? current;
+
+  ProviderInfo({
+    this.meta,
+    required this.providerId,
+    required this.supported,
+    required this.required,
+    this.current,
+  });
+
+  factory ProviderInfo.fromJson(Map<String, dynamic> json) =>
+      _$ProviderInfoFromJson(json);
+
+  Map<String, dynamic> toJson() => _$ProviderInfoToJson(this);
+}
+
+/// Agent capability marker for the `providers/*` methods.
+@JsonSerializable()
+class ProvidersCapabilities {
+  @JsonKey(name: '_meta', includeIfNull: false)
+  final Map<String, dynamic>? meta;
+
+  ProvidersCapabilities({this.meta});
+
+  factory ProvidersCapabilities.fromJson(Map<String, dynamic> json) =>
+      _$ProvidersCapabilitiesFromJson(json);
+
+  Map<String, dynamic> toJson() => _$ProvidersCapabilitiesToJson(this);
+}
+
+/// Request parameters for `providers/list`.
+@JsonSerializable()
+class ListProvidersRequest {
+  @JsonKey(name: '_meta', includeIfNull: false)
+  final Map<String, dynamic>? meta;
+
+  ListProvidersRequest({this.meta});
+
+  factory ListProvidersRequest.fromJson(Map<String, dynamic> json) =>
+      _$ListProvidersRequestFromJson(json);
+
+  Map<String, dynamic> toJson() => _$ListProvidersRequestToJson(this);
+}
+
+/// Response to `providers/list`.
+@JsonSerializable()
+class ListProvidersResponse {
+  @JsonKey(name: '_meta', includeIfNull: false)
+  final Map<String, dynamic>? meta;
+  final List<ProviderInfo> providers;
+
+  ListProvidersResponse({this.meta, required this.providers});
+
+  factory ListProvidersResponse.fromJson(Map<String, dynamic> json) =>
+      _$ListProvidersResponseFromJson(json);
+
+  Map<String, dynamic> toJson() => _$ListProvidersResponseToJson(this);
+}
+
+/// Request parameters for `providers/set`.
+///
+/// [headers] typically carries credentials, so avoid logging this object.
+@JsonSerializable()
+class SetProviderRequest {
+  @JsonKey(name: '_meta', includeIfNull: false)
+  final Map<String, dynamic>? meta;
+  final String providerId;
+  final LlmProtocol apiType;
+  final String baseUrl;
+
+  /// Extra headers to send to the endpoint, commonly including credentials.
+  @JsonKey(includeIfNull: false)
+  final Map<String, String>? headers;
+
+  SetProviderRequest({
+    this.meta,
+    required this.providerId,
+    required this.apiType,
+    required this.baseUrl,
+    this.headers,
+  });
+
+  factory SetProviderRequest.fromJson(Map<String, dynamic> json) =>
+      _$SetProviderRequestFromJson(json);
+
+  Map<String, dynamic> toJson() => _$SetProviderRequestToJson(this);
+
+  /// Redacts [headers] so the request can be logged safely.
+  @override
+  String toString() =>
+      'SetProviderRequest(providerId: $providerId, apiType: $apiType, '
+      'baseUrl: $baseUrl, headers: ${headers == null ? null : '<redacted>'})';
+}
+
+/// Response to `providers/set`.
+@JsonSerializable()
+class SetProviderResponse {
+  @JsonKey(name: '_meta', includeIfNull: false)
+  final Map<String, dynamic>? meta;
+
+  SetProviderResponse({this.meta});
+
+  factory SetProviderResponse.fromJson(Map<String, dynamic> json) =>
+      _$SetProviderResponseFromJson(json);
+
+  Map<String, dynamic> toJson() => _$SetProviderResponseToJson(this);
+}
+
+/// Request parameters for `providers/disable`.
+@JsonSerializable()
+class DisableProviderRequest {
+  @JsonKey(name: '_meta', includeIfNull: false)
+  final Map<String, dynamic>? meta;
+  final String providerId;
+
+  DisableProviderRequest({this.meta, required this.providerId});
+
+  factory DisableProviderRequest.fromJson(Map<String, dynamic> json) =>
+      _$DisableProviderRequestFromJson(json);
+
+  Map<String, dynamic> toJson() => _$DisableProviderRequestToJson(this);
+}
+
+/// Response to `providers/disable`.
+@JsonSerializable()
+class DisableProviderResponse {
+  @JsonKey(name: '_meta', includeIfNull: false)
+  final Map<String, dynamic>? meta;
+
+  DisableProviderResponse({this.meta});
+
+  factory DisableProviderResponse.fromJson(Map<String, dynamic> json) =>
+      _$DisableProviderResponseFromJson(json);
+
+  Map<String, dynamic> toJson() => _$DisableProviderResponseToJson(this);
+}
+
 /// Protocol method constants for agent-side requests
 const agentMethods = {
   'authenticate': 'authenticate',
   'initialize': 'initialize',
   'logout': 'logout',
+  'providersList': 'providers/list',
+  'providersSet': 'providers/set',
+  'providersDisable': 'providers/disable',
   // Deprecated: `session/set_model` is not part of the ACP schema. Superseded
   // by `session/set_config_option` with a model config category. Retained so
   // existing integrations keep dispatching; removed in the next major release.
