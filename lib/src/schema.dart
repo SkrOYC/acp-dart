@@ -7,6 +7,7 @@ import 'session_config_select_options_converter.dart';
 import 'tool_call_content_converter.dart';
 import 'mcp_server_converter.dart';
 import 'request_permission_converter.dart';
+import 'elicitation_converters.dart';
 part 'schema.g.dart';
 
 typedef ProtocolVersion = int;
@@ -180,7 +181,18 @@ class ClientCapabilities {
   @JsonKey(defaultValue: false)
   final bool terminal;
 
-  ClientCapabilities({this.meta, this.fs, this.terminal = false});
+  /// Elicitation modes this client can render.
+  ///
+  /// Omitted or `null` means the client does not support elicitation; agents
+  /// must not send `elicitation/create` in that case.
+  final ElicitationCapabilities? elicitation;
+
+  ClientCapabilities({
+    this.meta,
+    this.fs,
+    this.terminal = false,
+    this.elicitation,
+  });
 
   factory ClientCapabilities.fromJson(Map<String, dynamic> json) =>
       _$ClientCapabilitiesFromJson(json);
@@ -1166,6 +1178,110 @@ class AuthenticateResponse {
       _$AuthenticateResponseFromJson(json);
 
   Map<String, dynamic> toJson() => _$AuthenticateResponseToJson(this);
+}
+
+/// Request parameters for the `logout` method.
+///
+/// Clears any credentials the Agent is holding for the current connection.
+/// Only available if the Agent advertised at least one authentication method
+/// during initialization.
+///
+/// See protocol docs: [Authentication](https://agentclientprotocol.com/protocol/authentication)
+@JsonSerializable()
+class LogoutRequest {
+  @JsonKey(name: '_meta', includeIfNull: false)
+  final Map<String, dynamic>? meta;
+
+  LogoutRequest({this.meta});
+
+  factory LogoutRequest.fromJson(Map<String, dynamic> json) =>
+      _$LogoutRequestFromJson(json);
+
+  Map<String, dynamic> toJson() => _$LogoutRequestToJson(this);
+}
+
+/// Response to the `logout` method.
+@JsonSerializable()
+class LogoutResponse {
+  @JsonKey(name: '_meta', includeIfNull: false)
+  final Map<String, dynamic>? meta;
+
+  LogoutResponse({this.meta});
+
+  factory LogoutResponse.fromJson(Map<String, dynamic> json) =>
+      _$LogoutResponseFromJson(json);
+
+  Map<String, dynamic> toJson() => _$LogoutResponseToJson(this);
+}
+
+/// Request parameters for the `session/delete` method.
+///
+/// Removes a session from the Agent's session history. Unlike
+/// `session/close`, this discards the stored session entirely.
+///
+/// See protocol docs: [Session Delete](https://agentclientprotocol.com/protocol/session-delete)
+@JsonSerializable()
+class DeleteSessionRequest {
+  @JsonKey(name: '_meta', includeIfNull: false)
+  final Map<String, dynamic>? meta;
+
+  /// The ID of the session to delete.
+  final String sessionId;
+
+  DeleteSessionRequest({this.meta, required this.sessionId});
+
+  factory DeleteSessionRequest.fromJson(Map<String, dynamic> json) =>
+      _$DeleteSessionRequestFromJson(json);
+
+  Map<String, dynamic> toJson() => _$DeleteSessionRequestToJson(this);
+}
+
+/// Response to the `session/delete` method.
+@JsonSerializable()
+class DeleteSessionResponse {
+  @JsonKey(name: '_meta', includeIfNull: false)
+  final Map<String, dynamic>? meta;
+
+  DeleteSessionResponse({this.meta});
+
+  factory DeleteSessionResponse.fromJson(Map<String, dynamic> json) =>
+      _$DeleteSessionResponseFromJson(json);
+
+  Map<String, dynamic> toJson() => _$DeleteSessionResponseToJson(this);
+}
+
+/// Request parameters for the `session/close` method.
+///
+/// Releases the resources backing an active session while leaving it in the
+/// Agent's session history, so it can still be loaded or resumed later.
+@JsonSerializable()
+class CloseSessionRequest {
+  @JsonKey(name: '_meta', includeIfNull: false)
+  final Map<String, dynamic>? meta;
+
+  /// The ID of the session to close.
+  final String sessionId;
+
+  CloseSessionRequest({this.meta, required this.sessionId});
+
+  factory CloseSessionRequest.fromJson(Map<String, dynamic> json) =>
+      _$CloseSessionRequestFromJson(json);
+
+  Map<String, dynamic> toJson() => _$CloseSessionRequestToJson(this);
+}
+
+/// Response to the `session/close` method.
+@JsonSerializable()
+class CloseSessionResponse {
+  @JsonKey(name: '_meta', includeIfNull: false)
+  final Map<String, dynamic>? meta;
+
+  CloseSessionResponse({this.meta});
+
+  factory CloseSessionResponse.fromJson(Map<String, dynamic> json) =>
+      _$CloseSessionResponseFromJson(json);
+
+  Map<String, dynamic> toJson() => _$CloseSessionResponseToJson(this);
 }
 
 @JsonSerializable()
@@ -2335,11 +2451,518 @@ class UnknownSessionUpdate extends SessionUpdate {
   Map<String, dynamic> toJson() => _$UnknownSessionUpdateToJson(this);
 }
 
+// ---------------------------------------------------------------------------
+// Elicitation
+//
+// Agents call `elicitation/create` to request structured input from the user,
+// either through a form or by directing them to a URL. URL elicitations are
+// resolved out of band and completed with an `elicitation/complete`
+// notification.
+//
+// See protocol docs: https://agentclientprotocol.com/protocol/elicitation
+// ---------------------------------------------------------------------------
+
+/// Format constraints for string properties in an elicitation schema.
+enum StringFormat {
+  @JsonValue('email')
+  email,
+  @JsonValue('uri')
+  uri,
+  @JsonValue('date')
+  date,
+  @JsonValue('date-time')
+  dateTime,
+}
+
+/// A titled enum option with a constant value and human-readable title.
+@JsonSerializable()
+class EnumOption {
+  @JsonKey(name: '_meta', includeIfNull: false)
+  final Map<String, dynamic>? meta;
+
+  /// The constant value for this option.
+  @JsonKey(name: 'const')
+  final String constValue;
+
+  /// Human-readable title for this option.
+  final String title;
+  final String? description;
+
+  EnumOption({
+    this.meta,
+    required this.constValue,
+    required this.title,
+    this.description,
+  });
+
+  factory EnumOption.fromJson(Map<String, dynamic> json) =>
+      _$EnumOptionFromJson(json);
+
+  Map<String, dynamic> toJson() => _$EnumOptionToJson(this);
+}
+
+/// Item constraints for a multi-select (`array`) elicitation property.
+abstract class MultiSelectItems {}
+
+/// Multi-select items constrained to a plain list of string values.
+@JsonSerializable()
+class StringMultiSelectItems extends MultiSelectItems {
+  @JsonKey(name: '_meta', includeIfNull: false)
+  final Map<String, dynamic>? meta;
+  @JsonKey(name: 'enum')
+  final List<String> enumValues;
+
+  StringMultiSelectItems({this.meta, required this.enumValues});
+
+  factory StringMultiSelectItems.fromJson(Map<String, dynamic> json) =>
+      _$StringMultiSelectItemsFromJson(json);
+
+  Map<String, dynamic> toJson() => _$StringMultiSelectItemsToJson(this);
+}
+
+/// Multi-select items constrained to a list of titled options.
+@JsonSerializable()
+class TitledMultiSelectItems extends MultiSelectItems {
+  @JsonKey(name: '_meta', includeIfNull: false)
+  final Map<String, dynamic>? meta;
+  final List<EnumOption> anyOf;
+
+  TitledMultiSelectItems({this.meta, required this.anyOf});
+
+  factory TitledMultiSelectItems.fromJson(Map<String, dynamic> json) =>
+      _$TitledMultiSelectItemsFromJson(json);
+
+  Map<String, dynamic> toJson() => _$TitledMultiSelectItemsToJson(this);
+}
+
+/// Forward-compatible fallback for unrecognised multi-select item shapes.
+@JsonSerializable()
+class UnknownMultiSelectItems extends MultiSelectItems {
+  final Map<String, dynamic> rawJson;
+  UnknownMultiSelectItems({required this.rawJson});
+  factory UnknownMultiSelectItems.fromJson(Map<String, dynamic> json) =>
+      _$UnknownMultiSelectItemsFromJson(json);
+  Map<String, dynamic> toJson() => _$UnknownMultiSelectItemsToJson(this);
+}
+
+/// A single property definition inside an [ElicitationSchema].
+///
+/// Each variant corresponds to a JSON Schema `type` value. Single-select
+/// enums use [StringPropertySchema] with `enumValues` or `oneOf` set;
+/// multi-select enums use [MultiSelectPropertySchema].
+abstract class ElicitationPropertySchema {}
+
+@JsonSerializable()
+class StringPropertySchema extends ElicitationPropertySchema {
+  @JsonKey(name: '_meta', includeIfNull: false)
+  final Map<String, dynamic>? meta;
+  final String? title;
+  final String? description;
+  final int? minLength;
+  final int? maxLength;
+  final String? pattern;
+  final StringFormat? format;
+  @JsonKey(name: 'default')
+  final String? defaultValue;
+  @JsonKey(name: 'enum')
+  final List<String>? enumValues;
+  final List<EnumOption>? oneOf;
+
+  StringPropertySchema({
+    this.meta,
+    this.title,
+    this.description,
+    this.minLength,
+    this.maxLength,
+    this.pattern,
+    this.format,
+    this.defaultValue,
+    this.enumValues,
+    this.oneOf,
+  });
+
+  factory StringPropertySchema.fromJson(Map<String, dynamic> json) =>
+      _$StringPropertySchemaFromJson(json);
+
+  Map<String, dynamic> toJson() => _$StringPropertySchemaToJson(this);
+}
+
+@JsonSerializable()
+class NumberPropertySchema extends ElicitationPropertySchema {
+  @JsonKey(name: '_meta', includeIfNull: false)
+  final Map<String, dynamic>? meta;
+  final String? title;
+  final String? description;
+  final num? minimum;
+  final num? maximum;
+  @JsonKey(name: 'default')
+  final num? defaultValue;
+
+  NumberPropertySchema({
+    this.meta,
+    this.title,
+    this.description,
+    this.minimum,
+    this.maximum,
+    this.defaultValue,
+  });
+
+  factory NumberPropertySchema.fromJson(Map<String, dynamic> json) =>
+      _$NumberPropertySchemaFromJson(json);
+
+  Map<String, dynamic> toJson() => _$NumberPropertySchemaToJson(this);
+}
+
+@JsonSerializable()
+class IntegerPropertySchema extends ElicitationPropertySchema {
+  @JsonKey(name: '_meta', includeIfNull: false)
+  final Map<String, dynamic>? meta;
+  final String? title;
+  final String? description;
+  final int? minimum;
+  final int? maximum;
+  @JsonKey(name: 'default')
+  final int? defaultValue;
+
+  IntegerPropertySchema({
+    this.meta,
+    this.title,
+    this.description,
+    this.minimum,
+    this.maximum,
+    this.defaultValue,
+  });
+
+  factory IntegerPropertySchema.fromJson(Map<String, dynamic> json) =>
+      _$IntegerPropertySchemaFromJson(json);
+
+  Map<String, dynamic> toJson() => _$IntegerPropertySchemaToJson(this);
+}
+
+@JsonSerializable()
+class BooleanPropertySchema extends ElicitationPropertySchema {
+  @JsonKey(name: '_meta', includeIfNull: false)
+  final Map<String, dynamic>? meta;
+  final String? title;
+  final String? description;
+  @JsonKey(name: 'default')
+  final bool? defaultValue;
+
+  BooleanPropertySchema({
+    this.meta,
+    this.title,
+    this.description,
+    this.defaultValue,
+  });
+
+  factory BooleanPropertySchema.fromJson(Map<String, dynamic> json) =>
+      _$BooleanPropertySchemaFromJson(json);
+
+  Map<String, dynamic> toJson() => _$BooleanPropertySchemaToJson(this);
+}
+
+@JsonSerializable()
+class MultiSelectPropertySchema extends ElicitationPropertySchema {
+  @JsonKey(name: '_meta', includeIfNull: false)
+  final Map<String, dynamic>? meta;
+  final String? title;
+  final String? description;
+  final int? minItems;
+  final int? maxItems;
+  @MultiSelectItemsConverter()
+  final MultiSelectItems items;
+  @JsonKey(name: 'default')
+  final List<String>? defaultValue;
+
+  MultiSelectPropertySchema({
+    this.meta,
+    this.title,
+    this.description,
+    this.minItems,
+    this.maxItems,
+    required this.items,
+    this.defaultValue,
+  });
+
+  factory MultiSelectPropertySchema.fromJson(Map<String, dynamic> json) =>
+      _$MultiSelectPropertySchemaFromJson(json);
+
+  Map<String, dynamic> toJson() => _$MultiSelectPropertySchemaToJson(this);
+}
+
+/// Forward-compatible fallback for unrecognised property schema types.
+@JsonSerializable()
+class UnknownPropertySchema extends ElicitationPropertySchema {
+  final Map<String, dynamic> rawJson;
+  UnknownPropertySchema({required this.rawJson});
+  factory UnknownPropertySchema.fromJson(Map<String, dynamic> json) =>
+      _$UnknownPropertySchemaFromJson(json);
+  Map<String, dynamic> toJson() => _$UnknownPropertySchemaToJson(this);
+}
+
+/// A JSON Schema object with primitive-typed properties, as required by the
+/// elicitation specification.
+@JsonSerializable()
+class ElicitationSchema {
+  @JsonKey(name: '_meta', includeIfNull: false)
+  final Map<String, dynamic>? meta;
+
+  /// Type discriminator. Always `"object"`.
+  @JsonKey(defaultValue: 'object')
+  final String type;
+  final String? title;
+  final String? description;
+  @ElicitationPropertySchemaMapConverter()
+  final Map<String, ElicitationPropertySchema>? properties;
+  final List<String>? required;
+
+  ElicitationSchema({
+    this.meta,
+    this.type = 'object',
+    this.title,
+    this.description,
+    this.properties,
+    this.required,
+  });
+
+  factory ElicitationSchema.fromJson(Map<String, dynamic> json) =>
+      _$ElicitationSchemaFromJson(json);
+
+  Map<String, dynamic> toJson() => _$ElicitationSchemaToJson(this);
+}
+
+/// Request parameters for the `elicitation/create` method.
+///
+/// The scope is one-of: either session-scoped (`sessionId`, optionally
+/// narrowed to a `toolCallId`) or request-scoped (`requestId`, for
+/// elicitations raised outside any session — during authentication, say).
+abstract class CreateElicitationRequest {
+  /// A human-readable message describing what input is needed.
+  String get message;
+}
+
+/// A form elicitation: the client renders [requestedSchema] and collects
+/// matching values from the user.
+@JsonSerializable()
+class ElicitationFormRequest extends CreateElicitationRequest {
+  @JsonKey(name: '_meta', includeIfNull: false)
+  final Map<String, dynamic>? meta;
+  @override
+  final String message;
+
+  /// Session this elicitation is tied to, when session-scoped.
+  final String? sessionId;
+
+  /// Tool call within the session, when the elicitation belongs to one.
+  final String? toolCallId;
+
+  /// Request this elicitation is tied to, when request-scoped.
+  final RequestId? requestId;
+
+  /// The schema describing the values being requested.
+  final ElicitationSchema requestedSchema;
+
+  ElicitationFormRequest({
+    this.meta,
+    required this.message,
+    this.sessionId,
+    this.toolCallId,
+    this.requestId,
+    required this.requestedSchema,
+  });
+
+  factory ElicitationFormRequest.fromJson(Map<String, dynamic> json) =>
+      _$ElicitationFormRequestFromJson(json);
+
+  Map<String, dynamic> toJson() => _$ElicitationFormRequestToJson(this);
+}
+
+/// A URL elicitation: the client directs the user to [url]. Completion is
+/// signalled out of band via `elicitation/complete`.
+@JsonSerializable()
+class ElicitationUrlRequest extends CreateElicitationRequest {
+  @JsonKey(name: '_meta', includeIfNull: false)
+  final Map<String, dynamic>? meta;
+  @override
+  final String message;
+  final String? sessionId;
+  final String? toolCallId;
+  final RequestId? requestId;
+
+  /// Identifier used to correlate the later `elicitation/complete`
+  /// notification with this request.
+  final String elicitationId;
+
+  /// The URL the user should be directed to.
+  final String url;
+
+  ElicitationUrlRequest({
+    this.meta,
+    required this.message,
+    this.sessionId,
+    this.toolCallId,
+    this.requestId,
+    required this.elicitationId,
+    required this.url,
+  });
+
+  factory ElicitationUrlRequest.fromJson(Map<String, dynamic> json) =>
+      _$ElicitationUrlRequestFromJson(json);
+
+  Map<String, dynamic> toJson() => _$ElicitationUrlRequestToJson(this);
+}
+
+/// Forward-compatible fallback for unrecognised elicitation modes.
+@JsonSerializable()
+class UnknownElicitationRequest extends CreateElicitationRequest {
+  final Map<String, dynamic> rawJson;
+  UnknownElicitationRequest({required this.rawJson});
+
+  @override
+  String get message => (rawJson['message'] as String?) ?? '';
+
+  factory UnknownElicitationRequest.fromJson(Map<String, dynamic> json) =>
+      _$UnknownElicitationRequestFromJson(json);
+  Map<String, dynamic> toJson() => _$UnknownElicitationRequestToJson(this);
+}
+
+/// Response to the `elicitation/create` method.
+abstract class CreateElicitationResponse {}
+
+/// The user submitted the elicitation.
+@JsonSerializable()
+class ElicitationAcceptResponse extends CreateElicitationResponse {
+  @JsonKey(name: '_meta', includeIfNull: false)
+  final Map<String, dynamic>? meta;
+
+  /// The submitted values, keyed by property name. Values are constrained by
+  /// the schema to `String`, `num`, `int`, `bool`, or `List<String>`.
+  final Map<String, dynamic>? content;
+
+  ElicitationAcceptResponse({this.meta, this.content});
+
+  factory ElicitationAcceptResponse.fromJson(Map<String, dynamic> json) =>
+      _$ElicitationAcceptResponseFromJson(json);
+
+  Map<String, dynamic> toJson() => _$ElicitationAcceptResponseToJson(this);
+}
+
+/// The user explicitly declined to provide the requested input.
+@JsonSerializable()
+class ElicitationDeclineResponse extends CreateElicitationResponse {
+  @JsonKey(name: '_meta', includeIfNull: false)
+  final Map<String, dynamic>? meta;
+
+  ElicitationDeclineResponse({this.meta});
+
+  factory ElicitationDeclineResponse.fromJson(Map<String, dynamic> json) =>
+      _$ElicitationDeclineResponseFromJson(json);
+
+  Map<String, dynamic> toJson() => _$ElicitationDeclineResponseToJson(this);
+}
+
+/// The elicitation was dismissed without an explicit decision.
+@JsonSerializable()
+class ElicitationCancelResponse extends CreateElicitationResponse {
+  @JsonKey(name: '_meta', includeIfNull: false)
+  final Map<String, dynamic>? meta;
+
+  ElicitationCancelResponse({this.meta});
+
+  factory ElicitationCancelResponse.fromJson(Map<String, dynamic> json) =>
+      _$ElicitationCancelResponseFromJson(json);
+
+  Map<String, dynamic> toJson() => _$ElicitationCancelResponseToJson(this);
+}
+
+/// Forward-compatible fallback for unrecognised elicitation actions.
+@JsonSerializable()
+class UnknownElicitationResponse extends CreateElicitationResponse {
+  final Map<String, dynamic> rawJson;
+  UnknownElicitationResponse({required this.rawJson});
+  factory UnknownElicitationResponse.fromJson(Map<String, dynamic> json) =>
+      _$UnknownElicitationResponseFromJson(json);
+  Map<String, dynamic> toJson() => _$UnknownElicitationResponseToJson(this);
+}
+
+/// Notification parameters for `elicitation/complete`.
+///
+/// Sent by the agent to tell the client that a URL elicitation has been
+/// resolved out of band and its UI can be dismissed.
+@JsonSerializable()
+class CompleteElicitationNotification {
+  @JsonKey(name: '_meta', includeIfNull: false)
+  final Map<String, dynamic>? meta;
+
+  /// The elicitation being completed.
+  final String elicitationId;
+
+  CompleteElicitationNotification({this.meta, required this.elicitationId});
+
+  factory CompleteElicitationNotification.fromJson(Map<String, dynamic> json) =>
+      _$CompleteElicitationNotificationFromJson(json);
+
+  Map<String, dynamic> toJson() =>
+      _$CompleteElicitationNotificationToJson(this);
+}
+
+/// Client capability marker for form-mode elicitations.
+@JsonSerializable()
+class ElicitationFormCapabilities {
+  @JsonKey(name: '_meta', includeIfNull: false)
+  final Map<String, dynamic>? meta;
+
+  ElicitationFormCapabilities({this.meta});
+
+  factory ElicitationFormCapabilities.fromJson(Map<String, dynamic> json) =>
+      _$ElicitationFormCapabilitiesFromJson(json);
+
+  Map<String, dynamic> toJson() => _$ElicitationFormCapabilitiesToJson(this);
+}
+
+/// Client capability marker for URL-mode elicitations.
+@JsonSerializable()
+class ElicitationUrlCapabilities {
+  @JsonKey(name: '_meta', includeIfNull: false)
+  final Map<String, dynamic>? meta;
+
+  ElicitationUrlCapabilities({this.meta});
+
+  factory ElicitationUrlCapabilities.fromJson(Map<String, dynamic> json) =>
+      _$ElicitationUrlCapabilitiesFromJson(json);
+
+  Map<String, dynamic> toJson() => _$ElicitationUrlCapabilitiesToJson(this);
+}
+
+/// Elicitation capabilities advertised by the client during initialization.
+///
+/// An omitted sub-capability means the client cannot render that mode; the
+/// agent should not send elicitations of that kind.
+@JsonSerializable()
+class ElicitationCapabilities {
+  @JsonKey(name: '_meta', includeIfNull: false)
+  final Map<String, dynamic>? meta;
+  final ElicitationFormCapabilities? form;
+  final ElicitationUrlCapabilities? url;
+
+  ElicitationCapabilities({this.meta, this.form, this.url});
+
+  factory ElicitationCapabilities.fromJson(Map<String, dynamic> json) =>
+      _$ElicitationCapabilitiesFromJson(json);
+
+  Map<String, dynamic> toJson() => _$ElicitationCapabilitiesToJson(this);
+}
+
 /// Protocol method constants for agent-side requests
 const agentMethods = {
   'authenticate': 'authenticate',
   'initialize': 'initialize',
+  'logout': 'logout',
+  // Deprecated: not part of the ACP schema. Superseded by
+  // `session/set_config_option` with the model config category.
   'modelSelect': 'session/set_model',
+  'sessionClose': 'session/close',
+  'sessionDelete': 'session/delete',
   'sessionFork': 'session/fork',
   'sessionList': 'session/list',
   'sessionSetConfigOption': 'session/set_config_option',
@@ -2353,6 +2976,8 @@ const agentMethods = {
 
 /// Protocol method constants for client-side requests
 const clientMethods = {
+  'elicitationCreate': 'elicitation/create',
+  'elicitationComplete': 'elicitation/complete',
   'fsReadTextFile': 'fs/read_text_file',
   'fsWriteTextFile': 'fs/write_text_file',
   'sessionRequestPermission': 'session/request_permission',
