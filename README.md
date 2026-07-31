@@ -13,7 +13,7 @@ Add the package to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  acp_dart: ^0.4.0
+  acp_dart: ^0.5.0
 ```
 
 Then run:
