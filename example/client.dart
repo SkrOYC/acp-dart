@@ -41,6 +41,87 @@ class ExampleClient implements Client {
   }
 
   @override
+  Future<CreateElicitationResponse> createElicitation(
+    CreateElicitationRequest params,
+  ) async {
+    print('\n📝 ${params.message}');
+
+    // URL elicitations are resolved out of band: point the user at the link
+    // and wait for the agent's `elicitation/complete` notification.
+    if (params is ElicitationUrlRequest) {
+      print('   Open: ${params.url}');
+      return ElicitationAcceptResponse();
+    }
+
+    if (params is! ElicitationFormRequest) {
+      // An elicitation mode this client doesn't understand.
+      return ElicitationDeclineResponse();
+    }
+
+    final properties = params.requestedSchema.properties ?? {};
+    final required = params.requestedSchema.required ?? const <String>[];
+    final content = <String, dynamic>{};
+
+    for (final entry in properties.entries) {
+      final name = entry.key;
+      final isRequired = required.contains(name);
+
+      while (true) {
+        stdout.write('   $name${isRequired ? ' (required)' : ''}: ');
+        stdout.flush();
+        final answer = stdin.readLineSync()?.trim() ?? '';
+
+        if (answer.isEmpty) {
+          if (isRequired) {
+            print('   This field is required.');
+            continue;
+          }
+          break;
+        }
+
+        final value = _coerce(entry.value, answer);
+        if (value == null) {
+          print('   Could not read that as the expected type. Try again.');
+          continue;
+        }
+        content[name] = value;
+        break;
+      }
+    }
+
+    return ElicitationAcceptResponse(content: content);
+  }
+
+  /// Parses raw stdin text into the type the property schema calls for.
+  ///
+  /// Returns null when the input doesn't match, so the caller can re-prompt.
+  Object? _coerce(ElicitationPropertySchema schema, String raw) {
+    return switch (schema) {
+      IntegerPropertySchema() => int.tryParse(raw),
+      NumberPropertySchema() => num.tryParse(raw),
+      BooleanPropertySchema() => switch (raw.toLowerCase()) {
+        'y' || 'yes' || 'true' => true,
+        'n' || 'no' || 'false' => false,
+        _ => null,
+      },
+      // Multi-select values arrive as a comma-separated list.
+      MultiSelectPropertySchema() => raw
+          .split(',')
+          .map((value) => value.trim())
+          .where((value) => value.isNotEmpty)
+          .toList(),
+      _ => raw,
+    };
+  }
+
+  @override
+  Future<void> completeElicitation(
+    CompleteElicitationNotification params,
+  ) async {
+    print('\n✅ Elicitation ${params.elicitationId} completed.');
+  }
+
+  @override
   Future<void> sessionUpdate(SessionNotification params) async {
     final update = params.update;
 
