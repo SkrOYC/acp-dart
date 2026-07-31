@@ -1,7 +1,7 @@
 # ACP Dart Library
 
 [![pub](https://img.shields.io/pub/v/acp_dart)](https://pub.dev/packages/acp_dart)
-[![Mintlify Docs](https://img.shields.io/badge/Mintlify-Docs-blue)](https://mintlify.com/SkrOYC/acp-dart/)
+[![Mintlify Docs](https://img.shields.io/badge/Mintlify-Docs-blue)](https://mintlify.wiki/SkrOYC/acp-dart)
 
 The official Dart implementation of the Agent Client Protocol (ACP) — a standardized communication protocol between code editors and AI-powered coding agents.
 
@@ -13,7 +13,7 @@ Add the package to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  acp_dart: ^0.4.0
+  acp_dart: ^0.5.0
 ```
 
 Then run:
@@ -73,24 +73,33 @@ The implementation tracks ACP stable and unstable surfaces explicitly.
 
 ### Stable Supported
 
-- Agent methods: `initialize`, `authenticate`, `session/new`, `session/load`, `session/prompt`, `session/cancel`, `session/set_mode`, `session/set_config_option`
-- Client methods: `fs/read_text_file`, `fs/write_text_file`, `session/request_permission`, `session/update`
+- Agent methods: `initialize`, `authenticate`, `logout`, `session/new`, `session/load`, `session/prompt`, `session/cancel`, `session/set_mode`, `session/set_config_option`, `session/list`, `session/close`, `session/delete`
+- Client methods: `fs/read_text_file`, `fs/write_text_file`, `session/request_permission`, `session/update`, `elicitation/create`, `elicitation/complete`
 - Terminal methods: `terminal/create`, `terminal/output`, `terminal/wait_for_exit`, `terminal/kill`, `terminal/release`
 - Protocol cancellation notification: `$/cancel_request`
 - Session updates: `user_message_chunk`, `agent_message_chunk`, `agent_thought_chunk`, `tool_call`, `tool_call_update`, `plan`, `available_commands_update`, `current_mode_update`, `config_option_update`
 
 ### Unstable Supported
 
-- `session/list`
 - `session/fork`
 - `session/resume`
-- `session/set_model`
 - Additional update variants implemented for parity tracking: `session_info_update`, `usage_update`
 
-### Known Unsupported / Partial
+### Deprecated
 
-- Filesystem methods beyond ACP stable surface (for example delete/move/mkdir/list operations)
-- Any ACP methods or update variants not represented in `agentMethods`, `clientMethods`, and typed schema unions in this package
+- `session/set_model`, along with `SessionModelState`, `ModelInfo`, and the `ModelId` typedef. These have no counterpart in the ACP schema — model selection is expressed through `session/set_config_option` with a model config category. They still dispatch, and will be removed in the next major release.
+
+### Known Unsupported
+
+These appear in the published schema but are not implemented here. Several are still at RFD stage and may change shape:
+
+- `providers/list`, `providers/set`, `providers/disable`
+- `nes/start`, `nes/suggest`, `nes/accept`, `nes/reject`, `nes/close` (Next Edit Suggestions)
+- `document/didOpen`, `document/didChange`, `document/didClose`, `document/didSave`, `document/didFocus`
+- `mcp/connect`, `mcp/message`, `mcp/disconnect` (MCP-over-ACP)
+- Filesystem methods beyond the ACP stable surface (for example delete/move/mkdir/list operations)
+
+Anything not represented in `agentMethods`, `clientMethods`, and the typed schema unions in this package is unsupported.
 
 See [`parity_verification_checklist.md`](parity_verification_checklist.md) for the release-time parity verification process.
 
@@ -105,6 +114,8 @@ See [`parity_verification_checklist.md`](parity_verification_checklist.md) for t
 ### Creating an Agent
 
 ```dart
+import 'dart:io';
+
 import 'package:acp_dart/acp_dart.dart';
 
 class MyAgent implements Agent {
@@ -115,11 +126,9 @@ class MyAgent implements Agent {
   @override
   Future<InitializeResponse> initialize(InitializeRequest params) async {
     return InitializeResponse(
-      protocolVersion: '0.1.0',
-      capabilities: AgentCapabilities(
-        loadSession: false,
-        auth: [],
-      ),
+      protocolVersion: 1,
+      agentCapabilities: AgentCapabilities(loadSession: false),
+      authMethods: const [],
     );
   }
 
@@ -127,10 +136,15 @@ class MyAgent implements Agent {
 }
 
 void main() {
+  // Note the argument order: (stdin, stdout).
   final stream = ndJsonStream(stdin, stdout);
-  final connection = AgentSideConnection((conn) => MyAgent(conn), stream);
+  AgentSideConnection((conn) => MyAgent(conn), stream);
 }
 ```
+
+> `implements Agent` requires every interface member to be declared, because
+> Dart only inherits default method bodies through `extends`. See
+> [`example/agent.dart`](example/agent.dart) for a complete implementation.
 
 ### Creating a Client
 
@@ -143,7 +157,18 @@ class MyClient implements Client {
     RequestPermissionRequest params,
   ) async {
     // Handle permission requests
-    return RequestPermissionResponse(optionId: params.options.first.id);
+    return RequestPermissionResponse(
+      outcome: SelectedOutcome(optionId: params.options.first.optionId),
+    );
+  }
+
+  @override
+  Future<CreateElicitationResponse> createElicitation(
+    CreateElicitationRequest params,
+  ) async {
+    // Collect the requested input from the user, then accept, decline,
+    // or cancel. See example/client.dart for a working implementation.
+    return ElicitationDeclineResponse();
   }
 
   @override
@@ -158,11 +183,16 @@ class MyClient implements Client {
 
 ## Resources
 
-- [Protocol Documentation](https://agentclientprotocol.com)
+- [Package Documentation](https://mintlify.wiki/SkrOYC/acp-dart) — installation, quickstart, API reference, and examples for this package
+- [Protocol Documentation](https://agentclientprotocol.com) — the ACP specification itself
 - [GitHub Repository](https://github.com/SkrOYC/acp-dart)
-- [Zed ACP GitHub Repository](https://github.com/zed-industries/agent-client-protocol)
 - [Examples](https://github.com/SkrOYC/acp-dart/tree/master/example)
+- [ACP Reference Implementation](https://github.com/agentclientprotocol/agent-client-protocol) — the schema and Rust SDK this package tracks
 
 ## Contributing
 
-See the official [ACP repository](https://github.com/zed-industries/agent-client-protocol) for contribution guidelines.
+Issues and pull requests for this package belong on [SkrOYC/acp-dart](https://github.com/SkrOYC/acp-dart/issues).
+
+For the protocol itself — proposing a new method, changing a message shape — see the [ACP repository](https://github.com/agentclientprotocol/agent-client-protocol) and its [RFD process](https://agentclientprotocol.com/rfds/about).
+
+Before releasing, work through [`parity_verification_checklist.md`](parity_verification_checklist.md).

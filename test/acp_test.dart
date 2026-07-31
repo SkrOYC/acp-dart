@@ -1594,6 +1594,21 @@ class MockAgent implements Agent {
   }
 
   @override
+  Future<CloseSessionResponse>? closeSession(CloseSessionRequest params) {
+    return null;
+  }
+
+  @override
+  Future<DeleteSessionResponse>? deleteSession(DeleteSessionRequest params) {
+    return null;
+  }
+
+  @override
+  Future<LogoutResponse>? logout(LogoutRequest params) {
+    return null;
+  }
+
+  @override
   Future<SetSessionModeResponse?>? setSessionMode(
     SetSessionModeRequest params,
   ) async {
@@ -1736,6 +1751,18 @@ class MockClient implements Client {
   @override
   Future<void> sessionUpdate(SessionNotification params) async {
     // Mock implementation
+  }
+
+  @override
+  Future<CreateElicitationResponse>? createElicitation(
+    CreateElicitationRequest params,
+  ) {
+    return null;
+  }
+
+  @override
+  Future<void>? completeElicitation(CompleteElicitationNotification params) {
+    return null;
   }
 
   @override

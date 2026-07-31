@@ -43,6 +43,8 @@
 
 import 'package:collection/collection.dart';
 
+import 'elicitation_converters.dart';
+
 import 'schema.dart';
 
 /// Base class for notifications sent by the agent.
@@ -70,12 +72,42 @@ abstract class AgentNotificationUnion {
     }
     return AgentExtensionNotification(payload);
   }
+
+  /// Deserializes a notification using its JSON-RPC method name.
+  ///
+  /// Prefer this over [fromJson], which cannot tell one agent notification
+  /// from another and always assumes `session/update`.
+  static AgentNotificationUnion fromMethod(String method, dynamic payload) {
+    switch (method) {
+      case 'session/update':
+        return SessionAgentNotification(
+          SessionNotification.fromJson(payload as Map<String, dynamic>),
+        );
+      case 'elicitation/complete':
+        return AgentCompleteElicitationNotification(
+          CompleteElicitationNotification.fromJson(
+            payload as Map<String, dynamic>,
+          ),
+        );
+      default:
+        return AgentExtensionNotification(payload);
+    }
+  }
 }
 
 class SessionAgentNotification extends AgentNotificationUnion {
   final SessionNotification notification;
 
   const SessionAgentNotification(this.notification);
+
+  @override
+  Map<String, dynamic> toJson() => notification.toJson();
+}
+
+class AgentCompleteElicitationNotification extends AgentNotificationUnion {
+  final CompleteElicitationNotification notification;
+
+  const AgentCompleteElicitationNotification(this.notification);
 
   @override
   Map<String, dynamic> toJson() => notification.toJson();
@@ -166,6 +198,12 @@ abstract class AgentRequestUnion {
         return AgentKillTerminalRequest(
           KillTerminalCommandRequest.fromJson(params as Map<String, dynamic>),
         );
+      case 'elicitation/create':
+        return AgentCreateElicitationRequest(
+          const CreateElicitationRequestConverter().fromJson(
+            params as Map<String, dynamic>,
+          ),
+        );
       default:
         return AgentExtensionMethodRequest(method, params);
     }
@@ -233,6 +271,16 @@ class AgentWaitForTerminalExitRequest extends AgentRequestUnion {
   String get method => clientMethods['terminalWaitForExit']!;
   @override
   Map<String, dynamic> toJson() => params.toJson();
+}
+
+class AgentCreateElicitationRequest extends AgentRequestUnion {
+  final CreateElicitationRequest params;
+  const AgentCreateElicitationRequest(this.params);
+  @override
+  String get method => clientMethods['elicitationCreate']!;
+  @override
+  Map<String, dynamic> toJson() =>
+      const CreateElicitationRequestConverter().toJson(params);
 }
 
 class AgentKillTerminalRequest extends AgentRequestUnion {
@@ -334,10 +382,49 @@ abstract class AgentResponseUnion {
                   result as Map<String, dynamic>,
                 ),
         );
+      case 'session/close':
+        return AgentCloseSessionResponse(
+          result == null
+              ? CloseSessionResponse()
+              : CloseSessionResponse.fromJson(result as Map<String, dynamic>),
+        );
+      case 'session/delete':
+        return AgentDeleteSessionResponse(
+          result == null
+              ? DeleteSessionResponse()
+              : DeleteSessionResponse.fromJson(result as Map<String, dynamic>),
+        );
+      case 'logout':
+        return AgentLogoutResponse(
+          result == null
+              ? LogoutResponse()
+              : LogoutResponse.fromJson(result as Map<String, dynamic>),
+        );
       default:
         return AgentExtensionMethodResponse(method, result);
     }
   }
+}
+
+class AgentCloseSessionResponse extends AgentResponseUnion {
+  final CloseSessionResponse response;
+  const AgentCloseSessionResponse(this.response);
+  @override
+  Map<String, dynamic> toJson() => response.toJson();
+}
+
+class AgentDeleteSessionResponse extends AgentResponseUnion {
+  final DeleteSessionResponse response;
+  const AgentDeleteSessionResponse(this.response);
+  @override
+  Map<String, dynamic> toJson() => response.toJson();
+}
+
+class AgentLogoutResponse extends AgentResponseUnion {
+  final LogoutResponse response;
+  const AgentLogoutResponse(this.response);
+  @override
+  Map<String, dynamic> toJson() => response.toJson();
 }
 
 class AgentInitializeResponse extends AgentResponseUnion {
@@ -516,6 +603,18 @@ abstract class ClientRequestUnion {
         return ClientSetSessionModelRequest(
           SetSessionModelRequest.fromJson(params as Map<String, dynamic>),
         );
+      case 'session/close':
+        return ClientCloseSessionRequest(
+          CloseSessionRequest.fromJson(params as Map<String, dynamic>),
+        );
+      case 'session/delete':
+        return ClientDeleteSessionRequest(
+          DeleteSessionRequest.fromJson(params as Map<String, dynamic>),
+        );
+      case 'logout':
+        return ClientLogoutRequest(
+          LogoutRequest.fromJson(params as Map<String, dynamic>),
+        );
       default:
         return ClientExtensionMethodRequest(method, params);
     }
@@ -621,6 +720,33 @@ class ClientSetSessionModelRequest extends ClientRequestUnion {
   Map<String, dynamic> toJson() => params.toJson();
 }
 
+class ClientCloseSessionRequest extends ClientRequestUnion {
+  final CloseSessionRequest params;
+  const ClientCloseSessionRequest(this.params);
+  @override
+  String get method => agentMethods['sessionClose']!;
+  @override
+  Map<String, dynamic> toJson() => params.toJson();
+}
+
+class ClientDeleteSessionRequest extends ClientRequestUnion {
+  final DeleteSessionRequest params;
+  const ClientDeleteSessionRequest(this.params);
+  @override
+  String get method => agentMethods['sessionDelete']!;
+  @override
+  Map<String, dynamic> toJson() => params.toJson();
+}
+
+class ClientLogoutRequest extends ClientRequestUnion {
+  final LogoutRequest params;
+  const ClientLogoutRequest(this.params);
+  @override
+  String get method => agentMethods['logout']!;
+  @override
+  Map<String, dynamic> toJson() => params.toJson();
+}
+
 class ClientExtensionMethodRequest extends ClientRequestUnion {
   final String methodName;
   final dynamic rawParams;
@@ -700,10 +826,24 @@ abstract class ClientResponseUnion {
                   result as Map<String, dynamic>,
                 ),
         );
+      case 'elicitation/create':
+        return ClientCreateElicitationResponse(
+          const CreateElicitationResponseConverter().fromJson(
+            result as Map<String, dynamic>,
+          ),
+        );
       default:
         return ClientExtensionMethodResponse(method, result);
     }
   }
+}
+
+class ClientCreateElicitationResponse extends ClientResponseUnion {
+  final CreateElicitationResponse response;
+  const ClientCreateElicitationResponse(this.response);
+  @override
+  Map<String, dynamic> toJson() =>
+      const CreateElicitationResponseConverter().toJson(response);
 }
 
 class ClientWriteTextFileResponse extends ClientResponseUnion {

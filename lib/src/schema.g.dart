@@ -51,6 +51,11 @@ ClientCapabilities _$ClientCapabilitiesFromJson(Map<String, dynamic> json) =>
           ? null
           : FileSystemCapability.fromJson(json['fs'] as Map<String, dynamic>),
       terminal: json['terminal'] as bool? ?? false,
+      elicitation: json['elicitation'] == null
+          ? null
+          : ElicitationCapabilities.fromJson(
+              json['elicitation'] as Map<String, dynamic>,
+            ),
     );
 
 Map<String, dynamic> _$ClientCapabilitiesToJson(ClientCapabilities instance) =>
@@ -58,6 +63,7 @@ Map<String, dynamic> _$ClientCapabilitiesToJson(ClientCapabilities instance) =>
       '_meta': ?instance.meta,
       'fs': instance.fs,
       'terminal': instance.terminal,
+      'elicitation': instance.elicitation,
     };
 
 FileSystemCapability _$FileSystemCapabilityFromJson(
@@ -877,6 +883,61 @@ AuthenticateResponse _$AuthenticateResponseFromJson(
 
 Map<String, dynamic> _$AuthenticateResponseToJson(
   AuthenticateResponse instance,
+) => <String, dynamic>{'_meta': ?instance.meta};
+
+LogoutRequest _$LogoutRequestFromJson(Map<String, dynamic> json) =>
+    LogoutRequest(meta: json['_meta'] as Map<String, dynamic>?);
+
+Map<String, dynamic> _$LogoutRequestToJson(LogoutRequest instance) =>
+    <String, dynamic>{'_meta': ?instance.meta};
+
+LogoutResponse _$LogoutResponseFromJson(Map<String, dynamic> json) =>
+    LogoutResponse(meta: json['_meta'] as Map<String, dynamic>?);
+
+Map<String, dynamic> _$LogoutResponseToJson(LogoutResponse instance) =>
+    <String, dynamic>{'_meta': ?instance.meta};
+
+DeleteSessionRequest _$DeleteSessionRequestFromJson(
+  Map<String, dynamic> json,
+) => DeleteSessionRequest(
+  meta: json['_meta'] as Map<String, dynamic>?,
+  sessionId: json['sessionId'] as String,
+);
+
+Map<String, dynamic> _$DeleteSessionRequestToJson(
+  DeleteSessionRequest instance,
+) => <String, dynamic>{
+  '_meta': ?instance.meta,
+  'sessionId': instance.sessionId,
+};
+
+DeleteSessionResponse _$DeleteSessionResponseFromJson(
+  Map<String, dynamic> json,
+) => DeleteSessionResponse(meta: json['_meta'] as Map<String, dynamic>?);
+
+Map<String, dynamic> _$DeleteSessionResponseToJson(
+  DeleteSessionResponse instance,
+) => <String, dynamic>{'_meta': ?instance.meta};
+
+CloseSessionRequest _$CloseSessionRequestFromJson(Map<String, dynamic> json) =>
+    CloseSessionRequest(
+      meta: json['_meta'] as Map<String, dynamic>?,
+      sessionId: json['sessionId'] as String,
+    );
+
+Map<String, dynamic> _$CloseSessionRequestToJson(
+  CloseSessionRequest instance,
+) => <String, dynamic>{
+  '_meta': ?instance.meta,
+  'sessionId': instance.sessionId,
+};
+
+CloseSessionResponse _$CloseSessionResponseFromJson(
+  Map<String, dynamic> json,
+) => CloseSessionResponse(meta: json['_meta'] as Map<String, dynamic>?);
+
+Map<String, dynamic> _$CloseSessionResponseToJson(
+  CloseSessionResponse instance,
 ) => <String, dynamic>{'_meta': ?instance.meta};
 
 NewSessionResponse _$NewSessionResponseFromJson(Map<String, dynamic> json) =>
@@ -1861,3 +1922,363 @@ UnknownSessionUpdate _$UnknownSessionUpdateFromJson(
 Map<String, dynamic> _$UnknownSessionUpdateToJson(
   UnknownSessionUpdate instance,
 ) => <String, dynamic>{'rawJson': instance.rawJson};
+
+EnumOption _$EnumOptionFromJson(Map<String, dynamic> json) => EnumOption(
+  meta: json['_meta'] as Map<String, dynamic>?,
+  constValue: json['const'] as String,
+  title: json['title'] as String,
+  description: json['description'] as String?,
+);
+
+Map<String, dynamic> _$EnumOptionToJson(EnumOption instance) =>
+    <String, dynamic>{
+      '_meta': ?instance.meta,
+      'const': instance.constValue,
+      'title': instance.title,
+      'description': instance.description,
+    };
+
+StringMultiSelectItems _$StringMultiSelectItemsFromJson(
+  Map<String, dynamic> json,
+) => StringMultiSelectItems(
+  meta: json['_meta'] as Map<String, dynamic>?,
+  enumValues: (json['enum'] as List<dynamic>).map((e) => e as String).toList(),
+);
+
+Map<String, dynamic> _$StringMultiSelectItemsToJson(
+  StringMultiSelectItems instance,
+) => <String, dynamic>{'_meta': ?instance.meta, 'enum': instance.enumValues};
+
+TitledMultiSelectItems _$TitledMultiSelectItemsFromJson(
+  Map<String, dynamic> json,
+) => TitledMultiSelectItems(
+  meta: json['_meta'] as Map<String, dynamic>?,
+  anyOf: (json['anyOf'] as List<dynamic>)
+      .map((e) => EnumOption.fromJson(e as Map<String, dynamic>))
+      .toList(),
+);
+
+Map<String, dynamic> _$TitledMultiSelectItemsToJson(
+  TitledMultiSelectItems instance,
+) => <String, dynamic>{'_meta': ?instance.meta, 'anyOf': instance.anyOf};
+
+UnknownMultiSelectItems _$UnknownMultiSelectItemsFromJson(
+  Map<String, dynamic> json,
+) => UnknownMultiSelectItems(rawJson: json['rawJson'] as Map<String, dynamic>);
+
+Map<String, dynamic> _$UnknownMultiSelectItemsToJson(
+  UnknownMultiSelectItems instance,
+) => <String, dynamic>{'rawJson': instance.rawJson};
+
+StringPropertySchema _$StringPropertySchemaFromJson(
+  Map<String, dynamic> json,
+) => StringPropertySchema(
+  meta: json['_meta'] as Map<String, dynamic>?,
+  title: json['title'] as String?,
+  description: json['description'] as String?,
+  minLength: (json['minLength'] as num?)?.toInt(),
+  maxLength: (json['maxLength'] as num?)?.toInt(),
+  pattern: json['pattern'] as String?,
+  format: $enumDecodeNullable(_$StringFormatEnumMap, json['format']),
+  defaultValue: json['default'] as String?,
+  enumValues: (json['enum'] as List<dynamic>?)
+      ?.map((e) => e as String)
+      .toList(),
+  oneOf: (json['oneOf'] as List<dynamic>?)
+      ?.map((e) => EnumOption.fromJson(e as Map<String, dynamic>))
+      .toList(),
+);
+
+Map<String, dynamic> _$StringPropertySchemaToJson(
+  StringPropertySchema instance,
+) => <String, dynamic>{
+  '_meta': ?instance.meta,
+  'title': instance.title,
+  'description': instance.description,
+  'minLength': instance.minLength,
+  'maxLength': instance.maxLength,
+  'pattern': instance.pattern,
+  'format': _$StringFormatEnumMap[instance.format],
+  'default': instance.defaultValue,
+  'enum': instance.enumValues,
+  'oneOf': instance.oneOf,
+};
+
+const _$StringFormatEnumMap = {
+  StringFormat.email: 'email',
+  StringFormat.uri: 'uri',
+  StringFormat.date: 'date',
+  StringFormat.dateTime: 'date-time',
+};
+
+NumberPropertySchema _$NumberPropertySchemaFromJson(
+  Map<String, dynamic> json,
+) => NumberPropertySchema(
+  meta: json['_meta'] as Map<String, dynamic>?,
+  title: json['title'] as String?,
+  description: json['description'] as String?,
+  minimum: json['minimum'] as num?,
+  maximum: json['maximum'] as num?,
+  defaultValue: json['default'] as num?,
+);
+
+Map<String, dynamic> _$NumberPropertySchemaToJson(
+  NumberPropertySchema instance,
+) => <String, dynamic>{
+  '_meta': ?instance.meta,
+  'title': instance.title,
+  'description': instance.description,
+  'minimum': instance.minimum,
+  'maximum': instance.maximum,
+  'default': instance.defaultValue,
+};
+
+IntegerPropertySchema _$IntegerPropertySchemaFromJson(
+  Map<String, dynamic> json,
+) => IntegerPropertySchema(
+  meta: json['_meta'] as Map<String, dynamic>?,
+  title: json['title'] as String?,
+  description: json['description'] as String?,
+  minimum: (json['minimum'] as num?)?.toInt(),
+  maximum: (json['maximum'] as num?)?.toInt(),
+  defaultValue: (json['default'] as num?)?.toInt(),
+);
+
+Map<String, dynamic> _$IntegerPropertySchemaToJson(
+  IntegerPropertySchema instance,
+) => <String, dynamic>{
+  '_meta': ?instance.meta,
+  'title': instance.title,
+  'description': instance.description,
+  'minimum': instance.minimum,
+  'maximum': instance.maximum,
+  'default': instance.defaultValue,
+};
+
+BooleanPropertySchema _$BooleanPropertySchemaFromJson(
+  Map<String, dynamic> json,
+) => BooleanPropertySchema(
+  meta: json['_meta'] as Map<String, dynamic>?,
+  title: json['title'] as String?,
+  description: json['description'] as String?,
+  defaultValue: json['default'] as bool?,
+);
+
+Map<String, dynamic> _$BooleanPropertySchemaToJson(
+  BooleanPropertySchema instance,
+) => <String, dynamic>{
+  '_meta': ?instance.meta,
+  'title': instance.title,
+  'description': instance.description,
+  'default': instance.defaultValue,
+};
+
+MultiSelectPropertySchema _$MultiSelectPropertySchemaFromJson(
+  Map<String, dynamic> json,
+) => MultiSelectPropertySchema(
+  meta: json['_meta'] as Map<String, dynamic>?,
+  title: json['title'] as String?,
+  description: json['description'] as String?,
+  minItems: (json['minItems'] as num?)?.toInt(),
+  maxItems: (json['maxItems'] as num?)?.toInt(),
+  items: const MultiSelectItemsConverter().fromJson(
+    json['items'] as Map<String, dynamic>,
+  ),
+  defaultValue: (json['default'] as List<dynamic>?)
+      ?.map((e) => e as String)
+      .toList(),
+);
+
+Map<String, dynamic> _$MultiSelectPropertySchemaToJson(
+  MultiSelectPropertySchema instance,
+) => <String, dynamic>{
+  '_meta': ?instance.meta,
+  'title': instance.title,
+  'description': instance.description,
+  'minItems': instance.minItems,
+  'maxItems': instance.maxItems,
+  'items': const MultiSelectItemsConverter().toJson(instance.items),
+  'default': instance.defaultValue,
+};
+
+UnknownPropertySchema _$UnknownPropertySchemaFromJson(
+  Map<String, dynamic> json,
+) => UnknownPropertySchema(rawJson: json['rawJson'] as Map<String, dynamic>);
+
+Map<String, dynamic> _$UnknownPropertySchemaToJson(
+  UnknownPropertySchema instance,
+) => <String, dynamic>{'rawJson': instance.rawJson};
+
+ElicitationSchema _$ElicitationSchemaFromJson(Map<String, dynamic> json) =>
+    ElicitationSchema(
+      meta: json['_meta'] as Map<String, dynamic>?,
+      type: json['type'] as String? ?? 'object',
+      title: json['title'] as String?,
+      description: json['description'] as String?,
+      properties: const ElicitationPropertySchemaMapConverter().fromJson(
+        json['properties'] as Map<String, dynamic>?,
+      ),
+      required: (json['required'] as List<dynamic>?)
+          ?.map((e) => e as String)
+          .toList(),
+    );
+
+Map<String, dynamic> _$ElicitationSchemaToJson(ElicitationSchema instance) =>
+    <String, dynamic>{
+      '_meta': ?instance.meta,
+      'type': instance.type,
+      'title': instance.title,
+      'description': instance.description,
+      'properties': const ElicitationPropertySchemaMapConverter().toJson(
+        instance.properties,
+      ),
+      'required': instance.required,
+    };
+
+ElicitationFormRequest _$ElicitationFormRequestFromJson(
+  Map<String, dynamic> json,
+) => ElicitationFormRequest(
+  meta: json['_meta'] as Map<String, dynamic>?,
+  message: json['message'] as String,
+  sessionId: json['sessionId'] as String?,
+  toolCallId: json['toolCallId'] as String?,
+  requestId: json['requestId'],
+  requestedSchema: ElicitationSchema.fromJson(
+    json['requestedSchema'] as Map<String, dynamic>,
+  ),
+);
+
+Map<String, dynamic> _$ElicitationFormRequestToJson(
+  ElicitationFormRequest instance,
+) => <String, dynamic>{
+  '_meta': ?instance.meta,
+  'message': instance.message,
+  'sessionId': instance.sessionId,
+  'toolCallId': instance.toolCallId,
+  'requestId': instance.requestId,
+  'requestedSchema': instance.requestedSchema,
+};
+
+ElicitationUrlRequest _$ElicitationUrlRequestFromJson(
+  Map<String, dynamic> json,
+) => ElicitationUrlRequest(
+  meta: json['_meta'] as Map<String, dynamic>?,
+  message: json['message'] as String,
+  sessionId: json['sessionId'] as String?,
+  toolCallId: json['toolCallId'] as String?,
+  requestId: json['requestId'],
+  elicitationId: json['elicitationId'] as String,
+  url: json['url'] as String,
+);
+
+Map<String, dynamic> _$ElicitationUrlRequestToJson(
+  ElicitationUrlRequest instance,
+) => <String, dynamic>{
+  '_meta': ?instance.meta,
+  'message': instance.message,
+  'sessionId': instance.sessionId,
+  'toolCallId': instance.toolCallId,
+  'requestId': instance.requestId,
+  'elicitationId': instance.elicitationId,
+  'url': instance.url,
+};
+
+UnknownElicitationRequest _$UnknownElicitationRequestFromJson(
+  Map<String, dynamic> json,
+) =>
+    UnknownElicitationRequest(rawJson: json['rawJson'] as Map<String, dynamic>);
+
+Map<String, dynamic> _$UnknownElicitationRequestToJson(
+  UnknownElicitationRequest instance,
+) => <String, dynamic>{'rawJson': instance.rawJson};
+
+ElicitationAcceptResponse _$ElicitationAcceptResponseFromJson(
+  Map<String, dynamic> json,
+) => ElicitationAcceptResponse(
+  meta: json['_meta'] as Map<String, dynamic>?,
+  content: json['content'] as Map<String, dynamic>?,
+);
+
+Map<String, dynamic> _$ElicitationAcceptResponseToJson(
+  ElicitationAcceptResponse instance,
+) => <String, dynamic>{'_meta': ?instance.meta, 'content': instance.content};
+
+ElicitationDeclineResponse _$ElicitationDeclineResponseFromJson(
+  Map<String, dynamic> json,
+) => ElicitationDeclineResponse(meta: json['_meta'] as Map<String, dynamic>?);
+
+Map<String, dynamic> _$ElicitationDeclineResponseToJson(
+  ElicitationDeclineResponse instance,
+) => <String, dynamic>{'_meta': ?instance.meta};
+
+ElicitationCancelResponse _$ElicitationCancelResponseFromJson(
+  Map<String, dynamic> json,
+) => ElicitationCancelResponse(meta: json['_meta'] as Map<String, dynamic>?);
+
+Map<String, dynamic> _$ElicitationCancelResponseToJson(
+  ElicitationCancelResponse instance,
+) => <String, dynamic>{'_meta': ?instance.meta};
+
+UnknownElicitationResponse _$UnknownElicitationResponseFromJson(
+  Map<String, dynamic> json,
+) => UnknownElicitationResponse(
+  rawJson: json['rawJson'] as Map<String, dynamic>,
+);
+
+Map<String, dynamic> _$UnknownElicitationResponseToJson(
+  UnknownElicitationResponse instance,
+) => <String, dynamic>{'rawJson': instance.rawJson};
+
+CompleteElicitationNotification _$CompleteElicitationNotificationFromJson(
+  Map<String, dynamic> json,
+) => CompleteElicitationNotification(
+  meta: json['_meta'] as Map<String, dynamic>?,
+  elicitationId: json['elicitationId'] as String,
+);
+
+Map<String, dynamic> _$CompleteElicitationNotificationToJson(
+  CompleteElicitationNotification instance,
+) => <String, dynamic>{
+  '_meta': ?instance.meta,
+  'elicitationId': instance.elicitationId,
+};
+
+ElicitationFormCapabilities _$ElicitationFormCapabilitiesFromJson(
+  Map<String, dynamic> json,
+) => ElicitationFormCapabilities(meta: json['_meta'] as Map<String, dynamic>?);
+
+Map<String, dynamic> _$ElicitationFormCapabilitiesToJson(
+  ElicitationFormCapabilities instance,
+) => <String, dynamic>{'_meta': ?instance.meta};
+
+ElicitationUrlCapabilities _$ElicitationUrlCapabilitiesFromJson(
+  Map<String, dynamic> json,
+) => ElicitationUrlCapabilities(meta: json['_meta'] as Map<String, dynamic>?);
+
+Map<String, dynamic> _$ElicitationUrlCapabilitiesToJson(
+  ElicitationUrlCapabilities instance,
+) => <String, dynamic>{'_meta': ?instance.meta};
+
+ElicitationCapabilities _$ElicitationCapabilitiesFromJson(
+  Map<String, dynamic> json,
+) => ElicitationCapabilities(
+  meta: json['_meta'] as Map<String, dynamic>?,
+  form: json['form'] == null
+      ? null
+      : ElicitationFormCapabilities.fromJson(
+          json['form'] as Map<String, dynamic>,
+        ),
+  url: json['url'] == null
+      ? null
+      : ElicitationUrlCapabilities.fromJson(
+          json['url'] as Map<String, dynamic>,
+        ),
+);
+
+Map<String, dynamic> _$ElicitationCapabilitiesToJson(
+  ElicitationCapabilities instance,
+) => <String, dynamic>{
+  '_meta': ?instance.meta,
+  'form': instance.form,
+  'url': instance.url,
+};

@@ -5,6 +5,7 @@ library;
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:acp_dart/src/elicitation_converters.dart';
 import 'package:acp_dart/src/schema.dart';
 import 'package:acp_dart/src/stream.dart';
 
@@ -395,6 +396,27 @@ abstract class Client {
     KillTerminalCommandRequest params,
   );
 
+  /// Requests structured input from the user.
+  ///
+  /// Only available if the client advertises an `elicitation` capability for
+  /// the requested mode. Form elicitations are answered directly; URL
+  /// elicitations direct the user elsewhere and are resolved out of band,
+  /// with the agent later sending [completeElicitation].
+  ///
+  /// Returning `null` reports `-32601 Method not found` to the agent.
+  ///
+  /// See protocol docs: [Elicitation](https://agentclientprotocol.com/protocol/elicitation)
+  Future<CreateElicitationResponse>? createElicitation(
+    CreateElicitationRequest params,
+  ) => null;
+
+  /// Notifies the client that a URL elicitation has been resolved out of band.
+  ///
+  /// The client should dismiss any UI it is showing for the elicitation
+  /// identified by `elicitationId`.
+  Future<void>? completeElicitation(CompleteElicitationNotification params) =>
+      null;
+
   /// Extension method
   ///
   /// Allows the Agent to send an arbitrary request that is not part of the ACP spec.
@@ -489,6 +511,27 @@ class AgentSideConnection implements Client {
             params,
             ResumeSessionRequest.fromJson,
             agent.unstableResumeSession,
+          );
+        case 'session/close':
+          return handleOptionalRequest(
+            method,
+            params,
+            CloseSessionRequest.fromJson,
+            agent.closeSession,
+          );
+        case 'session/delete':
+          return handleOptionalRequest(
+            method,
+            params,
+            DeleteSessionRequest.fromJson,
+            agent.deleteSession,
+          );
+        case 'logout':
+          return handleOptionalRequest(
+            method,
+            params,
+            LogoutRequest.fromJson,
+            agent.logout,
           );
         case 'session/set_mode':
           final validatedParams = SetSessionModeRequest.fromJson(
@@ -594,6 +637,29 @@ class AgentSideConnection implements Client {
       params.toJson(),
     );
     return ReadTextFileResponse.fromJson(result as Map<String, dynamic>);
+  }
+
+  @override
+  Future<CreateElicitationResponse> createElicitation(
+    CreateElicitationRequest params,
+  ) async {
+    final result = await _connection.sendRequest(
+      clientMethods['elicitationCreate']!,
+      const CreateElicitationRequestConverter().toJson(params),
+    );
+    return const CreateElicitationResponseConverter().fromJson(
+      result as Map<String, dynamic>,
+    );
+  }
+
+  @override
+  Future<void> completeElicitation(
+    CompleteElicitationNotification params,
+  ) async {
+    return _connection.sendNotification(
+      clientMethods['elicitationComplete']!,
+      params.toJson(),
+    );
   }
 
   @override
@@ -733,6 +799,15 @@ class ClientSideConnection implements Agent {
             params as Map<String, dynamic>,
           );
           return client.requestPermission(validatedParams);
+        case 'elicitation/create':
+          final validatedParams = const CreateElicitationRequestConverter()
+              .fromJson(params as Map<String, dynamic>);
+          final result = await client.createElicitation(validatedParams);
+          if (result == null) {
+            throw RequestError.methodNotFound(method);
+          }
+          // The response is a union, so it carries no `toJson` of its own.
+          return const CreateElicitationResponseConverter().toJson(result);
         case 'terminal/create':
           final validatedParams = CreateTerminalRequest.fromJson(
             params as Map<String, dynamic>,
@@ -794,6 +869,12 @@ class ClientSideConnection implements Agent {
             params as Map<String, dynamic>,
           );
           return client.sessionUpdate(validatedParams);
+        case 'elicitation/complete':
+          final validatedParams = CompleteElicitationNotification.fromJson(
+            params as Map<String, dynamic>,
+          );
+          await client.completeElicitation(validatedParams);
+          return;
         case r'$/cancel_request':
           final validatedParams = CancelRequestNotification.fromJson(
             params as Map<String, dynamic>,
@@ -937,6 +1018,35 @@ class ClientSideConnection implements Agent {
   }
 
   @override
+  Future<LogoutResponse>? logout(LogoutRequest params) async {
+    return _sendTypedRequest(
+      agentMethods['logout']!,
+      params.toJson(),
+      LogoutResponse.fromJson,
+    );
+  }
+
+  @override
+  Future<CloseSessionResponse>? closeSession(CloseSessionRequest params) async {
+    return _sendTypedRequest(
+      agentMethods['sessionClose']!,
+      params.toJson(),
+      CloseSessionResponse.fromJson,
+    );
+  }
+
+  @override
+  Future<DeleteSessionResponse>? deleteSession(
+    DeleteSessionRequest params,
+  ) async {
+    return _sendTypedRequest(
+      agentMethods['sessionDelete']!,
+      params.toJson(),
+      DeleteSessionResponse.fromJson,
+    );
+  }
+
+  @override
   Future<PromptResponse> prompt(PromptRequest params) async {
     return _sendTypedRequest(
       agentMethods['sessionPrompt']!,
@@ -1041,6 +1151,23 @@ abstract class Agent {
     ResumeSessionRequest params,
   ) => null;
 
+  /// Releases the resources backing an active session.
+  ///
+  /// The session remains in the Agent's history and can still be loaded or
+  /// resumed later; use [deleteSession] to discard it entirely.
+  ///
+  /// Returning `null` reports `-32601 Method not found` to the client.
+  Future<CloseSessionResponse>? closeSession(CloseSessionRequest params) => null;
+
+  /// Removes a session from the Agent's session history.
+  ///
+  /// Unlike [closeSession], this discards the stored session. Returning `null`
+  /// reports `-32601 Method not found` to the client.
+  ///
+  /// See protocol docs: [Session Delete](https://agentclientprotocol.com/protocol/session-delete)
+  Future<DeleteSessionResponse>? deleteSession(DeleteSessionRequest params) =>
+      null;
+
   /// Sets the operational mode for a session.
   ///
   /// Allows switching between different agent modes (e.g., "ask", "architect", "code")
@@ -1064,7 +1191,14 @@ abstract class Agent {
 
   /// Selects the model for a given session.
   ///
-  /// **UNSTABLE:** This capability is not part of the spec yet, and may be removed or changed at any point.
+  /// **DEPRECATED:** `session/set_model` is not part of the ACP schema. Model
+  /// selection is expressed through [setSessionConfigOption] with a model
+  /// config category. This method still dispatches so existing integrations
+  /// keep working, and will be removed in the next major release.
+  @Deprecated(
+    'Not part of the ACP schema. Use setSessionConfigOption with a model '
+    'config category. Will be removed in the next major release.',
+  )
   Future<SetSessionModelResponse?>? setSessionModel(
     SetSessionModelRequest params,
   );
@@ -1077,6 +1211,17 @@ abstract class Agent {
   /// After successful authentication, the client can proceed to create sessions with
   /// `newSession` without receiving an `auth_required` error.
   Future<AuthenticateResponse?>? authenticate(AuthenticateRequest params);
+
+  /// Clears any credentials the Agent holds for the current connection.
+  ///
+  /// Only meaningful when the Agent advertised authentication methods during
+  /// initialization. After logging out, the client must authenticate again
+  /// before creating new sessions.
+  ///
+  /// Returning `null` reports `-32601 Method not found` to the client.
+  ///
+  /// See protocol docs: [Authentication](https://agentclientprotocol.com/protocol/authentication)
+  Future<LogoutResponse>? logout(LogoutRequest params) => null;
 
   /// Processes a user prompt within a session.
   ///
