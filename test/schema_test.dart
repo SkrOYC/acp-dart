@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:acp_dart/src/schema.dart';
+import 'package:acp_dart/src/tool_call_content_converter.dart';
 import 'package:test/test.dart';
 
 void main() {
@@ -567,22 +568,65 @@ void main() {
     });
 
     test('Tool call content variants serialize with type discriminators', () {
-      final diff = DiffToolCallContent(
-        path: '/workspace/lib/main.dart',
-        newText: 'void main() {}',
-      );
+      final variants = <String, ToolCallContent>{
+        'content': ContentToolCallContent(
+          content: TextContentBlock(text: 'hello'),
+        ),
+        'diff': DiffToolCallContent(
+          path: '/workspace/lib/main.dart',
+          newText: 'void main() {}',
+        ),
+        'terminal': TerminalToolCallContent(terminalId: 'term-1'),
+      };
 
-      final terminal = TerminalToolCallContent(terminalId: 'term-1');
+      // Encode and decode the way the wire does, so a missing `type` in the
+      // encoded JSON fails here instead of at the far end of a connection.
+      for (final entry in variants.entries) {
+        final encoded =
+            jsonDecode(
+                  jsonEncode(
+                    const ToolCallContentConverter().toJson(entry.value),
+                  ),
+                )
+                as Map<String, dynamic>;
 
-      final diffDecoded = DiffToolCallContent.fromJson(
-        jsonDecode(jsonEncode(diff.toJson())) as Map<String, dynamic>,
-      );
-      final terminalDecoded = TerminalToolCallContent.fromJson(
-        jsonDecode(jsonEncode(terminal.toJson())) as Map<String, dynamic>,
-      );
+        expect(encoded['type'], equals(entry.key));
+        expect(
+          const ToolCallContentConverter().fromJson(encoded).runtimeType,
+          equals(entry.value.runtimeType),
+        );
+      }
+
+      final diffDecoded =
+          const ToolCallContentConverter().fromJson(
+                jsonDecode(
+                      jsonEncode(
+                        const ToolCallContentConverter().toJson(
+                          variants['diff']!,
+                        ),
+                      ),
+                    )
+                    as Map<String, dynamic>,
+              )
+              as DiffToolCallContent;
 
       expect(diffDecoded.type, equals('diff'));
       expect(diffDecoded.newText, equals('void main() {}'));
+      expect(diffDecoded.path, equals('/workspace/lib/main.dart'));
+
+      final terminalDecoded =
+          const ToolCallContentConverter().fromJson(
+                jsonDecode(
+                      jsonEncode(
+                        const ToolCallContentConverter().toJson(
+                          variants['terminal']!,
+                        ),
+                      ),
+                    )
+                    as Map<String, dynamic>,
+              )
+              as TerminalToolCallContent;
+
       expect(terminalDecoded.terminalId, equals('term-1'));
     });
 

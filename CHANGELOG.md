@@ -1,3 +1,15 @@
+## Unreleased
+
+### Fixed
+
+- **Tool Call Content Discriminator:** `ToolCallContent` variants are now encoded with their `type` field (`content`, `diff`, `terminal`). Previously the discriminator was dropped during serialization, so any tool call carrying content could not be decoded by the receiving peer.
+- **Example Agent:** `example/agent.dart` now compiles against the current `Agent` interface (it was missing the unstable `session/list`, `session/fork`, and `session/resume` members) and completes a prompt turn. The turn's cancellation signal is a cancellation token instead of a single-subscription `Future.asStream()`, which could only be listened to once and failed the turn with `-32603` on the second simulated model call.
+- **Example Cancellation Semantics:** A cancelled turn in `example/agent.dart` now unwinds and responds with `StopReason.cancelled`, as the spec requires. Previously `session/cancel` only shortened the simulated delays: the turn ran to completion — still requesting permission for and applying its pending tool call — and reported `StopReason.endTurn`. A `cancelled` permission outcome ends the turn the same way, and a prompt superseded by a newer prompt no longer clears the newer prompt's cancellation token.
+
+### Developer Experience
+
+- **Example End-to-End Coverage:** Added `test/example_e2e_test.dart`, which runs `example/agent.dart` as a subprocess and drives full turns (allow, reject, `session/cancel`, and cancelled-permission paths, plus `example/client.dart` itself) through to a stop reason.
+
 ## 0.4.0
 
 ### Added
