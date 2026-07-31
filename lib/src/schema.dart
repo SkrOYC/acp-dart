@@ -16,6 +16,11 @@ typedef SessionModeId = String;
 typedef SessionConfigId = String;
 typedef SessionConfigValueId = String;
 typedef SessionConfigGroupId = String;
+@Deprecated(
+  'Not part of the ACP schema. Model selection is expressed through '
+  'session/set_config_option with a model config category. '
+  'Will be removed in the next major release.',
+)
 typedef ModelId = String;
 typedef AuthMethodId = String;
 typedef ToolCallId = String;
@@ -725,6 +730,11 @@ class ToolCall {
   Map<String, dynamic> toJson() => _$ToolCallToJson(this);
 }
 
+@Deprecated(
+  'Not part of the ACP schema. Model selection is expressed through '
+  'session/set_config_option with a model config category. '
+  'Will be removed in the next major release.',
+)
 @JsonSerializable()
 class SetSessionModelRequest {
   @JsonKey(name: '_meta', includeIfNull: false)
@@ -1350,6 +1360,11 @@ class SessionMode {
   Map<String, dynamic> toJson() => _$SessionModeToJson(this);
 }
 
+@Deprecated(
+  'Not part of the ACP schema. Model selection is expressed through '
+  'session/set_config_option with a model config category. '
+  'Will be removed in the next major release.',
+)
 @JsonSerializable()
 class SessionModelState {
   @JsonKey(name: '_meta', includeIfNull: false)
@@ -1474,6 +1489,11 @@ class SessionConfigSelectGroup {
   Map<String, dynamic> toJson() => _$SessionConfigSelectGroupToJson(this);
 }
 
+@Deprecated(
+  'Not part of the ACP schema. Model selection is expressed through '
+  'session/set_config_option with a model config category. '
+  'Will be removed in the next major release.',
+)
 @JsonSerializable()
 class ModelInfo {
   @JsonKey(name: '_meta', includeIfNull: false)
@@ -1679,6 +1699,11 @@ class Cost {
   Map<String, dynamic> toJson() => _$CostToJson(this);
 }
 
+@Deprecated(
+  'Not part of the ACP schema. Model selection is expressed through '
+  'session/set_config_option with a model config category. '
+  'Will be removed in the next major release.',
+)
 @JsonSerializable()
 class SetSessionModelResponse {
   @JsonKey(name: '_meta', includeIfNull: false)
@@ -2958,8 +2983,9 @@ const agentMethods = {
   'authenticate': 'authenticate',
   'initialize': 'initialize',
   'logout': 'logout',
-  // Deprecated: not part of the ACP schema. Superseded by
-  // `session/set_config_option` with the model config category.
+  // Deprecated: `session/set_model` is not part of the ACP schema. Superseded
+  // by `session/set_config_option` with a model config category. Retained so
+  // existing integrations keep dispatching; removed in the next major release.
   'modelSelect': 'session/set_model',
   'sessionClose': 'session/close',
   'sessionDelete': 'session/delete',

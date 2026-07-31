@@ -1191,7 +1191,14 @@ abstract class Agent {
 
   /// Selects the model for a given session.
   ///
-  /// **UNSTABLE:** This capability is not part of the spec yet, and may be removed or changed at any point.
+  /// **DEPRECATED:** `session/set_model` is not part of the ACP schema. Model
+  /// selection is expressed through [setSessionConfigOption] with a model
+  /// config category. This method still dispatches so existing integrations
+  /// keep working, and will be removed in the next major release.
+  @Deprecated(
+    'Not part of the ACP schema. Use setSessionConfigOption with a model '
+    'config category. Will be removed in the next major release.',
+  )
   Future<SetSessionModelResponse?>? setSessionModel(
     SetSessionModelRequest params,
   );
