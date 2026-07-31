@@ -1594,6 +1594,21 @@ class MockAgent implements Agent {
   }
 
   @override
+  Future<CloseSessionResponse>? closeSession(CloseSessionRequest params) {
+    return null;
+  }
+
+  @override
+  Future<DeleteSessionResponse>? deleteSession(DeleteSessionRequest params) {
+    return null;
+  }
+
+  @override
+  Future<LogoutResponse>? logout(LogoutRequest params) {
+    return null;
+  }
+
+  @override
   Future<SetSessionModeResponse?>? setSessionMode(
     SetSessionModeRequest params,
   ) async {

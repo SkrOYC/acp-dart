@@ -490,6 +490,27 @@ class AgentSideConnection implements Client {
             ResumeSessionRequest.fromJson,
             agent.unstableResumeSession,
           );
+        case 'session/close':
+          return handleOptionalRequest(
+            method,
+            params,
+            CloseSessionRequest.fromJson,
+            agent.closeSession,
+          );
+        case 'session/delete':
+          return handleOptionalRequest(
+            method,
+            params,
+            DeleteSessionRequest.fromJson,
+            agent.deleteSession,
+          );
+        case 'logout':
+          return handleOptionalRequest(
+            method,
+            params,
+            LogoutRequest.fromJson,
+            agent.logout,
+          );
         case 'session/set_mode':
           final validatedParams = SetSessionModeRequest.fromJson(
             params as Map<String, dynamic>,
@@ -937,6 +958,35 @@ class ClientSideConnection implements Agent {
   }
 
   @override
+  Future<LogoutResponse>? logout(LogoutRequest params) async {
+    return _sendTypedRequest(
+      agentMethods['logout']!,
+      params.toJson(),
+      LogoutResponse.fromJson,
+    );
+  }
+
+  @override
+  Future<CloseSessionResponse>? closeSession(CloseSessionRequest params) async {
+    return _sendTypedRequest(
+      agentMethods['sessionClose']!,
+      params.toJson(),
+      CloseSessionResponse.fromJson,
+    );
+  }
+
+  @override
+  Future<DeleteSessionResponse>? deleteSession(
+    DeleteSessionRequest params,
+  ) async {
+    return _sendTypedRequest(
+      agentMethods['sessionDelete']!,
+      params.toJson(),
+      DeleteSessionResponse.fromJson,
+    );
+  }
+
+  @override
   Future<PromptResponse> prompt(PromptRequest params) async {
     return _sendTypedRequest(
       agentMethods['sessionPrompt']!,
@@ -1041,6 +1091,23 @@ abstract class Agent {
     ResumeSessionRequest params,
   ) => null;
 
+  /// Releases the resources backing an active session.
+  ///
+  /// The session remains in the Agent's history and can still be loaded or
+  /// resumed later; use [deleteSession] to discard it entirely.
+  ///
+  /// Returning `null` reports `-32601 Method not found` to the client.
+  Future<CloseSessionResponse>? closeSession(CloseSessionRequest params) => null;
+
+  /// Removes a session from the Agent's session history.
+  ///
+  /// Unlike [closeSession], this discards the stored session. Returning `null`
+  /// reports `-32601 Method not found` to the client.
+  ///
+  /// See protocol docs: [Session Delete](https://agentclientprotocol.com/protocol/session-delete)
+  Future<DeleteSessionResponse>? deleteSession(DeleteSessionRequest params) =>
+      null;
+
   /// Sets the operational mode for a session.
   ///
   /// Allows switching between different agent modes (e.g., "ask", "architect", "code")
@@ -1077,6 +1144,17 @@ abstract class Agent {
   /// After successful authentication, the client can proceed to create sessions with
   /// `newSession` without receiving an `auth_required` error.
   Future<AuthenticateResponse?>? authenticate(AuthenticateRequest params);
+
+  /// Clears any credentials the Agent holds for the current connection.
+  ///
+  /// Only meaningful when the Agent advertised authentication methods during
+  /// initialization. After logging out, the client must authenticate again
+  /// before creating new sessions.
+  ///
+  /// Returning `null` reports `-32601 Method not found` to the client.
+  ///
+  /// See protocol docs: [Authentication](https://agentclientprotocol.com/protocol/authentication)
+  Future<LogoutResponse>? logout(LogoutRequest params) => null;
 
   /// Processes a user prompt within a session.
   ///
