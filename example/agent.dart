@@ -64,6 +64,41 @@ class ExampleAgent implements Agent {
   }
 
   @override
+  Future<ListSessionsResponse>? unstableListSessions(
+    ListSessionsRequest params,
+  ) => null;
+
+  @override
+  Future<ForkSessionResponse>? unstableForkSession(ForkSessionRequest params) =>
+      null;
+
+  @override
+  Future<ResumeSessionResponse>? unstableResumeSession(
+    ResumeSessionRequest params,
+  ) => null;
+
+  @override
+  Future<CloseSessionResponse>? closeSession(CloseSessionRequest params) async {
+    // Releasing session resources; the session stays in history.
+    _sessions.remove(params.sessionId);
+    return CloseSessionResponse();
+  }
+
+  @override
+  Future<DeleteSessionResponse>? deleteSession(
+    DeleteSessionRequest params,
+  ) async {
+    _sessions.remove(params.sessionId);
+    return DeleteSessionResponse();
+  }
+
+  @override
+  Future<LogoutResponse>? logout(LogoutRequest params) async {
+    // This example holds no credentials, so logging out is a no-op.
+    return LogoutResponse();
+  }
+
+  @override
   Future<SetSessionModeResponse?>? setSessionMode(
     SetSessionModeRequest params,
   ) async {
