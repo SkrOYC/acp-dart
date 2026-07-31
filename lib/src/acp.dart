@@ -417,6 +417,32 @@ abstract class Client {
   Future<void>? completeElicitation(CompleteElicitationNotification params) =>
       null;
 
+  /// Opens an MCP connection on the agent's behalf.
+  ///
+  /// Lets an agent reach an MCP server the client already has access to,
+  /// instead of opening its own transport. The returned `connectionId`
+  /// addresses that connection for [messageMcp] and [disconnectMcp].
+  ///
+  /// Returning `null` reports `-32601 Method not found` to the agent.
+  Future<ConnectMcpResponse>? connectMcp(ConnectMcpRequest params) => null;
+
+  /// Forwards a tunnelled MCP request and returns the MCP server's reply.
+  ///
+  /// The reply is arbitrary JSON -- it is the MCP result, passed through
+  /// untouched -- so this is intentionally not a typed model.
+  ///
+  /// Returning `null` reports `-32601 Method not found` to the agent.
+  Future<Object?>? messageMcp(MessageMcpRequest params) => null;
+
+  /// Forwards a tunnelled MCP notification, which expects no reply.
+  Future<void>? notifyMcp(MessageMcpNotification params) => null;
+
+  /// Closes an MCP connection opened by [connectMcp].
+  ///
+  /// Returning `null` reports `-32601 Method not found` to the agent.
+  Future<DisconnectMcpResponse>? disconnectMcp(DisconnectMcpRequest params) =>
+      null;
+
   /// Extension method
   ///
   /// Allows the Agent to send an arbitrary request that is not part of the ACP spec.
@@ -533,6 +559,15 @@ class AgentSideConnection implements Client {
             LogoutRequest.fromJson,
             agent.logout,
           );
+        case 'mcp/message':
+          final mcpParams = MessageMcpRequest.fromJson(
+            params as Map<String, dynamic>,
+          );
+          final mcpResult = agent.messageMcp(mcpParams);
+          if (mcpResult == null) {
+            throw RequestError.methodNotFound(method);
+          }
+          return await mcpResult;
         case 'providers/list':
           return handleOptionalRequest(
             method,
@@ -606,6 +641,11 @@ class AgentSideConnection implements Client {
             params as Map<String, dynamic>,
           );
           return agent.cancel(validatedParams);
+        case 'mcp/message':
+          await agent.notifyMcp(
+            MessageMcpNotification.fromJson(params as Map<String, dynamic>),
+          );
+          return;
         case 'document/didOpen':
           await agent.didOpenDocument(
             DidOpenDocumentNotification.fromJson(
@@ -693,6 +733,43 @@ class AgentSideConnection implements Client {
       params.toJson(),
     );
     return ReadTextFileResponse.fromJson(result as Map<String, dynamic>);
+  }
+
+  @override
+  Future<ConnectMcpResponse> connectMcp(ConnectMcpRequest params) async {
+    final result = await _connection.sendRequest(
+      clientMethods['mcpConnect']!,
+      params.toJson(),
+    );
+    return ConnectMcpResponse.fromJson(result as Map<String, dynamic>);
+  }
+
+  @override
+  Future<Object?> messageMcp(MessageMcpRequest params) async {
+    // The MCP reply is arbitrary JSON; hand it back untouched.
+    return _connection.sendRequest(
+      clientMethods['mcpMessage']!,
+      params.toJson(),
+    );
+  }
+
+  @override
+  Future<void> notifyMcp(MessageMcpNotification params) async {
+    return _connection.sendNotification(
+      clientMethods['mcpMessage']!,
+      params.toJson(),
+    );
+  }
+
+  @override
+  Future<DisconnectMcpResponse> disconnectMcp(
+    DisconnectMcpRequest params,
+  ) async {
+    final result = await _connection.sendRequest(
+      clientMethods['mcpDisconnect']!,
+      params.toJson(),
+    );
+    return DisconnectMcpResponse.fromJson(result as Map<String, dynamic>);
   }
 
   @override
@@ -838,6 +915,20 @@ class ClientSideConnection implements Agent {
   ) {
     final client = toAgent(this);
 
+    Future<dynamic> handleOptionalClientRequest<T>(
+      String method,
+      dynamic params,
+      T Function(Map<String, dynamic>) fromJson,
+      Future<dynamic>? Function(T) handler,
+    ) async {
+      final validatedParams = fromJson(params as Map<String, dynamic>);
+      final result = await handler(validatedParams);
+      if (result == null) {
+        throw RequestError.methodNotFound(method);
+      }
+      return result;
+    }
+
     Future<dynamic> requestHandler(String method, dynamic params) async {
       switch (method) {
         case 'fs/write_text_file':
@@ -855,6 +946,30 @@ class ClientSideConnection implements Agent {
             params as Map<String, dynamic>,
           );
           return client.requestPermission(validatedParams);
+        case 'mcp/connect':
+          return handleOptionalClientRequest(
+            method,
+            params,
+            ConnectMcpRequest.fromJson,
+            client.connectMcp,
+          );
+        case 'mcp/disconnect':
+          return handleOptionalClientRequest(
+            method,
+            params,
+            DisconnectMcpRequest.fromJson,
+            client.disconnectMcp,
+          );
+        case 'mcp/message':
+          final mcpParams = MessageMcpRequest.fromJson(
+            params as Map<String, dynamic>,
+          );
+          final mcpResult = client.messageMcp(mcpParams);
+          if (mcpResult == null) {
+            throw RequestError.methodNotFound(method);
+          }
+          // The MCP reply is arbitrary JSON, returned as-is.
+          return await mcpResult;
         case 'elicitation/create':
           final validatedParams = const CreateElicitationRequestConverter()
               .fromJson(params as Map<String, dynamic>);
@@ -925,6 +1040,11 @@ class ClientSideConnection implements Agent {
             params as Map<String, dynamic>,
           );
           return client.sessionUpdate(validatedParams);
+        case 'mcp/message':
+          await client.notifyMcp(
+            MessageMcpNotification.fromJson(params as Map<String, dynamic>),
+          );
+          return;
         case 'elicitation/complete':
           final validatedParams = CompleteElicitationNotification.fromJson(
             params as Map<String, dynamic>,
@@ -1146,6 +1266,22 @@ class ClientSideConnection implements Agent {
   Future<void> cancel(CancelNotification params) async {
     return _connection.sendNotification(
       agentMethods['sessionCancel']!,
+      params.toJson(),
+    );
+  }
+
+  @override
+  Future<Object?> messageMcp(MessageMcpRequest params) async {
+    return _connection.sendRequest(
+      agentMethods['mcpMessage']!,
+      params.toJson(),
+    );
+  }
+
+  @override
+  Future<void> notifyMcp(MessageMcpNotification params) async {
+    return _connection.sendNotification(
+      agentMethods['mcpMessage']!,
       params.toJson(),
     );
   }
@@ -1389,6 +1525,17 @@ abstract class Agent {
 
   /// Reports that focus moved to a document, with the cursor and viewport.
   Future<void>? didFocusDocument(DidFocusDocumentNotification params) => null;
+
+  /// Forwards a tunnelled MCP request travelling client-to-agent.
+  ///
+  /// `mcp/message` appears on both method tables, so it flows in both
+  /// directions. The reply is arbitrary JSON, passed through untouched.
+  ///
+  /// Returning `null` reports `-32601 Method not found` to the client.
+  Future<Object?>? messageMcp(MessageMcpRequest params) => null;
+
+  /// Forwards a tunnelled MCP notification travelling client-to-agent.
+  Future<void>? notifyMcp(MessageMcpNotification params) => null;
 
   /// Processes a user prompt within a session.
   ///

@@ -1612,6 +1612,13 @@ class MockAgent implements Agent {
   Future<void>? didOpenDocument(DidOpenDocumentNotification params) => null;
 
   @override
+  Future<Object?>? messageMcp(MessageMcpRequest params) => null;
+
+  @override
+  Future<void>? notifyMcp(MessageMcpNotification params) => null;
+
+
+  @override
   Future<void>? didChangeDocument(DidChangeDocumentNotification params) => null;
 
   @override
@@ -1796,6 +1803,20 @@ class MockClient implements Client {
   Future<void>? completeElicitation(CompleteElicitationNotification params) {
     return null;
   }
+
+  @override
+  Future<ConnectMcpResponse>? connectMcp(ConnectMcpRequest params) => null;
+
+  @override
+  Future<Object?>? messageMcp(MessageMcpRequest params) => null;
+
+  @override
+  Future<void>? notifyMcp(MessageMcpNotification params) => null;
+
+  @override
+  Future<DisconnectMcpResponse>? disconnectMcp(DisconnectMcpRequest params) =>
+      null;
+
 
   @override
   Future<WriteTextFileResponse> writeTextFile(

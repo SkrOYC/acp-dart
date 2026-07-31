@@ -2543,3 +2543,93 @@ Map<String, dynamic> _$DidFocusDocumentNotificationToJson(
   'position': instance.position,
   'visibleRange': instance.visibleRange,
 };
+
+AcpMcpServer _$AcpMcpServerFromJson(Map<String, dynamic> json) => AcpMcpServer(
+  meta: json['_meta'] as Map<String, dynamic>?,
+  name: json['name'] as String,
+  serverId: json['serverId'] as String,
+);
+
+Map<String, dynamic> _$AcpMcpServerToJson(AcpMcpServer instance) =>
+    <String, dynamic>{
+      '_meta': ?instance.meta,
+      'name': instance.name,
+      'serverId': instance.serverId,
+    };
+
+ConnectMcpRequest _$ConnectMcpRequestFromJson(Map<String, dynamic> json) =>
+    ConnectMcpRequest(
+      meta: json['_meta'] as Map<String, dynamic>?,
+      serverId: json['serverId'] as String,
+    );
+
+Map<String, dynamic> _$ConnectMcpRequestToJson(ConnectMcpRequest instance) =>
+    <String, dynamic>{'_meta': ?instance.meta, 'serverId': instance.serverId};
+
+ConnectMcpResponse _$ConnectMcpResponseFromJson(Map<String, dynamic> json) =>
+    ConnectMcpResponse(
+      meta: json['_meta'] as Map<String, dynamic>?,
+      connectionId: json['connectionId'] as String,
+    );
+
+Map<String, dynamic> _$ConnectMcpResponseToJson(ConnectMcpResponse instance) =>
+    <String, dynamic>{
+      '_meta': ?instance.meta,
+      'connectionId': instance.connectionId,
+    };
+
+MessageMcpRequest _$MessageMcpRequestFromJson(Map<String, dynamic> json) =>
+    MessageMcpRequest(
+      meta: json['_meta'] as Map<String, dynamic>?,
+      connectionId: json['connectionId'] as String,
+      method: json['method'] as String,
+      params: json['params'] as Map<String, dynamic>?,
+    );
+
+Map<String, dynamic> _$MessageMcpRequestToJson(MessageMcpRequest instance) =>
+    <String, dynamic>{
+      '_meta': ?instance.meta,
+      'connectionId': instance.connectionId,
+      'method': instance.method,
+      'params': ?instance.params,
+    };
+
+MessageMcpNotification _$MessageMcpNotificationFromJson(
+  Map<String, dynamic> json,
+) => MessageMcpNotification(
+  meta: json['_meta'] as Map<String, dynamic>?,
+  connectionId: json['connectionId'] as String,
+  method: json['method'] as String,
+  params: json['params'] as Map<String, dynamic>?,
+);
+
+Map<String, dynamic> _$MessageMcpNotificationToJson(
+  MessageMcpNotification instance,
+) => <String, dynamic>{
+  '_meta': ?instance.meta,
+  'connectionId': instance.connectionId,
+  'method': instance.method,
+  'params': ?instance.params,
+};
+
+DisconnectMcpRequest _$DisconnectMcpRequestFromJson(
+  Map<String, dynamic> json,
+) => DisconnectMcpRequest(
+  meta: json['_meta'] as Map<String, dynamic>?,
+  connectionId: json['connectionId'] as String,
+);
+
+Map<String, dynamic> _$DisconnectMcpRequestToJson(
+  DisconnectMcpRequest instance,
+) => <String, dynamic>{
+  '_meta': ?instance.meta,
+  'connectionId': instance.connectionId,
+};
+
+DisconnectMcpResponse _$DisconnectMcpResponseFromJson(
+  Map<String, dynamic> json,
+) => DisconnectMcpResponse(meta: json['_meta'] as Map<String, dynamic>?);
+
+Map<String, dynamic> _$DisconnectMcpResponseToJson(
+  DisconnectMcpResponse instance,
+) => <String, dynamic>{'_meta': ?instance.meta};

@@ -15,6 +15,9 @@ class McpServerConverter
     if (type == 'sse') {
       return SseMcpServer.fromJson(json);
     }
+    if (type == 'acp' || json.containsKey('serverId')) {
+      return AcpMcpServer.fromJson(json);
+    }
     if (json.containsKey('command')) {
       return StdioMcpServer.fromJson(json);
     }
@@ -27,6 +30,9 @@ class McpServerConverter
       return object.toJson();
     }
     if (object is SseMcpServer) {
+      return object.toJson();
+    }
+    if (object is AcpMcpServer) {
       return object.toJson();
     }
     if (object is StdioMcpServer) {

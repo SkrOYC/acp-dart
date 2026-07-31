@@ -3358,6 +3358,149 @@ class DidFocusDocumentNotification {
   Map<String, dynamic> toJson() => _$DidFocusDocumentNotificationToJson(this);
 }
 
+// ---------------------------------------------------------------------------
+// MCP over ACP
+//
+// Tunnels MCP JSON-RPC traffic through the ACP connection, so an agent can
+// reach an MCP server the client already holds a connection to instead of
+// opening its own transport.
+//
+// `mcp/message` is unusual: it appears on both the agent and client method
+// tables, and arrives as either a request or a notification depending on
+// whether the tunnelled MCP message carries an id.
+// ---------------------------------------------------------------------------
+
+/// Identifies an MCP server the client can connect to on the agent's behalf.
+typedef McpServerAcpId = String;
+
+/// Identifies an established MCP connection.
+typedef McpConnectionId = String;
+
+/// An MCP server reached over the ACP connection itself.
+@JsonSerializable()
+class AcpMcpServer extends McpServerBase {
+  @JsonKey(name: '_meta', includeIfNull: false)
+  final Map<String, dynamic>? meta;
+  final String name;
+  final McpServerAcpId serverId;
+
+  AcpMcpServer({this.meta, required this.name, required this.serverId});
+
+  factory AcpMcpServer.fromJson(Map<String, dynamic> json) =>
+      _$AcpMcpServerFromJson(json);
+
+  Map<String, dynamic> toJson() => _$AcpMcpServerToJson(this);
+}
+
+/// Request parameters for `mcp/connect`.
+@JsonSerializable()
+class ConnectMcpRequest {
+  @JsonKey(name: '_meta', includeIfNull: false)
+  final Map<String, dynamic>? meta;
+  final McpServerAcpId serverId;
+
+  ConnectMcpRequest({this.meta, required this.serverId});
+
+  factory ConnectMcpRequest.fromJson(Map<String, dynamic> json) =>
+      _$ConnectMcpRequestFromJson(json);
+
+  Map<String, dynamic> toJson() => _$ConnectMcpRequestToJson(this);
+}
+
+/// Response to `mcp/connect`, carrying the handle for later messages.
+@JsonSerializable()
+class ConnectMcpResponse {
+  @JsonKey(name: '_meta', includeIfNull: false)
+  final Map<String, dynamic>? meta;
+  final McpConnectionId connectionId;
+
+  ConnectMcpResponse({this.meta, required this.connectionId});
+
+  factory ConnectMcpResponse.fromJson(Map<String, dynamic> json) =>
+      _$ConnectMcpResponseFromJson(json);
+
+  Map<String, dynamic> toJson() => _$ConnectMcpResponseToJson(this);
+}
+
+/// A tunnelled MCP message sent as a request, expecting a reply.
+@JsonSerializable()
+class MessageMcpRequest {
+  @JsonKey(name: '_meta', includeIfNull: false)
+  final Map<String, dynamic>? meta;
+  final McpConnectionId connectionId;
+
+  /// The MCP method being tunnelled, e.g. `tools/list`.
+  final String method;
+
+  /// The tunnelled MCP params, passed through untouched.
+  @JsonKey(includeIfNull: false)
+  final Map<String, dynamic>? params;
+
+  MessageMcpRequest({
+    this.meta,
+    required this.connectionId,
+    required this.method,
+    this.params,
+  });
+
+  factory MessageMcpRequest.fromJson(Map<String, dynamic> json) =>
+      _$MessageMcpRequestFromJson(json);
+
+  Map<String, dynamic> toJson() => _$MessageMcpRequestToJson(this);
+}
+
+/// A tunnelled MCP message sent as a notification, expecting no reply.
+@JsonSerializable()
+class MessageMcpNotification {
+  @JsonKey(name: '_meta', includeIfNull: false)
+  final Map<String, dynamic>? meta;
+  final McpConnectionId connectionId;
+  final String method;
+  @JsonKey(includeIfNull: false)
+  final Map<String, dynamic>? params;
+
+  MessageMcpNotification({
+    this.meta,
+    required this.connectionId,
+    required this.method,
+    this.params,
+  });
+
+  factory MessageMcpNotification.fromJson(Map<String, dynamic> json) =>
+      _$MessageMcpNotificationFromJson(json);
+
+  Map<String, dynamic> toJson() => _$MessageMcpNotificationToJson(this);
+}
+
+/// Request parameters for `mcp/disconnect`.
+@JsonSerializable()
+class DisconnectMcpRequest {
+  @JsonKey(name: '_meta', includeIfNull: false)
+  final Map<String, dynamic>? meta;
+  final McpConnectionId connectionId;
+
+  DisconnectMcpRequest({this.meta, required this.connectionId});
+
+  factory DisconnectMcpRequest.fromJson(Map<String, dynamic> json) =>
+      _$DisconnectMcpRequestFromJson(json);
+
+  Map<String, dynamic> toJson() => _$DisconnectMcpRequestToJson(this);
+}
+
+/// Response to `mcp/disconnect`.
+@JsonSerializable()
+class DisconnectMcpResponse {
+  @JsonKey(name: '_meta', includeIfNull: false)
+  final Map<String, dynamic>? meta;
+
+  DisconnectMcpResponse({this.meta});
+
+  factory DisconnectMcpResponse.fromJson(Map<String, dynamic> json) =>
+      _$DisconnectMcpResponseFromJson(json);
+
+  Map<String, dynamic> toJson() => _$DisconnectMcpResponseToJson(this);
+}
+
 /// Protocol method constants for agent-side requests
 const agentMethods = {
   'authenticate': 'authenticate',
@@ -3371,6 +3514,7 @@ const agentMethods = {
   'documentDidClose': 'document/didClose',
   'documentDidSave': 'document/didSave',
   'documentDidFocus': 'document/didFocus',
+  'mcpMessage': 'mcp/message',
   // Deprecated: `session/set_model` is not part of the ACP schema. Superseded
   // by `session/set_config_option` with a model config category. Retained so
   // existing integrations keep dispatching; removed in the next major release.
@@ -3391,6 +3535,9 @@ const agentMethods = {
 /// Protocol method constants for client-side requests
 const clientMethods = {
   'elicitationCreate': 'elicitation/create',
+  'mcpConnect': 'mcp/connect',
+  'mcpMessage': 'mcp/message',
+  'mcpDisconnect': 'mcp/disconnect',
   'elicitationComplete': 'elicitation/complete',
   'fsReadTextFile': 'fs/read_text_file',
   'fsWriteTextFile': 'fs/write_text_file',

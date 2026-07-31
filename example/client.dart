@@ -122,6 +122,20 @@ class ExampleClient implements Client {
   }
 
   @override
+  Future<ConnectMcpResponse>? connectMcp(ConnectMcpRequest params) => null;
+
+  @override
+  Future<Object?>? messageMcp(MessageMcpRequest params) => null;
+
+  @override
+  Future<void>? notifyMcp(MessageMcpNotification params) => null;
+
+  @override
+  Future<DisconnectMcpResponse>? disconnectMcp(DisconnectMcpRequest params) =>
+      null;
+
+
+  @override
   Future<void> sessionUpdate(SessionNotification params) async {
     final update = params.update;
 

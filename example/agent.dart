@@ -124,6 +124,13 @@ class ExampleAgent implements Agent {
   Future<void>? didOpenDocument(DidOpenDocumentNotification params) => null;
 
   @override
+  Future<Object?>? messageMcp(MessageMcpRequest params) => null;
+
+  @override
+  Future<void>? notifyMcp(MessageMcpNotification params) => null;
+
+
+  @override
   Future<void>? didChangeDocument(DidChangeDocumentNotification params) => null;
 
   @override
