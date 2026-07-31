@@ -1609,6 +1609,21 @@ class MockAgent implements Agent {
   }
 
   @override
+  Future<void>? didOpenDocument(DidOpenDocumentNotification params) => null;
+
+  @override
+  Future<void>? didChangeDocument(DidChangeDocumentNotification params) => null;
+
+  @override
+  Future<void>? didCloseDocument(DidCloseDocumentNotification params) => null;
+
+  @override
+  Future<void>? didSaveDocument(DidSaveDocumentNotification params) => null;
+
+  @override
+  Future<void>? didFocusDocument(DidFocusDocumentNotification params) => null;
+
+  @override
   Future<ListProvidersResponse>? listProviders(ListProvidersRequest params) {
     return null;
   }

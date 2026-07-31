@@ -606,6 +606,41 @@ class AgentSideConnection implements Client {
             params as Map<String, dynamic>,
           );
           return agent.cancel(validatedParams);
+        case 'document/didOpen':
+          await agent.didOpenDocument(
+            DidOpenDocumentNotification.fromJson(
+              params as Map<String, dynamic>,
+            ),
+          );
+          return;
+        case 'document/didChange':
+          await agent.didChangeDocument(
+            DidChangeDocumentNotification.fromJson(
+              params as Map<String, dynamic>,
+            ),
+          );
+          return;
+        case 'document/didClose':
+          await agent.didCloseDocument(
+            DidCloseDocumentNotification.fromJson(
+              params as Map<String, dynamic>,
+            ),
+          );
+          return;
+        case 'document/didSave':
+          await agent.didSaveDocument(
+            DidSaveDocumentNotification.fromJson(
+              params as Map<String, dynamic>,
+            ),
+          );
+          return;
+        case 'document/didFocus':
+          await agent.didFocusDocument(
+            DidFocusDocumentNotification.fromJson(
+              params as Map<String, dynamic>,
+            ),
+          );
+          return;
         case r'$/cancel_request':
           final validatedParams = CancelRequestNotification.fromJson(
             params as Map<String, dynamic>,
@@ -1116,6 +1151,46 @@ class ClientSideConnection implements Agent {
   }
 
   @override
+  Future<void> didOpenDocument(DidOpenDocumentNotification params) async {
+    return _connection.sendNotification(
+      agentMethods['documentDidOpen']!,
+      params.toJson(),
+    );
+  }
+
+  @override
+  Future<void> didChangeDocument(DidChangeDocumentNotification params) async {
+    return _connection.sendNotification(
+      agentMethods['documentDidChange']!,
+      params.toJson(),
+    );
+  }
+
+  @override
+  Future<void> didCloseDocument(DidCloseDocumentNotification params) async {
+    return _connection.sendNotification(
+      agentMethods['documentDidClose']!,
+      params.toJson(),
+    );
+  }
+
+  @override
+  Future<void> didSaveDocument(DidSaveDocumentNotification params) async {
+    return _connection.sendNotification(
+      agentMethods['documentDidSave']!,
+      params.toJson(),
+    );
+  }
+
+  @override
+  Future<void> didFocusDocument(DidFocusDocumentNotification params) async {
+    return _connection.sendNotification(
+      agentMethods['documentDidFocus']!,
+      params.toJson(),
+    );
+  }
+
+  @override
   Future<Map<String, dynamic>>? extMethod(
     String method,
     Map<String, dynamic> params,
@@ -1294,6 +1369,26 @@ abstract class Agent {
   Future<DisableProviderResponse>? disableProvider(
     DisableProviderRequest params,
   ) => null;
+
+  /// Reports that a document was opened in the client.
+  ///
+  /// These `document/*` notifications keep the agent's view of open buffers in
+  /// sync, which is what makes unsaved edits visible to features like
+  /// Next Edit Suggestions. They are one-way; a client may send them without
+  /// the agent handling them.
+  Future<void>? didOpenDocument(DidOpenDocumentNotification params) => null;
+
+  /// Reports edits to an open document.
+  Future<void>? didChangeDocument(DidChangeDocumentNotification params) => null;
+
+  /// Reports that a document was closed.
+  Future<void>? didCloseDocument(DidCloseDocumentNotification params) => null;
+
+  /// Reports that a document was saved.
+  Future<void>? didSaveDocument(DidSaveDocumentNotification params) => null;
+
+  /// Reports that focus moved to a document, with the cursor and viewport.
+  Future<void>? didFocusDocument(DidFocusDocumentNotification params) => null;
 
   /// Processes a user prompt within a session.
   ///

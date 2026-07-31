@@ -2400,3 +2400,146 @@ DisableProviderResponse _$DisableProviderResponseFromJson(
 Map<String, dynamic> _$DisableProviderResponseToJson(
   DisableProviderResponse instance,
 ) => <String, dynamic>{'_meta': ?instance.meta};
+
+Position _$PositionFromJson(Map<String, dynamic> json) => Position(
+  meta: json['_meta'] as Map<String, dynamic>?,
+  line: (json['line'] as num).toInt(),
+  character: (json['character'] as num).toInt(),
+);
+
+Map<String, dynamic> _$PositionToJson(Position instance) => <String, dynamic>{
+  '_meta': ?instance.meta,
+  'line': instance.line,
+  'character': instance.character,
+};
+
+Range _$RangeFromJson(Map<String, dynamic> json) => Range(
+  meta: json['_meta'] as Map<String, dynamic>?,
+  start: Position.fromJson(json['start'] as Map<String, dynamic>),
+  end: Position.fromJson(json['end'] as Map<String, dynamic>),
+);
+
+Map<String, dynamic> _$RangeToJson(Range instance) => <String, dynamic>{
+  '_meta': ?instance.meta,
+  'start': instance.start,
+  'end': instance.end,
+};
+
+TextDocumentContentChangeEvent _$TextDocumentContentChangeEventFromJson(
+  Map<String, dynamic> json,
+) => TextDocumentContentChangeEvent(
+  meta: json['_meta'] as Map<String, dynamic>?,
+  range: json['range'] == null
+      ? null
+      : Range.fromJson(json['range'] as Map<String, dynamic>),
+  text: json['text'] as String,
+);
+
+Map<String, dynamic> _$TextDocumentContentChangeEventToJson(
+  TextDocumentContentChangeEvent instance,
+) => <String, dynamic>{
+  '_meta': ?instance.meta,
+  'range': instance.range,
+  'text': instance.text,
+};
+
+DidOpenDocumentNotification _$DidOpenDocumentNotificationFromJson(
+  Map<String, dynamic> json,
+) => DidOpenDocumentNotification(
+  meta: json['_meta'] as Map<String, dynamic>?,
+  sessionId: json['sessionId'] as String,
+  uri: json['uri'] as String,
+  languageId: json['languageId'] as String,
+  version: (json['version'] as num).toInt(),
+  text: json['text'] as String,
+);
+
+Map<String, dynamic> _$DidOpenDocumentNotificationToJson(
+  DidOpenDocumentNotification instance,
+) => <String, dynamic>{
+  '_meta': ?instance.meta,
+  'sessionId': instance.sessionId,
+  'uri': instance.uri,
+  'languageId': instance.languageId,
+  'version': instance.version,
+  'text': instance.text,
+};
+
+DidChangeDocumentNotification _$DidChangeDocumentNotificationFromJson(
+  Map<String, dynamic> json,
+) => DidChangeDocumentNotification(
+  meta: json['_meta'] as Map<String, dynamic>?,
+  sessionId: json['sessionId'] as String,
+  uri: json['uri'] as String,
+  version: (json['version'] as num).toInt(),
+  contentChanges: (json['contentChanges'] as List<dynamic>)
+      .map(
+        (e) =>
+            TextDocumentContentChangeEvent.fromJson(e as Map<String, dynamic>),
+      )
+      .toList(),
+);
+
+Map<String, dynamic> _$DidChangeDocumentNotificationToJson(
+  DidChangeDocumentNotification instance,
+) => <String, dynamic>{
+  '_meta': ?instance.meta,
+  'sessionId': instance.sessionId,
+  'uri': instance.uri,
+  'version': instance.version,
+  'contentChanges': instance.contentChanges,
+};
+
+DidCloseDocumentNotification _$DidCloseDocumentNotificationFromJson(
+  Map<String, dynamic> json,
+) => DidCloseDocumentNotification(
+  meta: json['_meta'] as Map<String, dynamic>?,
+  sessionId: json['sessionId'] as String,
+  uri: json['uri'] as String,
+);
+
+Map<String, dynamic> _$DidCloseDocumentNotificationToJson(
+  DidCloseDocumentNotification instance,
+) => <String, dynamic>{
+  '_meta': ?instance.meta,
+  'sessionId': instance.sessionId,
+  'uri': instance.uri,
+};
+
+DidSaveDocumentNotification _$DidSaveDocumentNotificationFromJson(
+  Map<String, dynamic> json,
+) => DidSaveDocumentNotification(
+  meta: json['_meta'] as Map<String, dynamic>?,
+  sessionId: json['sessionId'] as String,
+  uri: json['uri'] as String,
+);
+
+Map<String, dynamic> _$DidSaveDocumentNotificationToJson(
+  DidSaveDocumentNotification instance,
+) => <String, dynamic>{
+  '_meta': ?instance.meta,
+  'sessionId': instance.sessionId,
+  'uri': instance.uri,
+};
+
+DidFocusDocumentNotification _$DidFocusDocumentNotificationFromJson(
+  Map<String, dynamic> json,
+) => DidFocusDocumentNotification(
+  meta: json['_meta'] as Map<String, dynamic>?,
+  sessionId: json['sessionId'] as String,
+  uri: json['uri'] as String,
+  version: (json['version'] as num).toInt(),
+  position: Position.fromJson(json['position'] as Map<String, dynamic>),
+  visibleRange: Range.fromJson(json['visibleRange'] as Map<String, dynamic>),
+);
+
+Map<String, dynamic> _$DidFocusDocumentNotificationToJson(
+  DidFocusDocumentNotification instance,
+) => <String, dynamic>{
+  '_meta': ?instance.meta,
+  'sessionId': instance.sessionId,
+  'uri': instance.uri,
+  'version': instance.version,
+  'position': instance.position,
+  'visibleRange': instance.visibleRange,
+};

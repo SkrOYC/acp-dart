@@ -1021,6 +1021,28 @@ abstract class ClientNotificationUnion {
         return ClientCancelRequestNotification(
           CancelRequestNotification.fromJson(params as Map<String, dynamic>),
         );
+      case 'document/didOpen':
+        return ClientDidOpenDocumentNotification(
+          DidOpenDocumentNotification.fromJson(params as Map<String, dynamic>),
+        );
+      case 'document/didChange':
+        return ClientDidChangeDocumentNotification(
+          DidChangeDocumentNotification.fromJson(
+            params as Map<String, dynamic>,
+          ),
+        );
+      case 'document/didClose':
+        return ClientDidCloseDocumentNotification(
+          DidCloseDocumentNotification.fromJson(params as Map<String, dynamic>),
+        );
+      case 'document/didSave':
+        return ClientDidSaveDocumentNotification(
+          DidSaveDocumentNotification.fromJson(params as Map<String, dynamic>),
+        );
+      case 'document/didFocus':
+        return ClientDidFocusDocumentNotification(
+          DidFocusDocumentNotification.fromJson(params as Map<String, dynamic>),
+        );
       default:
         return ClientExtensionNotification(method, params);
     }
@@ -1059,4 +1081,54 @@ class ClientExtensionNotification extends ClientNotificationUnion {
 extension AgentRequestLookup on Iterable<AgentRequestUnion> {
   AgentRequestUnion? findByMethod(String method) =>
       firstWhereOrNull((element) => element.method == method);
+}
+
+/// `document/didOpen` sent by the client to the agent.
+class ClientDidOpenDocumentNotification extends ClientNotificationUnion {
+  final DidOpenDocumentNotification notification;
+  const ClientDidOpenDocumentNotification(this.notification);
+  @override
+  String get method => agentMethods['documentDidOpen']!;
+  @override
+  Map<String, dynamic> toJson() => notification.toJson();
+}
+
+/// `document/didChange` sent by the client to the agent.
+class ClientDidChangeDocumentNotification extends ClientNotificationUnion {
+  final DidChangeDocumentNotification notification;
+  const ClientDidChangeDocumentNotification(this.notification);
+  @override
+  String get method => agentMethods['documentDidChange']!;
+  @override
+  Map<String, dynamic> toJson() => notification.toJson();
+}
+
+/// `document/didClose` sent by the client to the agent.
+class ClientDidCloseDocumentNotification extends ClientNotificationUnion {
+  final DidCloseDocumentNotification notification;
+  const ClientDidCloseDocumentNotification(this.notification);
+  @override
+  String get method => agentMethods['documentDidClose']!;
+  @override
+  Map<String, dynamic> toJson() => notification.toJson();
+}
+
+/// `document/didSave` sent by the client to the agent.
+class ClientDidSaveDocumentNotification extends ClientNotificationUnion {
+  final DidSaveDocumentNotification notification;
+  const ClientDidSaveDocumentNotification(this.notification);
+  @override
+  String get method => agentMethods['documentDidSave']!;
+  @override
+  Map<String, dynamic> toJson() => notification.toJson();
+}
+
+/// `document/didFocus` sent by the client to the agent.
+class ClientDidFocusDocumentNotification extends ClientNotificationUnion {
+  final DidFocusDocumentNotification notification;
+  const ClientDidFocusDocumentNotification(this.notification);
+  @override
+  String get method => agentMethods['documentDidFocus']!;
+  @override
+  Map<String, dynamic> toJson() => notification.toJson();
 }

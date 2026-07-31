@@ -121,6 +121,21 @@ class ExampleAgent implements Agent {
   }
 
   @override
+  Future<void>? didOpenDocument(DidOpenDocumentNotification params) => null;
+
+  @override
+  Future<void>? didChangeDocument(DidChangeDocumentNotification params) => null;
+
+  @override
+  Future<void>? didCloseDocument(DidCloseDocumentNotification params) => null;
+
+  @override
+  Future<void>? didSaveDocument(DidSaveDocumentNotification params) => null;
+
+  @override
+  Future<void>? didFocusDocument(DidFocusDocumentNotification params) => null;
+
+  @override
   Future<LogoutResponse>? logout(LogoutRequest params) async {
     // This example holds no credentials, so logging out is a no-op.
     return LogoutResponse();

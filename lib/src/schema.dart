@@ -3170,6 +3170,194 @@ class DisableProviderResponse {
   Map<String, dynamic> toJson() => _$DisableProviderResponseToJson(this);
 }
 
+// ---------------------------------------------------------------------------
+// Text documents
+//
+// Position and Range are shared by the `document/did*` notifications and the
+// `nes/*` methods.
+// ---------------------------------------------------------------------------
+
+/// A position inside a text document.
+@JsonSerializable()
+class Position {
+  @JsonKey(name: '_meta', includeIfNull: false)
+  final Map<String, dynamic>? meta;
+  final int line;
+  final int character;
+
+  Position({this.meta, required this.line, required this.character});
+
+  factory Position.fromJson(Map<String, dynamic> json) =>
+      _$PositionFromJson(json);
+
+  Map<String, dynamic> toJson() => _$PositionToJson(this);
+}
+
+/// A span between two [Position]s.
+@JsonSerializable()
+class Range {
+  @JsonKey(name: '_meta', includeIfNull: false)
+  final Map<String, dynamic>? meta;
+  final Position start;
+  final Position end;
+
+  Range({this.meta, required this.start, required this.end});
+
+  factory Range.fromJson(Map<String, dynamic> json) => _$RangeFromJson(json);
+
+  Map<String, dynamic> toJson() => _$RangeToJson(this);
+}
+
+/// How a client reports document edits.
+enum TextDocumentSyncKind {
+  /// Every change carries the document's full text.
+  @JsonValue('full')
+  full,
+
+  /// Changes carry only the edited range.
+  @JsonValue('incremental')
+  incremental,
+}
+
+/// A single edit within a `document/didChange` notification.
+///
+/// A null [range] means [text] replaces the whole document.
+@JsonSerializable()
+class TextDocumentContentChangeEvent {
+  @JsonKey(name: '_meta', includeIfNull: false)
+  final Map<String, dynamic>? meta;
+  final Range? range;
+  final String text;
+
+  TextDocumentContentChangeEvent({this.meta, this.range, required this.text});
+
+  factory TextDocumentContentChangeEvent.fromJson(Map<String, dynamic> json) =>
+      _$TextDocumentContentChangeEventFromJson(json);
+
+  Map<String, dynamic> toJson() =>
+      _$TextDocumentContentChangeEventToJson(this);
+}
+
+/// Notification parameters for `document/didOpen`.
+@JsonSerializable()
+class DidOpenDocumentNotification {
+  @JsonKey(name: '_meta', includeIfNull: false)
+  final Map<String, dynamic>? meta;
+  final String sessionId;
+  final String uri;
+  final String languageId;
+  final int version;
+  final String text;
+
+  DidOpenDocumentNotification({
+    this.meta,
+    required this.sessionId,
+    required this.uri,
+    required this.languageId,
+    required this.version,
+    required this.text,
+  });
+
+  factory DidOpenDocumentNotification.fromJson(Map<String, dynamic> json) =>
+      _$DidOpenDocumentNotificationFromJson(json);
+
+  Map<String, dynamic> toJson() => _$DidOpenDocumentNotificationToJson(this);
+}
+
+/// Notification parameters for `document/didChange`.
+@JsonSerializable()
+class DidChangeDocumentNotification {
+  @JsonKey(name: '_meta', includeIfNull: false)
+  final Map<String, dynamic>? meta;
+  final String sessionId;
+  final String uri;
+  final int version;
+  final List<TextDocumentContentChangeEvent> contentChanges;
+
+  DidChangeDocumentNotification({
+    this.meta,
+    required this.sessionId,
+    required this.uri,
+    required this.version,
+    required this.contentChanges,
+  });
+
+  factory DidChangeDocumentNotification.fromJson(Map<String, dynamic> json) =>
+      _$DidChangeDocumentNotificationFromJson(json);
+
+  Map<String, dynamic> toJson() => _$DidChangeDocumentNotificationToJson(this);
+}
+
+/// Notification parameters for `document/didClose`.
+@JsonSerializable()
+class DidCloseDocumentNotification {
+  @JsonKey(name: '_meta', includeIfNull: false)
+  final Map<String, dynamic>? meta;
+  final String sessionId;
+  final String uri;
+
+  DidCloseDocumentNotification({
+    this.meta,
+    required this.sessionId,
+    required this.uri,
+  });
+
+  factory DidCloseDocumentNotification.fromJson(Map<String, dynamic> json) =>
+      _$DidCloseDocumentNotificationFromJson(json);
+
+  Map<String, dynamic> toJson() => _$DidCloseDocumentNotificationToJson(this);
+}
+
+/// Notification parameters for `document/didSave`.
+@JsonSerializable()
+class DidSaveDocumentNotification {
+  @JsonKey(name: '_meta', includeIfNull: false)
+  final Map<String, dynamic>? meta;
+  final String sessionId;
+  final String uri;
+
+  DidSaveDocumentNotification({
+    this.meta,
+    required this.sessionId,
+    required this.uri,
+  });
+
+  factory DidSaveDocumentNotification.fromJson(Map<String, dynamic> json) =>
+      _$DidSaveDocumentNotificationFromJson(json);
+
+  Map<String, dynamic> toJson() => _$DidSaveDocumentNotificationToJson(this);
+}
+
+/// Notification parameters for `document/didFocus`.
+@JsonSerializable()
+class DidFocusDocumentNotification {
+  @JsonKey(name: '_meta', includeIfNull: false)
+  final Map<String, dynamic>? meta;
+  final String sessionId;
+  final String uri;
+  final int version;
+
+  /// Where the cursor is.
+  final Position position;
+
+  /// The portion of the document on screen.
+  final Range visibleRange;
+
+  DidFocusDocumentNotification({
+    this.meta,
+    required this.sessionId,
+    required this.uri,
+    required this.version,
+    required this.position,
+    required this.visibleRange,
+  });
+
+  factory DidFocusDocumentNotification.fromJson(Map<String, dynamic> json) =>
+      _$DidFocusDocumentNotificationFromJson(json);
+
+  Map<String, dynamic> toJson() => _$DidFocusDocumentNotificationToJson(this);
+}
+
 /// Protocol method constants for agent-side requests
 const agentMethods = {
   'authenticate': 'authenticate',
@@ -3178,6 +3366,11 @@ const agentMethods = {
   'providersList': 'providers/list',
   'providersSet': 'providers/set',
   'providersDisable': 'providers/disable',
+  'documentDidOpen': 'document/didOpen',
+  'documentDidChange': 'document/didChange',
+  'documentDidClose': 'document/didClose',
+  'documentDidSave': 'document/didSave',
+  'documentDidFocus': 'document/didFocus',
   // Deprecated: `session/set_model` is not part of the ACP schema. Superseded
   // by `session/set_config_option` with a model config category. Retained so
   // existing integrations keep dispatching; removed in the next major release.
