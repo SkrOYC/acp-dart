@@ -22,14 +22,18 @@ class ToolCallContentConverter
 
   @override
   Map<String, dynamic> toJson(ToolCallContent object) {
+    // The `type` discriminator is declared as a field initializer rather than a
+    // constructor parameter, so json_serializable leaves it out of the
+    // generated `toJson`. Add it back here, otherwise the encoded content
+    // cannot be decoded again (by `fromJson` above or by any other ACP peer).
     if (object is ContentToolCallContent) {
-      return object.toJson();
+      return {'type': 'content', ...object.toJson()};
     }
     if (object is DiffToolCallContent) {
-      return object.toJson();
+      return {'type': 'diff', ...object.toJson()};
     }
     if (object is TerminalToolCallContent) {
-      return object.toJson();
+      return {'type': 'terminal', ...object.toJson()};
     }
     throw Exception('Unknown ToolCallContent type: ${object.runtimeType}');
   }

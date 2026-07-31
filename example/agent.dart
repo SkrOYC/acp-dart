@@ -12,6 +12,10 @@ class AgentSession {
   AgentSession({this.pendingPrompt});
 }
 
+/// Unwinds a turn that has been cancelled, so the prompt handler can report
+/// [StopReason.cancelled] instead of finishing the turn as if nothing happened.
+class _TurnCancelled implements Exception {}
+
 /// Example agent implementation demonstrating ACP protocol usage
 class ExampleAgent implements Agent {
   final AgentSideConnection _connection;
@@ -64,6 +68,28 @@ class ExampleAgent implements Agent {
   }
 
   @override
+  Future<ListSessionsResponse>? unstableListSessions(
+    ListSessionsRequest params,
+  ) {
+    // Not implemented in this example
+    return null;
+  }
+
+  @override
+  Future<ForkSessionResponse>? unstableForkSession(ForkSessionRequest params) {
+    // Not implemented in this example
+    return null;
+  }
+
+  @override
+  Future<ResumeSessionResponse>? unstableResumeSession(
+    ResumeSessionRequest params,
+  ) {
+    // Not implemented in this example
+    return null;
+  }
+
+  @override
   Future<SetSessionModeResponse?>? setSessionMode(
     SetSessionModeRequest params,
   ) async {
@@ -113,21 +139,26 @@ class ExampleAgent implements Agent {
     session.pendingPrompt = completer;
 
     try {
-      await _simulateTurn(params.sessionId, completer.future.asStream());
-    } catch (err) {
-      if (session.pendingPrompt != null && session.pendingPrompt!.isCompleted) {
-        return PromptResponse(stopReason: StopReason.cancelled);
-      }
-      rethrow;
+      await _simulateTurn(params.sessionId, completer);
+    } on _TurnCancelled {
+      return PromptResponse(stopReason: StopReason.cancelled);
     } finally {
-      session.pendingPrompt = null;
+      // Only clear the completer this call installed: a later prompt may have
+      // already replaced it, and that one still needs to be cancellable.
+      if (identical(session.pendingPrompt, completer)) {
+        session.pendingPrompt = null;
+      }
     }
 
     return PromptResponse(stopReason: StopReason.endTurn);
   }
 
-  /// Simulates an agent turn with text chunks and tool calls
-  Future<void> _simulateTurn(String sessionId, Stream<void> abortStream) async {
+  /// Simulates an agent turn with text chunks and tool calls.
+  ///
+  /// [abort] completes when the turn is cancelled. It is awaited alongside each
+  /// simulated model call so the turn stops waiting immediately, and throws
+  /// [_TurnCancelled] so the rest of the turn is abandoned.
+  Future<void> _simulateTurn(String sessionId, Completer<void> abort) async {
     // Send initial text chunk
     await _connection.sessionUpdate(
       SessionNotification(
@@ -141,7 +172,7 @@ class ExampleAgent implements Agent {
       ),
     );
 
-    await _simulateModelInteraction(abortStream);
+    await _simulateModelInteraction(abort);
 
     // Send a tool call that doesn't need permission
     await _connection.sessionUpdate(
@@ -158,7 +189,7 @@ class ExampleAgent implements Agent {
       ),
     );
 
-    await _simulateModelInteraction(abortStream);
+    await _simulateModelInteraction(abort);
 
     // Update tool call to completed
     await _connection.sessionUpdate(
@@ -179,7 +210,7 @@ class ExampleAgent implements Agent {
       ),
     );
 
-    await _simulateModelInteraction(abortStream);
+    await _simulateModelInteraction(abort);
 
     // Send more text
     await _connection.sessionUpdate(
@@ -194,7 +225,7 @@ class ExampleAgent implements Agent {
       ),
     );
 
-    await _simulateModelInteraction(abortStream);
+    await _simulateModelInteraction(abort);
 
     // Send a tool call that DOES need permission
     await _connection.sessionUpdate(
@@ -246,6 +277,10 @@ class ExampleAgent implements Agent {
 
     final outcome = permissionResponse.outcome;
 
+    // A turn cancelled while the permission request was outstanding must not
+    // go on to run the tool call it was asking about.
+    _throwIfCancelled(abort);
+
     switch (outcome) {
       case SelectedOutcome(optionId: final optionId) when optionId == "allow":
         await _connection.sessionUpdate(
@@ -259,7 +294,7 @@ class ExampleAgent implements Agent {
           ),
         );
 
-        await _simulateModelInteraction(abortStream);
+        await _simulateModelInteraction(abort);
 
         await _connection.sessionUpdate(
           SessionNotification(
@@ -274,7 +309,7 @@ class ExampleAgent implements Agent {
         );
         break;
       case SelectedOutcome(optionId: final optionId) when optionId == "reject":
-        await _simulateModelInteraction(abortStream);
+        await _simulateModelInteraction(abort);
 
         await _connection.sessionUpdate(
           SessionNotification(
@@ -289,6 +324,9 @@ class ExampleAgent implements Agent {
         );
         break;
       case CancelledOutcome():
+        // The client only reports this outcome when the turn itself was
+        // cancelled, so report the pending update and end the turn as
+        // cancelled rather than as a completed turn.
         await _connection.sessionUpdate(
           SessionNotification(
             sessionId: sessionId,
@@ -300,18 +338,31 @@ class ExampleAgent implements Agent {
             ),
           ),
         );
-        break;
+        throw _TurnCancelled();
       default:
         throw Exception('Unexpected permission outcome $outcome');
     }
   }
 
-  /// Simulates model interaction with a delay
-  Future<void> _simulateModelInteraction(Stream<void> abortStream) {
-    return abortStream
-        .any((_) => true)
-        .then((_) => Future.value())
-        .timeout(Duration(seconds: 1), onTimeout: () => {});
+  /// Simulates model interaction with a delay, returning as soon as [abort]
+  /// completes.
+  ///
+  /// [abort] is a `Completer` rather than a `Stream` on purpose: it is awaited
+  /// once per simulated model call, and a single-subscription stream (such as
+  /// the one returned by `Future.asStream()`) can only be listened to once.
+  Future<void> _simulateModelInteraction(Completer<void> abort) async {
+    await Future.any([
+      abort.future,
+      Future<void>.delayed(Duration(seconds: 1)),
+    ]);
+    _throwIfCancelled(abort);
+  }
+
+  /// Abandons the turn if the client cancelled it in the meantime.
+  void _throwIfCancelled(Completer<void> abort) {
+    if (abort.isCompleted) {
+      throw _TurnCancelled();
+    }
   }
 
   @override
