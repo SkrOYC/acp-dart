@@ -8,6 +8,7 @@ import 'tool_call_content_converter.dart';
 import 'mcp_server_converter.dart';
 import 'request_permission_converter.dart';
 import 'elicitation_converters.dart';
+import 'nes_converters.dart';
 part 'schema.g.dart';
 
 typedef ProtocolVersion = int;
@@ -3501,6 +3502,906 @@ class DisconnectMcpResponse {
   Map<String, dynamic> toJson() => _$DisconnectMcpResponseToJson(this);
 }
 
+// ---------------------------------------------------------------------------
+// Next Edit Suggestions (NES)
+//
+// The agent proposes the edit a developer is likely to make next, based on
+// what they just did. A NES session is separate from a prompt session: start
+// one with `nes/start`, ask for suggestions with `nes/suggest` as the user
+// types, report the outcome with `nes/accept` or `nes/reject`, and tear it
+// down with `nes/close`.
+//
+// Suggestion quality depends on the agent seeing current buffer state, which
+// is what the `document/did*` notifications provide.
+// ---------------------------------------------------------------------------
+
+/// Identifies a suggestion within a NES session.
+typedef NesSuggestionId = String;
+
+/// A folder in the client's workspace.
+@JsonSerializable()
+class WorkspaceFolder {
+  @JsonKey(name: '_meta', includeIfNull: false)
+  final Map<String, dynamic>? meta;
+  final String uri;
+  final String name;
+
+  WorkspaceFolder({this.meta, required this.uri, required this.name});
+
+  factory WorkspaceFolder.fromJson(Map<String, dynamic> json) =>
+      _$WorkspaceFolderFromJson(json);
+
+  Map<String, dynamic> toJson() => _$WorkspaceFolderToJson(this);
+}
+
+/// The repository backing a NES session, when there is one.
+@JsonSerializable()
+class NesRepository {
+  @JsonKey(name: '_meta', includeIfNull: false)
+  final Map<String, dynamic>? meta;
+  final String name;
+  final String owner;
+  final String remoteUrl;
+
+  NesRepository({
+    this.meta,
+    required this.name,
+    required this.owner,
+    required this.remoteUrl,
+  });
+
+  factory NesRepository.fromJson(Map<String, dynamic> json) =>
+      _$NesRepositoryFromJson(json);
+
+  Map<String, dynamic> toJson() => _$NesRepositoryToJson(this);
+}
+
+/// What prompted a `nes/suggest` call.
+enum NesTriggerKind {
+  /// Typing or cursor movement.
+  @JsonValue('automatic')
+  automatic,
+
+  /// A diagnostic appeared.
+  @JsonValue('diagnostic')
+  diagnostic,
+
+  /// The user explicitly asked.
+  @JsonValue('manual')
+  manual,
+}
+
+/// Why a suggestion was not taken.
+enum NesRejectReason {
+  /// The user actively dismissed it.
+  @JsonValue('rejected')
+  rejected,
+
+  /// It was never acted on.
+  @JsonValue('ignored')
+  ignored,
+
+  /// A newer suggestion superseded it.
+  @JsonValue('replaced')
+  replaced,
+
+  /// The request was cancelled before resolution.
+  @JsonValue('cancelled')
+  cancelled,
+}
+
+/// Severity of a diagnostic passed as NES context.
+enum NesDiagnosticSeverity {
+  @JsonValue('error')
+  error,
+  @JsonValue('warning')
+  warning,
+  @JsonValue('information')
+  information,
+  @JsonValue('hint')
+  hint,
+}
+
+/// A contiguous slice of a file, used as related-snippet context.
+@JsonSerializable()
+class NesExcerpt {
+  @JsonKey(name: '_meta', includeIfNull: false)
+  final Map<String, dynamic>? meta;
+  final int startLine;
+  final int endLine;
+  final String text;
+
+  NesExcerpt({
+    this.meta,
+    required this.startLine,
+    required this.endLine,
+    required this.text,
+  });
+
+  factory NesExcerpt.fromJson(Map<String, dynamic> json) =>
+      _$NesExcerptFromJson(json);
+
+  Map<String, dynamic> toJson() => _$NesExcerptToJson(this);
+}
+
+/// A single replacement within an edit suggestion.
+@JsonSerializable()
+class NesTextEdit {
+  @JsonKey(name: '_meta', includeIfNull: false)
+  final Map<String, dynamic>? meta;
+  final Range range;
+  final String newText;
+
+  NesTextEdit({this.meta, required this.range, required this.newText});
+
+  factory NesTextEdit.fromJson(Map<String, dynamic> json) =>
+      _$NesTextEditFromJson(json);
+
+  Map<String, dynamic> toJson() => _$NesTextEditToJson(this);
+}
+
+/// A file the user touched recently.
+@JsonSerializable()
+class NesRecentFile {
+  @JsonKey(name: '_meta', includeIfNull: false)
+  final Map<String, dynamic>? meta;
+  final String uri;
+  final String languageId;
+  final String text;
+
+  NesRecentFile({
+    this.meta,
+    required this.uri,
+    required this.languageId,
+    required this.text,
+  });
+
+  factory NesRecentFile.fromJson(Map<String, dynamic> json) =>
+      _$NesRecentFileFromJson(json);
+
+  Map<String, dynamic> toJson() => _$NesRecentFileToJson(this);
+}
+
+/// Excerpts from a file related to what the user is editing.
+@JsonSerializable()
+class NesRelatedSnippet {
+  @JsonKey(name: '_meta', includeIfNull: false)
+  final Map<String, dynamic>? meta;
+  final String uri;
+  final List<NesExcerpt> excerpts;
+
+  NesRelatedSnippet({this.meta, required this.uri, required this.excerpts});
+
+  factory NesRelatedSnippet.fromJson(Map<String, dynamic> json) =>
+      _$NesRelatedSnippetFromJson(json);
+
+  Map<String, dynamic> toJson() => _$NesRelatedSnippetToJson(this);
+}
+
+/// A recent edit, expressed as a unified diff.
+@JsonSerializable()
+class NesEditHistoryEntry {
+  @JsonKey(name: '_meta', includeIfNull: false)
+  final Map<String, dynamic>? meta;
+  final String uri;
+  final String diff;
+
+  NesEditHistoryEntry({this.meta, required this.uri, required this.diff});
+
+  factory NesEditHistoryEntry.fromJson(Map<String, dynamic> json) =>
+      _$NesEditHistoryEntryFromJson(json);
+
+  Map<String, dynamic> toJson() => _$NesEditHistoryEntryToJson(this);
+}
+
+/// Something the user did, with when and where.
+@JsonSerializable()
+class NesUserAction {
+  @JsonKey(name: '_meta', includeIfNull: false)
+  final Map<String, dynamic>? meta;
+  final String action;
+  final String uri;
+  final Position position;
+
+  /// Milliseconds since the Unix epoch.
+  final int timestampMs;
+
+  NesUserAction({
+    this.meta,
+    required this.action,
+    required this.uri,
+    required this.position,
+    required this.timestampMs,
+  });
+
+  factory NesUserAction.fromJson(Map<String, dynamic> json) =>
+      _$NesUserActionFromJson(json);
+
+  Map<String, dynamic> toJson() => _$NesUserActionToJson(this);
+}
+
+/// A file currently open in the editor.
+@JsonSerializable()
+class NesOpenFile {
+  @JsonKey(name: '_meta', includeIfNull: false)
+  final Map<String, dynamic>? meta;
+  final String uri;
+  final String languageId;
+  final Range? visibleRange;
+
+  /// Milliseconds since the Unix epoch, when this file last had focus.
+  final int? lastFocusedMs;
+
+  NesOpenFile({
+    this.meta,
+    required this.uri,
+    required this.languageId,
+    this.visibleRange,
+    this.lastFocusedMs,
+  });
+
+  factory NesOpenFile.fromJson(Map<String, dynamic> json) =>
+      _$NesOpenFileFromJson(json);
+
+  Map<String, dynamic> toJson() => _$NesOpenFileToJson(this);
+}
+
+/// A diagnostic the agent may use to inform a suggestion.
+@JsonSerializable()
+class NesDiagnostic {
+  @JsonKey(name: '_meta', includeIfNull: false)
+  final Map<String, dynamic>? meta;
+  final String uri;
+  final Range range;
+  final NesDiagnosticSeverity severity;
+  final String message;
+
+  NesDiagnostic({
+    this.meta,
+    required this.uri,
+    required this.range,
+    required this.severity,
+    required this.message,
+  });
+
+  factory NesDiagnostic.fromJson(Map<String, dynamic> json) =>
+      _$NesDiagnosticFromJson(json);
+
+  Map<String, dynamic> toJson() => _$NesDiagnosticToJson(this);
+}
+
+/// Optional context a client can attach to `nes/suggest`.
+///
+/// Every field is optional; send only what the agent advertised it accepts
+/// via [NesContextCapabilities].
+@JsonSerializable()
+class NesSuggestContext {
+  @JsonKey(name: '_meta', includeIfNull: false)
+  final Map<String, dynamic>? meta;
+  final List<NesRecentFile>? recentFiles;
+  final List<NesRelatedSnippet>? relatedSnippets;
+  final List<NesEditHistoryEntry>? editHistory;
+  final List<NesUserAction>? userActions;
+  final List<NesOpenFile>? openFiles;
+  final List<NesDiagnostic>? diagnostics;
+
+  NesSuggestContext({
+    this.meta,
+    this.recentFiles,
+    this.relatedSnippets,
+    this.editHistory,
+    this.userActions,
+    this.openFiles,
+    this.diagnostics,
+  });
+
+  factory NesSuggestContext.fromJson(Map<String, dynamic> json) =>
+      _$NesSuggestContextFromJson(json);
+
+  Map<String, dynamic> toJson() => _$NesSuggestContextToJson(this);
+}
+
+/// A proposed next edit, discriminated on `kind`.
+abstract class NesSuggestion {
+  /// Identifies this suggestion for `nes/accept` and `nes/reject`.
+  String get id;
+
+  /// The document the suggestion applies to.
+  String get uri;
+}
+
+/// Apply [edits] to [uri].
+@JsonSerializable()
+class NesEditSuggestion extends NesSuggestion {
+  @JsonKey(name: '_meta', includeIfNull: false)
+  final Map<String, dynamic>? meta;
+  @override
+  final String id;
+  @override
+  final String uri;
+  final List<NesTextEdit> edits;
+
+  /// Where to leave the cursor once the edits are applied.
+  final Position? cursorPosition;
+
+  NesEditSuggestion({
+    this.meta,
+    required this.id,
+    required this.uri,
+    required this.edits,
+    this.cursorPosition,
+  });
+
+  factory NesEditSuggestion.fromJson(Map<String, dynamic> json) =>
+      _$NesEditSuggestionFromJson(json);
+
+  Map<String, dynamic> toJson() => _$NesEditSuggestionToJson(this);
+}
+
+/// Move the cursor to [position], without editing.
+@JsonSerializable()
+class NesJumpSuggestion extends NesSuggestion {
+  @JsonKey(name: '_meta', includeIfNull: false)
+  final Map<String, dynamic>? meta;
+  @override
+  final String id;
+  @override
+  final String uri;
+  final Position position;
+
+  NesJumpSuggestion({
+    this.meta,
+    required this.id,
+    required this.uri,
+    required this.position,
+  });
+
+  factory NesJumpSuggestion.fromJson(Map<String, dynamic> json) =>
+      _$NesJumpSuggestionFromJson(json);
+
+  Map<String, dynamic> toJson() => _$NesJumpSuggestionToJson(this);
+}
+
+/// Rename the symbol at [position] to [newName].
+@JsonSerializable()
+class NesRenameSuggestion extends NesSuggestion {
+  @JsonKey(name: '_meta', includeIfNull: false)
+  final Map<String, dynamic>? meta;
+  @override
+  final String id;
+  @override
+  final String uri;
+  final Position position;
+  final String newName;
+
+  NesRenameSuggestion({
+    this.meta,
+    required this.id,
+    required this.uri,
+    required this.position,
+    required this.newName,
+  });
+
+  factory NesRenameSuggestion.fromJson(Map<String, dynamic> json) =>
+      _$NesRenameSuggestionFromJson(json);
+
+  Map<String, dynamic> toJson() => _$NesRenameSuggestionToJson(this);
+}
+
+/// Replace occurrences of [search] with [replace].
+@JsonSerializable()
+class NesSearchAndReplaceSuggestion extends NesSuggestion {
+  @JsonKey(name: '_meta', includeIfNull: false)
+  final Map<String, dynamic>? meta;
+  @override
+  final String id;
+  @override
+  final String uri;
+  final String search;
+  final String replace;
+
+  /// Whether [search] is a regular expression.
+  final bool? isRegex;
+
+  NesSearchAndReplaceSuggestion({
+    this.meta,
+    required this.id,
+    required this.uri,
+    required this.search,
+    required this.replace,
+    this.isRegex,
+  });
+
+  factory NesSearchAndReplaceSuggestion.fromJson(Map<String, dynamic> json) =>
+      _$NesSearchAndReplaceSuggestionFromJson(json);
+
+  Map<String, dynamic> toJson() =>
+      _$NesSearchAndReplaceSuggestionToJson(this);
+}
+
+/// Forward-compatible fallback for unrecognised suggestion kinds.
+@JsonSerializable()
+class UnknownNesSuggestion extends NesSuggestion {
+  final Map<String, dynamic> rawJson;
+  UnknownNesSuggestion({required this.rawJson});
+
+  @override
+  String get id => (rawJson['id'] as String?) ?? '';
+  @override
+  String get uri => (rawJson['uri'] as String?) ?? '';
+
+  factory UnknownNesSuggestion.fromJson(Map<String, dynamic> json) =>
+      _$UnknownNesSuggestionFromJson(json);
+
+  Map<String, dynamic> toJson() => _$UnknownNesSuggestionToJson(this);
+}
+
+/// Client can act on `jump` suggestions.
+@JsonSerializable()
+class NesJumpCapabilities {
+  @JsonKey(name: '_meta', includeIfNull: false)
+  final Map<String, dynamic>? meta;
+
+  NesJumpCapabilities({this.meta});
+
+  factory NesJumpCapabilities.fromJson(Map<String, dynamic> json) =>
+      _$NesJumpCapabilitiesFromJson(json);
+
+  Map<String, dynamic> toJson() => _$NesJumpCapabilitiesToJson(this);
+}
+
+/// Client can act on `rename` suggestions.
+@JsonSerializable()
+class NesRenameCapabilities {
+  @JsonKey(name: '_meta', includeIfNull: false)
+  final Map<String, dynamic>? meta;
+
+  NesRenameCapabilities({this.meta});
+
+  factory NesRenameCapabilities.fromJson(Map<String, dynamic> json) =>
+      _$NesRenameCapabilitiesFromJson(json);
+
+  Map<String, dynamic> toJson() => _$NesRenameCapabilitiesToJson(this);
+}
+
+/// Client can act on `searchAndReplace` suggestions.
+@JsonSerializable()
+class NesSearchAndReplaceCapabilities {
+  @JsonKey(name: '_meta', includeIfNull: false)
+  final Map<String, dynamic>? meta;
+
+  NesSearchAndReplaceCapabilities({this.meta});
+
+  factory NesSearchAndReplaceCapabilities.fromJson(Map<String, dynamic> json) =>
+      _$NesSearchAndReplaceCapabilitiesFromJson(json);
+
+  Map<String, dynamic> toJson() => _$NesSearchAndReplaceCapabilitiesToJson(this);
+}
+
+/// Agent accepts recent files as context.
+@JsonSerializable()
+class NesRecentFilesCapabilities {
+  @JsonKey(name: '_meta', includeIfNull: false)
+  final Map<String, dynamic>? meta;
+
+  NesRecentFilesCapabilities({this.meta});
+
+  factory NesRecentFilesCapabilities.fromJson(Map<String, dynamic> json) =>
+      _$NesRecentFilesCapabilitiesFromJson(json);
+
+  Map<String, dynamic> toJson() => _$NesRecentFilesCapabilitiesToJson(this);
+}
+
+/// Agent accepts related snippets as context.
+@JsonSerializable()
+class NesRelatedSnippetsCapabilities {
+  @JsonKey(name: '_meta', includeIfNull: false)
+  final Map<String, dynamic>? meta;
+
+  NesRelatedSnippetsCapabilities({this.meta});
+
+  factory NesRelatedSnippetsCapabilities.fromJson(Map<String, dynamic> json) =>
+      _$NesRelatedSnippetsCapabilitiesFromJson(json);
+
+  Map<String, dynamic> toJson() => _$NesRelatedSnippetsCapabilitiesToJson(this);
+}
+
+/// Agent accepts edit history as context.
+@JsonSerializable()
+class NesEditHistoryCapabilities {
+  @JsonKey(name: '_meta', includeIfNull: false)
+  final Map<String, dynamic>? meta;
+
+  NesEditHistoryCapabilities({this.meta});
+
+  factory NesEditHistoryCapabilities.fromJson(Map<String, dynamic> json) =>
+      _$NesEditHistoryCapabilitiesFromJson(json);
+
+  Map<String, dynamic> toJson() => _$NesEditHistoryCapabilitiesToJson(this);
+}
+
+/// Agent accepts user actions as context.
+@JsonSerializable()
+class NesUserActionsCapabilities {
+  @JsonKey(name: '_meta', includeIfNull: false)
+  final Map<String, dynamic>? meta;
+
+  NesUserActionsCapabilities({this.meta});
+
+  factory NesUserActionsCapabilities.fromJson(Map<String, dynamic> json) =>
+      _$NesUserActionsCapabilitiesFromJson(json);
+
+  Map<String, dynamic> toJson() => _$NesUserActionsCapabilitiesToJson(this);
+}
+
+/// Agent accepts open files as context.
+@JsonSerializable()
+class NesOpenFilesCapabilities {
+  @JsonKey(name: '_meta', includeIfNull: false)
+  final Map<String, dynamic>? meta;
+
+  NesOpenFilesCapabilities({this.meta});
+
+  factory NesOpenFilesCapabilities.fromJson(Map<String, dynamic> json) =>
+      _$NesOpenFilesCapabilitiesFromJson(json);
+
+  Map<String, dynamic> toJson() => _$NesOpenFilesCapabilitiesToJson(this);
+}
+
+/// Agent accepts diagnostics as context.
+@JsonSerializable()
+class NesDiagnosticsCapabilities {
+  @JsonKey(name: '_meta', includeIfNull: false)
+  final Map<String, dynamic>? meta;
+
+  NesDiagnosticsCapabilities({this.meta});
+
+  factory NesDiagnosticsCapabilities.fromJson(Map<String, dynamic> json) =>
+      _$NesDiagnosticsCapabilitiesFromJson(json);
+
+  Map<String, dynamic> toJson() => _$NesDiagnosticsCapabilitiesToJson(this);
+}
+
+/// Agent consumes `document/didOpen`.
+@JsonSerializable()
+class NesDocumentDidOpenCapabilities {
+  @JsonKey(name: '_meta', includeIfNull: false)
+  final Map<String, dynamic>? meta;
+
+  NesDocumentDidOpenCapabilities({this.meta});
+
+  factory NesDocumentDidOpenCapabilities.fromJson(Map<String, dynamic> json) =>
+      _$NesDocumentDidOpenCapabilitiesFromJson(json);
+
+  Map<String, dynamic> toJson() => _$NesDocumentDidOpenCapabilitiesToJson(this);
+}
+
+/// Agent consumes `document/didChange`.
+@JsonSerializable()
+class NesDocumentDidChangeCapabilities {
+  @JsonKey(name: '_meta', includeIfNull: false)
+  final Map<String, dynamic>? meta;
+
+  NesDocumentDidChangeCapabilities({this.meta});
+
+  factory NesDocumentDidChangeCapabilities.fromJson(Map<String, dynamic> json) =>
+      _$NesDocumentDidChangeCapabilitiesFromJson(json);
+
+  Map<String, dynamic> toJson() => _$NesDocumentDidChangeCapabilitiesToJson(this);
+}
+
+/// Agent consumes `document/didClose`.
+@JsonSerializable()
+class NesDocumentDidCloseCapabilities {
+  @JsonKey(name: '_meta', includeIfNull: false)
+  final Map<String, dynamic>? meta;
+
+  NesDocumentDidCloseCapabilities({this.meta});
+
+  factory NesDocumentDidCloseCapabilities.fromJson(Map<String, dynamic> json) =>
+      _$NesDocumentDidCloseCapabilitiesFromJson(json);
+
+  Map<String, dynamic> toJson() => _$NesDocumentDidCloseCapabilitiesToJson(this);
+}
+
+/// Agent consumes `document/didSave`.
+@JsonSerializable()
+class NesDocumentDidSaveCapabilities {
+  @JsonKey(name: '_meta', includeIfNull: false)
+  final Map<String, dynamic>? meta;
+
+  NesDocumentDidSaveCapabilities({this.meta});
+
+  factory NesDocumentDidSaveCapabilities.fromJson(Map<String, dynamic> json) =>
+      _$NesDocumentDidSaveCapabilitiesFromJson(json);
+
+  Map<String, dynamic> toJson() => _$NesDocumentDidSaveCapabilitiesToJson(this);
+}
+
+/// Agent consumes `document/didFocus`.
+@JsonSerializable()
+class NesDocumentDidFocusCapabilities {
+  @JsonKey(name: '_meta', includeIfNull: false)
+  final Map<String, dynamic>? meta;
+
+  NesDocumentDidFocusCapabilities({this.meta});
+
+  factory NesDocumentDidFocusCapabilities.fromJson(Map<String, dynamic> json) =>
+      _$NesDocumentDidFocusCapabilitiesFromJson(json);
+
+  Map<String, dynamic> toJson() => _$NesDocumentDidFocusCapabilitiesToJson(this);
+}
+
+/// Which document events an agent consumes.
+@JsonSerializable()
+class NesDocumentEventCapabilities {
+  @JsonKey(name: '_meta', includeIfNull: false)
+  final Map<String, dynamic>? meta;
+  final NesDocumentDidOpenCapabilities? didOpen;
+  final NesDocumentDidChangeCapabilities? didChange;
+  final NesDocumentDidCloseCapabilities? didClose;
+  final NesDocumentDidSaveCapabilities? didSave;
+  final NesDocumentDidFocusCapabilities? didFocus;
+
+  NesDocumentEventCapabilities({
+    this.meta,
+    this.didOpen,
+    this.didChange,
+    this.didClose,
+    this.didSave,
+    this.didFocus,
+  });
+
+  factory NesDocumentEventCapabilities.fromJson(Map<String, dynamic> json) =>
+      _$NesDocumentEventCapabilitiesFromJson(json);
+
+  Map<String, dynamic> toJson() => _$NesDocumentEventCapabilitiesToJson(this);
+}
+
+/// Which events an agent consumes.
+@JsonSerializable()
+class NesEventCapabilities {
+  @JsonKey(name: '_meta', includeIfNull: false)
+  final Map<String, dynamic>? meta;
+  final NesDocumentEventCapabilities? document;
+
+  NesEventCapabilities({this.meta, this.document});
+
+  factory NesEventCapabilities.fromJson(Map<String, dynamic> json) =>
+      _$NesEventCapabilitiesFromJson(json);
+
+  Map<String, dynamic> toJson() => _$NesEventCapabilitiesToJson(this);
+}
+
+/// Which kinds of context an agent accepts on `nes/suggest`.
+@JsonSerializable()
+class NesContextCapabilities {
+  @JsonKey(name: '_meta', includeIfNull: false)
+  final Map<String, dynamic>? meta;
+  final NesRecentFilesCapabilities? recentFiles;
+  final NesRelatedSnippetsCapabilities? relatedSnippets;
+  final NesEditHistoryCapabilities? editHistory;
+  final NesUserActionsCapabilities? userActions;
+  final NesOpenFilesCapabilities? openFiles;
+  final NesDiagnosticsCapabilities? diagnostics;
+
+  NesContextCapabilities({
+    this.meta,
+    this.recentFiles,
+    this.relatedSnippets,
+    this.editHistory,
+    this.userActions,
+    this.openFiles,
+    this.diagnostics,
+  });
+
+  factory NesContextCapabilities.fromJson(Map<String, dynamic> json) =>
+      _$NesContextCapabilitiesFromJson(json);
+
+  Map<String, dynamic> toJson() => _$NesContextCapabilitiesToJson(this);
+}
+
+/// NES capabilities advertised by the agent during initialization.
+@JsonSerializable()
+class NesCapabilities {
+  @JsonKey(name: '_meta', includeIfNull: false)
+  final Map<String, dynamic>? meta;
+  final NesEventCapabilities? events;
+  final NesContextCapabilities? context;
+
+  NesCapabilities({this.meta, this.events, this.context});
+
+  factory NesCapabilities.fromJson(Map<String, dynamic> json) =>
+      _$NesCapabilitiesFromJson(json);
+
+  Map<String, dynamic> toJson() => _$NesCapabilitiesToJson(this);
+}
+
+/// NES suggestion kinds the client can act on.
+///
+/// An agent should only return a suggestion kind the client advertised.
+@JsonSerializable()
+class ClientNesCapabilities {
+  @JsonKey(name: '_meta', includeIfNull: false)
+  final Map<String, dynamic>? meta;
+  final NesJumpCapabilities? jump;
+  final NesRenameCapabilities? rename;
+  final NesSearchAndReplaceCapabilities? searchAndReplace;
+
+  ClientNesCapabilities({
+    this.meta,
+    this.jump,
+    this.rename,
+    this.searchAndReplace,
+  });
+
+  factory ClientNesCapabilities.fromJson(Map<String, dynamic> json) =>
+      _$ClientNesCapabilitiesFromJson(json);
+
+  Map<String, dynamic> toJson() => _$ClientNesCapabilitiesToJson(this);
+}
+
+/// Request parameters for `nes/start`.
+@JsonSerializable()
+class StartNesRequest {
+  @JsonKey(name: '_meta', includeIfNull: false)
+  final Map<String, dynamic>? meta;
+  final String? workspaceUri;
+  final List<WorkspaceFolder>? workspaceFolders;
+  final NesRepository? repository;
+
+  StartNesRequest({
+    this.meta,
+    this.workspaceUri,
+    this.workspaceFolders,
+    this.repository,
+  });
+
+  factory StartNesRequest.fromJson(Map<String, dynamic> json) =>
+      _$StartNesRequestFromJson(json);
+
+  Map<String, dynamic> toJson() => _$StartNesRequestToJson(this);
+}
+
+/// Response to `nes/start`.
+///
+/// The returned session id addresses this NES session and is distinct from a
+/// prompt session id.
+@JsonSerializable()
+class StartNesResponse {
+  @JsonKey(name: '_meta', includeIfNull: false)
+  final Map<String, dynamic>? meta;
+  final String sessionId;
+
+  StartNesResponse({this.meta, required this.sessionId});
+
+  factory StartNesResponse.fromJson(Map<String, dynamic> json) =>
+      _$StartNesResponseFromJson(json);
+
+  Map<String, dynamic> toJson() => _$StartNesResponseToJson(this);
+}
+
+/// Request parameters for `nes/suggest`.
+@JsonSerializable()
+class SuggestNesRequest {
+  @JsonKey(name: '_meta', includeIfNull: false)
+  final Map<String, dynamic>? meta;
+  final String sessionId;
+  final String uri;
+  final int version;
+
+  /// Where the cursor is.
+  final Position position;
+
+  /// The current selection, when there is one.
+  final Range? selection;
+  final NesTriggerKind triggerKind;
+  final NesSuggestContext? context;
+
+  SuggestNesRequest({
+    this.meta,
+    required this.sessionId,
+    required this.uri,
+    required this.version,
+    required this.position,
+    this.selection,
+    required this.triggerKind,
+    this.context,
+  });
+
+  factory SuggestNesRequest.fromJson(Map<String, dynamic> json) =>
+      _$SuggestNesRequestFromJson(json);
+
+  Map<String, dynamic> toJson() => _$SuggestNesRequestToJson(this);
+}
+
+/// Response to `nes/suggest`.
+@JsonSerializable()
+class SuggestNesResponse {
+  @JsonKey(name: '_meta', includeIfNull: false)
+  final Map<String, dynamic>? meta;
+  @NesSuggestionListConverter()
+  final List<NesSuggestion> suggestions;
+
+  SuggestNesResponse({this.meta, required this.suggestions});
+
+  factory SuggestNesResponse.fromJson(Map<String, dynamic> json) =>
+      _$SuggestNesResponseFromJson(json);
+
+  Map<String, dynamic> toJson() => _$SuggestNesResponseToJson(this);
+}
+
+/// Notification parameters for `nes/accept`.
+@JsonSerializable()
+class AcceptNesNotification {
+  @JsonKey(name: '_meta', includeIfNull: false)
+  final Map<String, dynamic>? meta;
+  final String sessionId;
+  final NesSuggestionId id;
+
+  AcceptNesNotification({
+    this.meta,
+    required this.sessionId,
+    required this.id,
+  });
+
+  factory AcceptNesNotification.fromJson(Map<String, dynamic> json) =>
+      _$AcceptNesNotificationFromJson(json);
+
+  Map<String, dynamic> toJson() => _$AcceptNesNotificationToJson(this);
+}
+
+/// Notification parameters for `nes/reject`.
+@JsonSerializable()
+class RejectNesNotification {
+  @JsonKey(name: '_meta', includeIfNull: false)
+  final Map<String, dynamic>? meta;
+  final String sessionId;
+  final NesSuggestionId id;
+  final NesRejectReason? reason;
+
+  RejectNesNotification({
+    this.meta,
+    required this.sessionId,
+    required this.id,
+    this.reason,
+  });
+
+  factory RejectNesNotification.fromJson(Map<String, dynamic> json) =>
+      _$RejectNesNotificationFromJson(json);
+
+  Map<String, dynamic> toJson() => _$RejectNesNotificationToJson(this);
+}
+
+/// Request parameters for `nes/close`.
+@JsonSerializable()
+class CloseNesRequest {
+  @JsonKey(name: '_meta', includeIfNull: false)
+  final Map<String, dynamic>? meta;
+  final String sessionId;
+
+  CloseNesRequest({this.meta, required this.sessionId});
+
+  factory CloseNesRequest.fromJson(Map<String, dynamic> json) =>
+      _$CloseNesRequestFromJson(json);
+
+  Map<String, dynamic> toJson() => _$CloseNesRequestToJson(this);
+}
+
+/// Response to `nes/close`.
+@JsonSerializable()
+class CloseNesResponse {
+  @JsonKey(name: '_meta', includeIfNull: false)
+  final Map<String, dynamic>? meta;
+
+  CloseNesResponse({this.meta});
+
+  factory CloseNesResponse.fromJson(Map<String, dynamic> json) =>
+      _$CloseNesResponseFromJson(json);
+
+  Map<String, dynamic> toJson() => _$CloseNesResponseToJson(this);
+}
+
 /// Protocol method constants for agent-side requests
 const agentMethods = {
   'authenticate': 'authenticate',
@@ -3515,6 +4416,11 @@ const agentMethods = {
   'documentDidSave': 'document/didSave',
   'documentDidFocus': 'document/didFocus',
   'mcpMessage': 'mcp/message',
+  'nesStart': 'nes/start',
+  'nesSuggest': 'nes/suggest',
+  'nesAccept': 'nes/accept',
+  'nesReject': 'nes/reject',
+  'nesClose': 'nes/close',
   // Deprecated: `session/set_model` is not part of the ACP schema. Superseded
   // by `session/set_config_option` with a model config category. Retained so
   // existing integrations keep dispatching; removed in the next major release.

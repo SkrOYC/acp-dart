@@ -44,6 +44,7 @@
 import 'package:collection/collection.dart';
 
 import 'elicitation_converters.dart';
+import 'nes_converters.dart';
 
 import 'schema.dart';
 
@@ -400,6 +401,20 @@ abstract class AgentResponseUnion {
               ? LogoutResponse()
               : LogoutResponse.fromJson(result as Map<String, dynamic>),
         );
+      case 'nes/start':
+        return AgentStartNesResponse(
+          StartNesResponse.fromJson(result as Map<String, dynamic>),
+        );
+      case 'nes/suggest':
+        return AgentSuggestNesResponse(
+          SuggestNesResponse.fromJson(result as Map<String, dynamic>),
+        );
+      case 'nes/close':
+        return AgentCloseNesResponse(
+          result == null
+              ? CloseNesResponse()
+              : CloseNesResponse.fromJson(result as Map<String, dynamic>),
+        );
       case 'providers/list':
         return AgentListProvidersResponse(
           ListProvidersResponse.fromJson(result as Map<String, dynamic>),
@@ -653,6 +668,18 @@ abstract class ClientRequestUnion {
       case 'logout':
         return ClientLogoutRequest(
           LogoutRequest.fromJson(params as Map<String, dynamic>),
+        );
+      case 'nes/start':
+        return ClientStartNesRequest(
+          StartNesRequest.fromJson(params as Map<String, dynamic>),
+        );
+      case 'nes/suggest':
+        return ClientSuggestNesRequest(
+          SuggestNesRequest.fromJson(params as Map<String, dynamic>),
+        );
+      case 'nes/close':
+        return ClientCloseNesRequest(
+          CloseNesRequest.fromJson(params as Map<String, dynamic>),
         );
       case 'providers/list':
         return ClientListProvidersRequest(
@@ -1021,6 +1048,14 @@ abstract class ClientNotificationUnion {
         return ClientCancelRequestNotification(
           CancelRequestNotification.fromJson(params as Map<String, dynamic>),
         );
+      case 'nes/accept':
+        return ClientAcceptNesNotification(
+          AcceptNesNotification.fromJson(params as Map<String, dynamic>),
+        );
+      case 'nes/reject':
+        return ClientRejectNesNotification(
+          RejectNesNotification.fromJson(params as Map<String, dynamic>),
+        );
       case 'document/didOpen':
         return ClientDidOpenDocumentNotification(
           DidOpenDocumentNotification.fromJson(params as Map<String, dynamic>),
@@ -1129,6 +1164,74 @@ class ClientDidFocusDocumentNotification extends ClientNotificationUnion {
   const ClientDidFocusDocumentNotification(this.notification);
   @override
   String get method => agentMethods['documentDidFocus']!;
+  @override
+  Map<String, dynamic> toJson() => notification.toJson();
+}
+
+class ClientStartNesRequest extends ClientRequestUnion {
+  final StartNesRequest params;
+  const ClientStartNesRequest(this.params);
+  @override
+  String get method => agentMethods['nesStart']!;
+  @override
+  Map<String, dynamic> toJson() => params.toJson();
+}
+
+class ClientSuggestNesRequest extends ClientRequestUnion {
+  final SuggestNesRequest params;
+  const ClientSuggestNesRequest(this.params);
+  @override
+  String get method => agentMethods['nesSuggest']!;
+  @override
+  Map<String, dynamic> toJson() => params.toJson();
+}
+
+class ClientCloseNesRequest extends ClientRequestUnion {
+  final CloseNesRequest params;
+  const ClientCloseNesRequest(this.params);
+  @override
+  String get method => agentMethods['nesClose']!;
+  @override
+  Map<String, dynamic> toJson() => params.toJson();
+}
+
+class AgentStartNesResponse extends AgentResponseUnion {
+  final StartNesResponse response;
+  const AgentStartNesResponse(this.response);
+  @override
+  Map<String, dynamic> toJson() => response.toJson();
+}
+
+class AgentSuggestNesResponse extends AgentResponseUnion {
+  final SuggestNesResponse response;
+  const AgentSuggestNesResponse(this.response);
+  @override
+  Map<String, dynamic> toJson() => response.toJson();
+}
+
+class AgentCloseNesResponse extends AgentResponseUnion {
+  final CloseNesResponse response;
+  const AgentCloseNesResponse(this.response);
+  @override
+  Map<String, dynamic> toJson() => response.toJson();
+}
+
+/// `nes/accept` sent by the client to the agent.
+class ClientAcceptNesNotification extends ClientNotificationUnion {
+  final AcceptNesNotification notification;
+  const ClientAcceptNesNotification(this.notification);
+  @override
+  String get method => agentMethods['nesAccept']!;
+  @override
+  Map<String, dynamic> toJson() => notification.toJson();
+}
+
+/// `nes/reject` sent by the client to the agent.
+class ClientRejectNesNotification extends ClientNotificationUnion {
+  final RejectNesNotification notification;
+  const ClientRejectNesNotification(this.notification);
+  @override
+  String get method => agentMethods['nesReject']!;
   @override
   Map<String, dynamic> toJson() => notification.toJson();
 }

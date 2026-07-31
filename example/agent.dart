@@ -127,6 +127,22 @@ class ExampleAgent implements Agent {
   Future<Object?>? messageMcp(MessageMcpRequest params) => null;
 
   @override
+  Future<StartNesResponse>? startNes(StartNesRequest params) => null;
+
+  @override
+  Future<SuggestNesResponse>? suggestNes(SuggestNesRequest params) => null;
+
+  @override
+  Future<void>? acceptNes(AcceptNesNotification params) => null;
+
+  @override
+  Future<void>? rejectNes(RejectNesNotification params) => null;
+
+  @override
+  Future<CloseNesResponse>? closeNes(CloseNesRequest params) => null;
+
+
+  @override
   Future<void>? notifyMcp(MessageMcpNotification params) => null;
 
 

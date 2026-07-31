@@ -559,6 +559,27 @@ class AgentSideConnection implements Client {
             LogoutRequest.fromJson,
             agent.logout,
           );
+        case 'nes/start':
+          return handleOptionalRequest(
+            method,
+            params,
+            StartNesRequest.fromJson,
+            agent.startNes,
+          );
+        case 'nes/suggest':
+          return handleOptionalRequest(
+            method,
+            params,
+            SuggestNesRequest.fromJson,
+            agent.suggestNes,
+          );
+        case 'nes/close':
+          return handleOptionalRequest(
+            method,
+            params,
+            CloseNesRequest.fromJson,
+            agent.closeNes,
+          );
         case 'mcp/message':
           final mcpParams = MessageMcpRequest.fromJson(
             params as Map<String, dynamic>,
@@ -641,6 +662,16 @@ class AgentSideConnection implements Client {
             params as Map<String, dynamic>,
           );
           return agent.cancel(validatedParams);
+        case 'nes/accept':
+          await agent.acceptNes(
+            AcceptNesNotification.fromJson(params as Map<String, dynamic>),
+          );
+          return;
+        case 'nes/reject':
+          await agent.rejectNes(
+            RejectNesNotification.fromJson(params as Map<String, dynamic>),
+          );
+          return;
         case 'mcp/message':
           await agent.notifyMcp(
             MessageMcpNotification.fromJson(params as Map<String, dynamic>),
@@ -1271,6 +1302,49 @@ class ClientSideConnection implements Agent {
   }
 
   @override
+  Future<StartNesResponse>? startNes(StartNesRequest params) async {
+    return _sendTypedRequest(
+      agentMethods['nesStart']!,
+      params.toJson(),
+      StartNesResponse.fromJson,
+    );
+  }
+
+  @override
+  Future<SuggestNesResponse>? suggestNes(SuggestNesRequest params) async {
+    return _sendTypedRequest(
+      agentMethods['nesSuggest']!,
+      params.toJson(),
+      SuggestNesResponse.fromJson,
+    );
+  }
+
+  @override
+  Future<void>? acceptNes(AcceptNesNotification params) async {
+    return _connection.sendNotification(
+      agentMethods['nesAccept']!,
+      params.toJson(),
+    );
+  }
+
+  @override
+  Future<void>? rejectNes(RejectNesNotification params) async {
+    return _connection.sendNotification(
+      agentMethods['nesReject']!,
+      params.toJson(),
+    );
+  }
+
+  @override
+  Future<CloseNesResponse>? closeNes(CloseNesRequest params) async {
+    return _sendTypedRequest(
+      agentMethods['nesClose']!,
+      params.toJson(),
+      CloseNesResponse.fromJson,
+    );
+  }
+
+  @override
   Future<Object?> messageMcp(MessageMcpRequest params) async {
     return _connection.sendRequest(
       agentMethods['mcpMessage']!,
@@ -1536,6 +1610,35 @@ abstract class Agent {
 
   /// Forwards a tunnelled MCP notification travelling client-to-agent.
   Future<void>? notifyMcp(MessageMcpNotification params) => null;
+
+  /// Starts a Next Edit Suggestions session.
+  ///
+  /// NES sessions are separate from prompt sessions and carry their own id.
+  /// Suggestion quality depends on the agent seeing current buffer state, so
+  /// pair this with the `document/did*` notifications.
+  ///
+  /// Returning `null` reports `-32601 Method not found` to the client.
+  Future<StartNesResponse>? startNes(StartNesRequest params) => null;
+
+  /// Asks for suggestions at the cursor.
+  ///
+  /// Only send context the agent advertised via [NesContextCapabilities], and
+  /// expect only suggestion kinds the client advertised via
+  /// [ClientNesCapabilities].
+  ///
+  /// Returning `null` reports `-32601 Method not found` to the client.
+  Future<SuggestNesResponse>? suggestNes(SuggestNesRequest params) => null;
+
+  /// Reports that the user took a suggestion.
+  Future<void>? acceptNes(AcceptNesNotification params) => null;
+
+  /// Reports that a suggestion was not taken, and why.
+  Future<void>? rejectNes(RejectNesNotification params) => null;
+
+  /// Tears down a NES session.
+  ///
+  /// Returning `null` reports `-32601 Method not found` to the client.
+  Future<CloseNesResponse>? closeNes(CloseNesRequest params) => null;
 
   /// Processes a user prompt within a session.
   ///

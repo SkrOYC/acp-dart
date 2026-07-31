@@ -2633,3 +2633,704 @@ DisconnectMcpResponse _$DisconnectMcpResponseFromJson(
 Map<String, dynamic> _$DisconnectMcpResponseToJson(
   DisconnectMcpResponse instance,
 ) => <String, dynamic>{'_meta': ?instance.meta};
+
+WorkspaceFolder _$WorkspaceFolderFromJson(Map<String, dynamic> json) =>
+    WorkspaceFolder(
+      meta: json['_meta'] as Map<String, dynamic>?,
+      uri: json['uri'] as String,
+      name: json['name'] as String,
+    );
+
+Map<String, dynamic> _$WorkspaceFolderToJson(WorkspaceFolder instance) =>
+    <String, dynamic>{
+      '_meta': ?instance.meta,
+      'uri': instance.uri,
+      'name': instance.name,
+    };
+
+NesRepository _$NesRepositoryFromJson(Map<String, dynamic> json) =>
+    NesRepository(
+      meta: json['_meta'] as Map<String, dynamic>?,
+      name: json['name'] as String,
+      owner: json['owner'] as String,
+      remoteUrl: json['remoteUrl'] as String,
+    );
+
+Map<String, dynamic> _$NesRepositoryToJson(NesRepository instance) =>
+    <String, dynamic>{
+      '_meta': ?instance.meta,
+      'name': instance.name,
+      'owner': instance.owner,
+      'remoteUrl': instance.remoteUrl,
+    };
+
+NesExcerpt _$NesExcerptFromJson(Map<String, dynamic> json) => NesExcerpt(
+  meta: json['_meta'] as Map<String, dynamic>?,
+  startLine: (json['startLine'] as num).toInt(),
+  endLine: (json['endLine'] as num).toInt(),
+  text: json['text'] as String,
+);
+
+Map<String, dynamic> _$NesExcerptToJson(NesExcerpt instance) =>
+    <String, dynamic>{
+      '_meta': ?instance.meta,
+      'startLine': instance.startLine,
+      'endLine': instance.endLine,
+      'text': instance.text,
+    };
+
+NesTextEdit _$NesTextEditFromJson(Map<String, dynamic> json) => NesTextEdit(
+  meta: json['_meta'] as Map<String, dynamic>?,
+  range: Range.fromJson(json['range'] as Map<String, dynamic>),
+  newText: json['newText'] as String,
+);
+
+Map<String, dynamic> _$NesTextEditToJson(NesTextEdit instance) =>
+    <String, dynamic>{
+      '_meta': ?instance.meta,
+      'range': instance.range,
+      'newText': instance.newText,
+    };
+
+NesRecentFile _$NesRecentFileFromJson(Map<String, dynamic> json) =>
+    NesRecentFile(
+      meta: json['_meta'] as Map<String, dynamic>?,
+      uri: json['uri'] as String,
+      languageId: json['languageId'] as String,
+      text: json['text'] as String,
+    );
+
+Map<String, dynamic> _$NesRecentFileToJson(NesRecentFile instance) =>
+    <String, dynamic>{
+      '_meta': ?instance.meta,
+      'uri': instance.uri,
+      'languageId': instance.languageId,
+      'text': instance.text,
+    };
+
+NesRelatedSnippet _$NesRelatedSnippetFromJson(Map<String, dynamic> json) =>
+    NesRelatedSnippet(
+      meta: json['_meta'] as Map<String, dynamic>?,
+      uri: json['uri'] as String,
+      excerpts: (json['excerpts'] as List<dynamic>)
+          .map((e) => NesExcerpt.fromJson(e as Map<String, dynamic>))
+          .toList(),
+    );
+
+Map<String, dynamic> _$NesRelatedSnippetToJson(NesRelatedSnippet instance) =>
+    <String, dynamic>{
+      '_meta': ?instance.meta,
+      'uri': instance.uri,
+      'excerpts': instance.excerpts,
+    };
+
+NesEditHistoryEntry _$NesEditHistoryEntryFromJson(Map<String, dynamic> json) =>
+    NesEditHistoryEntry(
+      meta: json['_meta'] as Map<String, dynamic>?,
+      uri: json['uri'] as String,
+      diff: json['diff'] as String,
+    );
+
+Map<String, dynamic> _$NesEditHistoryEntryToJson(
+  NesEditHistoryEntry instance,
+) => <String, dynamic>{
+  '_meta': ?instance.meta,
+  'uri': instance.uri,
+  'diff': instance.diff,
+};
+
+NesUserAction _$NesUserActionFromJson(Map<String, dynamic> json) =>
+    NesUserAction(
+      meta: json['_meta'] as Map<String, dynamic>?,
+      action: json['action'] as String,
+      uri: json['uri'] as String,
+      position: Position.fromJson(json['position'] as Map<String, dynamic>),
+      timestampMs: (json['timestampMs'] as num).toInt(),
+    );
+
+Map<String, dynamic> _$NesUserActionToJson(NesUserAction instance) =>
+    <String, dynamic>{
+      '_meta': ?instance.meta,
+      'action': instance.action,
+      'uri': instance.uri,
+      'position': instance.position,
+      'timestampMs': instance.timestampMs,
+    };
+
+NesOpenFile _$NesOpenFileFromJson(Map<String, dynamic> json) => NesOpenFile(
+  meta: json['_meta'] as Map<String, dynamic>?,
+  uri: json['uri'] as String,
+  languageId: json['languageId'] as String,
+  visibleRange: json['visibleRange'] == null
+      ? null
+      : Range.fromJson(json['visibleRange'] as Map<String, dynamic>),
+  lastFocusedMs: (json['lastFocusedMs'] as num?)?.toInt(),
+);
+
+Map<String, dynamic> _$NesOpenFileToJson(NesOpenFile instance) =>
+    <String, dynamic>{
+      '_meta': ?instance.meta,
+      'uri': instance.uri,
+      'languageId': instance.languageId,
+      'visibleRange': instance.visibleRange,
+      'lastFocusedMs': instance.lastFocusedMs,
+    };
+
+NesDiagnostic _$NesDiagnosticFromJson(Map<String, dynamic> json) =>
+    NesDiagnostic(
+      meta: json['_meta'] as Map<String, dynamic>?,
+      uri: json['uri'] as String,
+      range: Range.fromJson(json['range'] as Map<String, dynamic>),
+      severity: $enumDecode(_$NesDiagnosticSeverityEnumMap, json['severity']),
+      message: json['message'] as String,
+    );
+
+Map<String, dynamic> _$NesDiagnosticToJson(NesDiagnostic instance) =>
+    <String, dynamic>{
+      '_meta': ?instance.meta,
+      'uri': instance.uri,
+      'range': instance.range,
+      'severity': _$NesDiagnosticSeverityEnumMap[instance.severity]!,
+      'message': instance.message,
+    };
+
+const _$NesDiagnosticSeverityEnumMap = {
+  NesDiagnosticSeverity.error: 'error',
+  NesDiagnosticSeverity.warning: 'warning',
+  NesDiagnosticSeverity.information: 'information',
+  NesDiagnosticSeverity.hint: 'hint',
+};
+
+NesSuggestContext _$NesSuggestContextFromJson(Map<String, dynamic> json) =>
+    NesSuggestContext(
+      meta: json['_meta'] as Map<String, dynamic>?,
+      recentFiles: (json['recentFiles'] as List<dynamic>?)
+          ?.map((e) => NesRecentFile.fromJson(e as Map<String, dynamic>))
+          .toList(),
+      relatedSnippets: (json['relatedSnippets'] as List<dynamic>?)
+          ?.map((e) => NesRelatedSnippet.fromJson(e as Map<String, dynamic>))
+          .toList(),
+      editHistory: (json['editHistory'] as List<dynamic>?)
+          ?.map((e) => NesEditHistoryEntry.fromJson(e as Map<String, dynamic>))
+          .toList(),
+      userActions: (json['userActions'] as List<dynamic>?)
+          ?.map((e) => NesUserAction.fromJson(e as Map<String, dynamic>))
+          .toList(),
+      openFiles: (json['openFiles'] as List<dynamic>?)
+          ?.map((e) => NesOpenFile.fromJson(e as Map<String, dynamic>))
+          .toList(),
+      diagnostics: (json['diagnostics'] as List<dynamic>?)
+          ?.map((e) => NesDiagnostic.fromJson(e as Map<String, dynamic>))
+          .toList(),
+    );
+
+Map<String, dynamic> _$NesSuggestContextToJson(NesSuggestContext instance) =>
+    <String, dynamic>{
+      '_meta': ?instance.meta,
+      'recentFiles': instance.recentFiles,
+      'relatedSnippets': instance.relatedSnippets,
+      'editHistory': instance.editHistory,
+      'userActions': instance.userActions,
+      'openFiles': instance.openFiles,
+      'diagnostics': instance.diagnostics,
+    };
+
+NesEditSuggestion _$NesEditSuggestionFromJson(Map<String, dynamic> json) =>
+    NesEditSuggestion(
+      meta: json['_meta'] as Map<String, dynamic>?,
+      id: json['id'] as String,
+      uri: json['uri'] as String,
+      edits: (json['edits'] as List<dynamic>)
+          .map((e) => NesTextEdit.fromJson(e as Map<String, dynamic>))
+          .toList(),
+      cursorPosition: json['cursorPosition'] == null
+          ? null
+          : Position.fromJson(json['cursorPosition'] as Map<String, dynamic>),
+    );
+
+Map<String, dynamic> _$NesEditSuggestionToJson(NesEditSuggestion instance) =>
+    <String, dynamic>{
+      '_meta': ?instance.meta,
+      'id': instance.id,
+      'uri': instance.uri,
+      'edits': instance.edits,
+      'cursorPosition': instance.cursorPosition,
+    };
+
+NesJumpSuggestion _$NesJumpSuggestionFromJson(Map<String, dynamic> json) =>
+    NesJumpSuggestion(
+      meta: json['_meta'] as Map<String, dynamic>?,
+      id: json['id'] as String,
+      uri: json['uri'] as String,
+      position: Position.fromJson(json['position'] as Map<String, dynamic>),
+    );
+
+Map<String, dynamic> _$NesJumpSuggestionToJson(NesJumpSuggestion instance) =>
+    <String, dynamic>{
+      '_meta': ?instance.meta,
+      'id': instance.id,
+      'uri': instance.uri,
+      'position': instance.position,
+    };
+
+NesRenameSuggestion _$NesRenameSuggestionFromJson(Map<String, dynamic> json) =>
+    NesRenameSuggestion(
+      meta: json['_meta'] as Map<String, dynamic>?,
+      id: json['id'] as String,
+      uri: json['uri'] as String,
+      position: Position.fromJson(json['position'] as Map<String, dynamic>),
+      newName: json['newName'] as String,
+    );
+
+Map<String, dynamic> _$NesRenameSuggestionToJson(
+  NesRenameSuggestion instance,
+) => <String, dynamic>{
+  '_meta': ?instance.meta,
+  'id': instance.id,
+  'uri': instance.uri,
+  'position': instance.position,
+  'newName': instance.newName,
+};
+
+NesSearchAndReplaceSuggestion _$NesSearchAndReplaceSuggestionFromJson(
+  Map<String, dynamic> json,
+) => NesSearchAndReplaceSuggestion(
+  meta: json['_meta'] as Map<String, dynamic>?,
+  id: json['id'] as String,
+  uri: json['uri'] as String,
+  search: json['search'] as String,
+  replace: json['replace'] as String,
+  isRegex: json['isRegex'] as bool?,
+);
+
+Map<String, dynamic> _$NesSearchAndReplaceSuggestionToJson(
+  NesSearchAndReplaceSuggestion instance,
+) => <String, dynamic>{
+  '_meta': ?instance.meta,
+  'id': instance.id,
+  'uri': instance.uri,
+  'search': instance.search,
+  'replace': instance.replace,
+  'isRegex': instance.isRegex,
+};
+
+UnknownNesSuggestion _$UnknownNesSuggestionFromJson(
+  Map<String, dynamic> json,
+) => UnknownNesSuggestion(rawJson: json['rawJson'] as Map<String, dynamic>);
+
+Map<String, dynamic> _$UnknownNesSuggestionToJson(
+  UnknownNesSuggestion instance,
+) => <String, dynamic>{'rawJson': instance.rawJson};
+
+NesJumpCapabilities _$NesJumpCapabilitiesFromJson(Map<String, dynamic> json) =>
+    NesJumpCapabilities(meta: json['_meta'] as Map<String, dynamic>?);
+
+Map<String, dynamic> _$NesJumpCapabilitiesToJson(
+  NesJumpCapabilities instance,
+) => <String, dynamic>{'_meta': ?instance.meta};
+
+NesRenameCapabilities _$NesRenameCapabilitiesFromJson(
+  Map<String, dynamic> json,
+) => NesRenameCapabilities(meta: json['_meta'] as Map<String, dynamic>?);
+
+Map<String, dynamic> _$NesRenameCapabilitiesToJson(
+  NesRenameCapabilities instance,
+) => <String, dynamic>{'_meta': ?instance.meta};
+
+NesSearchAndReplaceCapabilities _$NesSearchAndReplaceCapabilitiesFromJson(
+  Map<String, dynamic> json,
+) => NesSearchAndReplaceCapabilities(
+  meta: json['_meta'] as Map<String, dynamic>?,
+);
+
+Map<String, dynamic> _$NesSearchAndReplaceCapabilitiesToJson(
+  NesSearchAndReplaceCapabilities instance,
+) => <String, dynamic>{'_meta': ?instance.meta};
+
+NesRecentFilesCapabilities _$NesRecentFilesCapabilitiesFromJson(
+  Map<String, dynamic> json,
+) => NesRecentFilesCapabilities(meta: json['_meta'] as Map<String, dynamic>?);
+
+Map<String, dynamic> _$NesRecentFilesCapabilitiesToJson(
+  NesRecentFilesCapabilities instance,
+) => <String, dynamic>{'_meta': ?instance.meta};
+
+NesRelatedSnippetsCapabilities _$NesRelatedSnippetsCapabilitiesFromJson(
+  Map<String, dynamic> json,
+) => NesRelatedSnippetsCapabilities(
+  meta: json['_meta'] as Map<String, dynamic>?,
+);
+
+Map<String, dynamic> _$NesRelatedSnippetsCapabilitiesToJson(
+  NesRelatedSnippetsCapabilities instance,
+) => <String, dynamic>{'_meta': ?instance.meta};
+
+NesEditHistoryCapabilities _$NesEditHistoryCapabilitiesFromJson(
+  Map<String, dynamic> json,
+) => NesEditHistoryCapabilities(meta: json['_meta'] as Map<String, dynamic>?);
+
+Map<String, dynamic> _$NesEditHistoryCapabilitiesToJson(
+  NesEditHistoryCapabilities instance,
+) => <String, dynamic>{'_meta': ?instance.meta};
+
+NesUserActionsCapabilities _$NesUserActionsCapabilitiesFromJson(
+  Map<String, dynamic> json,
+) => NesUserActionsCapabilities(meta: json['_meta'] as Map<String, dynamic>?);
+
+Map<String, dynamic> _$NesUserActionsCapabilitiesToJson(
+  NesUserActionsCapabilities instance,
+) => <String, dynamic>{'_meta': ?instance.meta};
+
+NesOpenFilesCapabilities _$NesOpenFilesCapabilitiesFromJson(
+  Map<String, dynamic> json,
+) => NesOpenFilesCapabilities(meta: json['_meta'] as Map<String, dynamic>?);
+
+Map<String, dynamic> _$NesOpenFilesCapabilitiesToJson(
+  NesOpenFilesCapabilities instance,
+) => <String, dynamic>{'_meta': ?instance.meta};
+
+NesDiagnosticsCapabilities _$NesDiagnosticsCapabilitiesFromJson(
+  Map<String, dynamic> json,
+) => NesDiagnosticsCapabilities(meta: json['_meta'] as Map<String, dynamic>?);
+
+Map<String, dynamic> _$NesDiagnosticsCapabilitiesToJson(
+  NesDiagnosticsCapabilities instance,
+) => <String, dynamic>{'_meta': ?instance.meta};
+
+NesDocumentDidOpenCapabilities _$NesDocumentDidOpenCapabilitiesFromJson(
+  Map<String, dynamic> json,
+) => NesDocumentDidOpenCapabilities(
+  meta: json['_meta'] as Map<String, dynamic>?,
+);
+
+Map<String, dynamic> _$NesDocumentDidOpenCapabilitiesToJson(
+  NesDocumentDidOpenCapabilities instance,
+) => <String, dynamic>{'_meta': ?instance.meta};
+
+NesDocumentDidChangeCapabilities _$NesDocumentDidChangeCapabilitiesFromJson(
+  Map<String, dynamic> json,
+) => NesDocumentDidChangeCapabilities(
+  meta: json['_meta'] as Map<String, dynamic>?,
+);
+
+Map<String, dynamic> _$NesDocumentDidChangeCapabilitiesToJson(
+  NesDocumentDidChangeCapabilities instance,
+) => <String, dynamic>{'_meta': ?instance.meta};
+
+NesDocumentDidCloseCapabilities _$NesDocumentDidCloseCapabilitiesFromJson(
+  Map<String, dynamic> json,
+) => NesDocumentDidCloseCapabilities(
+  meta: json['_meta'] as Map<String, dynamic>?,
+);
+
+Map<String, dynamic> _$NesDocumentDidCloseCapabilitiesToJson(
+  NesDocumentDidCloseCapabilities instance,
+) => <String, dynamic>{'_meta': ?instance.meta};
+
+NesDocumentDidSaveCapabilities _$NesDocumentDidSaveCapabilitiesFromJson(
+  Map<String, dynamic> json,
+) => NesDocumentDidSaveCapabilities(
+  meta: json['_meta'] as Map<String, dynamic>?,
+);
+
+Map<String, dynamic> _$NesDocumentDidSaveCapabilitiesToJson(
+  NesDocumentDidSaveCapabilities instance,
+) => <String, dynamic>{'_meta': ?instance.meta};
+
+NesDocumentDidFocusCapabilities _$NesDocumentDidFocusCapabilitiesFromJson(
+  Map<String, dynamic> json,
+) => NesDocumentDidFocusCapabilities(
+  meta: json['_meta'] as Map<String, dynamic>?,
+);
+
+Map<String, dynamic> _$NesDocumentDidFocusCapabilitiesToJson(
+  NesDocumentDidFocusCapabilities instance,
+) => <String, dynamic>{'_meta': ?instance.meta};
+
+NesDocumentEventCapabilities _$NesDocumentEventCapabilitiesFromJson(
+  Map<String, dynamic> json,
+) => NesDocumentEventCapabilities(
+  meta: json['_meta'] as Map<String, dynamic>?,
+  didOpen: json['didOpen'] == null
+      ? null
+      : NesDocumentDidOpenCapabilities.fromJson(
+          json['didOpen'] as Map<String, dynamic>,
+        ),
+  didChange: json['didChange'] == null
+      ? null
+      : NesDocumentDidChangeCapabilities.fromJson(
+          json['didChange'] as Map<String, dynamic>,
+        ),
+  didClose: json['didClose'] == null
+      ? null
+      : NesDocumentDidCloseCapabilities.fromJson(
+          json['didClose'] as Map<String, dynamic>,
+        ),
+  didSave: json['didSave'] == null
+      ? null
+      : NesDocumentDidSaveCapabilities.fromJson(
+          json['didSave'] as Map<String, dynamic>,
+        ),
+  didFocus: json['didFocus'] == null
+      ? null
+      : NesDocumentDidFocusCapabilities.fromJson(
+          json['didFocus'] as Map<String, dynamic>,
+        ),
+);
+
+Map<String, dynamic> _$NesDocumentEventCapabilitiesToJson(
+  NesDocumentEventCapabilities instance,
+) => <String, dynamic>{
+  '_meta': ?instance.meta,
+  'didOpen': instance.didOpen,
+  'didChange': instance.didChange,
+  'didClose': instance.didClose,
+  'didSave': instance.didSave,
+  'didFocus': instance.didFocus,
+};
+
+NesEventCapabilities _$NesEventCapabilitiesFromJson(
+  Map<String, dynamic> json,
+) => NesEventCapabilities(
+  meta: json['_meta'] as Map<String, dynamic>?,
+  document: json['document'] == null
+      ? null
+      : NesDocumentEventCapabilities.fromJson(
+          json['document'] as Map<String, dynamic>,
+        ),
+);
+
+Map<String, dynamic> _$NesEventCapabilitiesToJson(
+  NesEventCapabilities instance,
+) => <String, dynamic>{'_meta': ?instance.meta, 'document': instance.document};
+
+NesContextCapabilities _$NesContextCapabilitiesFromJson(
+  Map<String, dynamic> json,
+) => NesContextCapabilities(
+  meta: json['_meta'] as Map<String, dynamic>?,
+  recentFiles: json['recentFiles'] == null
+      ? null
+      : NesRecentFilesCapabilities.fromJson(
+          json['recentFiles'] as Map<String, dynamic>,
+        ),
+  relatedSnippets: json['relatedSnippets'] == null
+      ? null
+      : NesRelatedSnippetsCapabilities.fromJson(
+          json['relatedSnippets'] as Map<String, dynamic>,
+        ),
+  editHistory: json['editHistory'] == null
+      ? null
+      : NesEditHistoryCapabilities.fromJson(
+          json['editHistory'] as Map<String, dynamic>,
+        ),
+  userActions: json['userActions'] == null
+      ? null
+      : NesUserActionsCapabilities.fromJson(
+          json['userActions'] as Map<String, dynamic>,
+        ),
+  openFiles: json['openFiles'] == null
+      ? null
+      : NesOpenFilesCapabilities.fromJson(
+          json['openFiles'] as Map<String, dynamic>,
+        ),
+  diagnostics: json['diagnostics'] == null
+      ? null
+      : NesDiagnosticsCapabilities.fromJson(
+          json['diagnostics'] as Map<String, dynamic>,
+        ),
+);
+
+Map<String, dynamic> _$NesContextCapabilitiesToJson(
+  NesContextCapabilities instance,
+) => <String, dynamic>{
+  '_meta': ?instance.meta,
+  'recentFiles': instance.recentFiles,
+  'relatedSnippets': instance.relatedSnippets,
+  'editHistory': instance.editHistory,
+  'userActions': instance.userActions,
+  'openFiles': instance.openFiles,
+  'diagnostics': instance.diagnostics,
+};
+
+NesCapabilities _$NesCapabilitiesFromJson(Map<String, dynamic> json) =>
+    NesCapabilities(
+      meta: json['_meta'] as Map<String, dynamic>?,
+      events: json['events'] == null
+          ? null
+          : NesEventCapabilities.fromJson(
+              json['events'] as Map<String, dynamic>,
+            ),
+      context: json['context'] == null
+          ? null
+          : NesContextCapabilities.fromJson(
+              json['context'] as Map<String, dynamic>,
+            ),
+    );
+
+Map<String, dynamic> _$NesCapabilitiesToJson(NesCapabilities instance) =>
+    <String, dynamic>{
+      '_meta': ?instance.meta,
+      'events': instance.events,
+      'context': instance.context,
+    };
+
+ClientNesCapabilities _$ClientNesCapabilitiesFromJson(
+  Map<String, dynamic> json,
+) => ClientNesCapabilities(
+  meta: json['_meta'] as Map<String, dynamic>?,
+  jump: json['jump'] == null
+      ? null
+      : NesJumpCapabilities.fromJson(json['jump'] as Map<String, dynamic>),
+  rename: json['rename'] == null
+      ? null
+      : NesRenameCapabilities.fromJson(json['rename'] as Map<String, dynamic>),
+  searchAndReplace: json['searchAndReplace'] == null
+      ? null
+      : NesSearchAndReplaceCapabilities.fromJson(
+          json['searchAndReplace'] as Map<String, dynamic>,
+        ),
+);
+
+Map<String, dynamic> _$ClientNesCapabilitiesToJson(
+  ClientNesCapabilities instance,
+) => <String, dynamic>{
+  '_meta': ?instance.meta,
+  'jump': instance.jump,
+  'rename': instance.rename,
+  'searchAndReplace': instance.searchAndReplace,
+};
+
+StartNesRequest _$StartNesRequestFromJson(Map<String, dynamic> json) =>
+    StartNesRequest(
+      meta: json['_meta'] as Map<String, dynamic>?,
+      workspaceUri: json['workspaceUri'] as String?,
+      workspaceFolders: (json['workspaceFolders'] as List<dynamic>?)
+          ?.map((e) => WorkspaceFolder.fromJson(e as Map<String, dynamic>))
+          .toList(),
+      repository: json['repository'] == null
+          ? null
+          : NesRepository.fromJson(json['repository'] as Map<String, dynamic>),
+    );
+
+Map<String, dynamic> _$StartNesRequestToJson(StartNesRequest instance) =>
+    <String, dynamic>{
+      '_meta': ?instance.meta,
+      'workspaceUri': instance.workspaceUri,
+      'workspaceFolders': instance.workspaceFolders,
+      'repository': instance.repository,
+    };
+
+StartNesResponse _$StartNesResponseFromJson(Map<String, dynamic> json) =>
+    StartNesResponse(
+      meta: json['_meta'] as Map<String, dynamic>?,
+      sessionId: json['sessionId'] as String,
+    );
+
+Map<String, dynamic> _$StartNesResponseToJson(StartNesResponse instance) =>
+    <String, dynamic>{'_meta': ?instance.meta, 'sessionId': instance.sessionId};
+
+SuggestNesRequest _$SuggestNesRequestFromJson(Map<String, dynamic> json) =>
+    SuggestNesRequest(
+      meta: json['_meta'] as Map<String, dynamic>?,
+      sessionId: json['sessionId'] as String,
+      uri: json['uri'] as String,
+      version: (json['version'] as num).toInt(),
+      position: Position.fromJson(json['position'] as Map<String, dynamic>),
+      selection: json['selection'] == null
+          ? null
+          : Range.fromJson(json['selection'] as Map<String, dynamic>),
+      triggerKind: $enumDecode(_$NesTriggerKindEnumMap, json['triggerKind']),
+      context: json['context'] == null
+          ? null
+          : NesSuggestContext.fromJson(json['context'] as Map<String, dynamic>),
+    );
+
+Map<String, dynamic> _$SuggestNesRequestToJson(SuggestNesRequest instance) =>
+    <String, dynamic>{
+      '_meta': ?instance.meta,
+      'sessionId': instance.sessionId,
+      'uri': instance.uri,
+      'version': instance.version,
+      'position': instance.position,
+      'selection': instance.selection,
+      'triggerKind': _$NesTriggerKindEnumMap[instance.triggerKind]!,
+      'context': instance.context,
+    };
+
+const _$NesTriggerKindEnumMap = {
+  NesTriggerKind.automatic: 'automatic',
+  NesTriggerKind.diagnostic: 'diagnostic',
+  NesTriggerKind.manual: 'manual',
+};
+
+SuggestNesResponse _$SuggestNesResponseFromJson(Map<String, dynamic> json) =>
+    SuggestNesResponse(
+      meta: json['_meta'] as Map<String, dynamic>?,
+      suggestions: const NesSuggestionListConverter().fromJson(
+        json['suggestions'] as List,
+      ),
+    );
+
+Map<String, dynamic> _$SuggestNesResponseToJson(SuggestNesResponse instance) =>
+    <String, dynamic>{
+      '_meta': ?instance.meta,
+      'suggestions': const NesSuggestionListConverter().toJson(
+        instance.suggestions,
+      ),
+    };
+
+AcceptNesNotification _$AcceptNesNotificationFromJson(
+  Map<String, dynamic> json,
+) => AcceptNesNotification(
+  meta: json['_meta'] as Map<String, dynamic>?,
+  sessionId: json['sessionId'] as String,
+  id: json['id'] as String,
+);
+
+Map<String, dynamic> _$AcceptNesNotificationToJson(
+  AcceptNesNotification instance,
+) => <String, dynamic>{
+  '_meta': ?instance.meta,
+  'sessionId': instance.sessionId,
+  'id': instance.id,
+};
+
+RejectNesNotification _$RejectNesNotificationFromJson(
+  Map<String, dynamic> json,
+) => RejectNesNotification(
+  meta: json['_meta'] as Map<String, dynamic>?,
+  sessionId: json['sessionId'] as String,
+  id: json['id'] as String,
+  reason: $enumDecodeNullable(_$NesRejectReasonEnumMap, json['reason']),
+);
+
+Map<String, dynamic> _$RejectNesNotificationToJson(
+  RejectNesNotification instance,
+) => <String, dynamic>{
+  '_meta': ?instance.meta,
+  'sessionId': instance.sessionId,
+  'id': instance.id,
+  'reason': _$NesRejectReasonEnumMap[instance.reason],
+};
+
+const _$NesRejectReasonEnumMap = {
+  NesRejectReason.rejected: 'rejected',
+  NesRejectReason.ignored: 'ignored',
+  NesRejectReason.replaced: 'replaced',
+  NesRejectReason.cancelled: 'cancelled',
+};
+
+CloseNesRequest _$CloseNesRequestFromJson(Map<String, dynamic> json) =>
+    CloseNesRequest(
+      meta: json['_meta'] as Map<String, dynamic>?,
+      sessionId: json['sessionId'] as String,
+    );
+
+Map<String, dynamic> _$CloseNesRequestToJson(CloseNesRequest instance) =>
+    <String, dynamic>{'_meta': ?instance.meta, 'sessionId': instance.sessionId};
+
+CloseNesResponse _$CloseNesResponseFromJson(Map<String, dynamic> json) =>
+    CloseNesResponse(meta: json['_meta'] as Map<String, dynamic>?);
+
+Map<String, dynamic> _$CloseNesResponseToJson(CloseNesResponse instance) =>
+    <String, dynamic>{'_meta': ?instance.meta};
