@@ -1754,6 +1754,18 @@ class MockClient implements Client {
   }
 
   @override
+  Future<CreateElicitationResponse>? createElicitation(
+    CreateElicitationRequest params,
+  ) {
+    return null;
+  }
+
+  @override
+  Future<void>? completeElicitation(CompleteElicitationNotification params) {
+    return null;
+  }
+
+  @override
   Future<WriteTextFileResponse> writeTextFile(
     WriteTextFileRequest params,
   ) async {

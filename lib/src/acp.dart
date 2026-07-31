@@ -5,6 +5,7 @@ library;
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:acp_dart/src/elicitation_converters.dart';
 import 'package:acp_dart/src/schema.dart';
 import 'package:acp_dart/src/stream.dart';
 
@@ -395,6 +396,27 @@ abstract class Client {
     KillTerminalCommandRequest params,
   );
 
+  /// Requests structured input from the user.
+  ///
+  /// Only available if the client advertises an `elicitation` capability for
+  /// the requested mode. Form elicitations are answered directly; URL
+  /// elicitations direct the user elsewhere and are resolved out of band,
+  /// with the agent later sending [completeElicitation].
+  ///
+  /// Returning `null` reports `-32601 Method not found` to the agent.
+  ///
+  /// See protocol docs: [Elicitation](https://agentclientprotocol.com/protocol/elicitation)
+  Future<CreateElicitationResponse>? createElicitation(
+    CreateElicitationRequest params,
+  ) => null;
+
+  /// Notifies the client that a URL elicitation has been resolved out of band.
+  ///
+  /// The client should dismiss any UI it is showing for the elicitation
+  /// identified by `elicitationId`.
+  Future<void>? completeElicitation(CompleteElicitationNotification params) =>
+      null;
+
   /// Extension method
   ///
   /// Allows the Agent to send an arbitrary request that is not part of the ACP spec.
@@ -618,6 +640,29 @@ class AgentSideConnection implements Client {
   }
 
   @override
+  Future<CreateElicitationResponse> createElicitation(
+    CreateElicitationRequest params,
+  ) async {
+    final result = await _connection.sendRequest(
+      clientMethods['elicitationCreate']!,
+      const CreateElicitationRequestConverter().toJson(params),
+    );
+    return const CreateElicitationResponseConverter().fromJson(
+      result as Map<String, dynamic>,
+    );
+  }
+
+  @override
+  Future<void> completeElicitation(
+    CompleteElicitationNotification params,
+  ) async {
+    return _connection.sendNotification(
+      clientMethods['elicitationComplete']!,
+      params.toJson(),
+    );
+  }
+
+  @override
   Future<WriteTextFileResponse> writeTextFile(
     WriteTextFileRequest params,
   ) async {
@@ -754,6 +799,15 @@ class ClientSideConnection implements Agent {
             params as Map<String, dynamic>,
           );
           return client.requestPermission(validatedParams);
+        case 'elicitation/create':
+          final validatedParams = const CreateElicitationRequestConverter()
+              .fromJson(params as Map<String, dynamic>);
+          final result = await client.createElicitation(validatedParams);
+          if (result == null) {
+            throw RequestError.methodNotFound(method);
+          }
+          // The response is a union, so it carries no `toJson` of its own.
+          return const CreateElicitationResponseConverter().toJson(result);
         case 'terminal/create':
           final validatedParams = CreateTerminalRequest.fromJson(
             params as Map<String, dynamic>,
@@ -815,6 +869,12 @@ class ClientSideConnection implements Agent {
             params as Map<String, dynamic>,
           );
           return client.sessionUpdate(validatedParams);
+        case 'elicitation/complete':
+          final validatedParams = CompleteElicitationNotification.fromJson(
+            params as Map<String, dynamic>,
+          );
+          await client.completeElicitation(validatedParams);
+          return;
         case r'$/cancel_request':
           final validatedParams = CancelRequestNotification.fromJson(
             params as Map<String, dynamic>,
