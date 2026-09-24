@@ -15,8 +15,14 @@ Future<Map<String, dynamic>> _data() async =>
 
 dynamic _withoutNulls(dynamic value) {
   if (value is Map) {
-    return value.map((key, child) => MapEntry(key, _withoutNulls(child)))
-      ..removeWhere((_, child) => child == null);
+    return Map<String, dynamic>.fromEntries(
+      value.entries
+          .where((entry) => entry.value != null)
+          .map(
+            (entry) =>
+                MapEntry(entry.key as String, _withoutNulls(entry.value)),
+          ),
+    );
   }
   if (value is List) return value.map(_withoutNulls).toList();
   return value;
