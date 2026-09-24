@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:math' as math;
 
 import 'acp.dart';
 import 'stream.dart';
@@ -19,7 +20,7 @@ class AcpHttpServer {
   final HttpServer _server;
   final AcpAgentFactory _agentFactory;
   final Map<String, _HttpConnection> _connections = {};
-  int _nextConnection = 0;
+  final math.Random _connectionIds = math.Random.secure();
 
   InternetAddress get address => _server.address;
   int get port => _server.port;
@@ -111,13 +112,13 @@ class AcpHttpServer {
     final sessionId = request.headers.value(_sessionHeader);
     final paramsSession = params is Map ? params['sessionId'] : null;
     if ((method is String && _requiresSession(method) ||
-            paramsSession != null) &&
+            paramsSession is String) &&
         sessionId == null) {
       await _text(request.response, 400, 'Missing Acp-Session-Id');
       return;
     }
     if (sessionId != null &&
-        paramsSession != null &&
+        paramsSession is String &&
         paramsSession != sessionId) {
       await _text(request.response, 400, 'Mismatched Acp-Session-Id');
       return;
@@ -160,7 +161,7 @@ class AcpHttpServer {
     }
     late final _HttpConnection connection;
     try {
-      connection = _HttpConnection('acp-${++_nextConnection}', _agentFactory);
+      connection = _HttpConnection(_newConnectionId(), _agentFactory);
       _connections[connection.id] = connection;
       connection.expectInitial(id);
       connection.inbound.add(message);
@@ -289,10 +290,7 @@ class AcpHttpServer {
       await _text(request.response, 400, 'Invalid WebSocket upgrade');
       return;
     }
-    final connection = _HttpConnection(
-      'acp-${++_nextConnection}',
-      _agentFactory,
-    );
+    final connection = _HttpConnection(_newConnectionId(), _agentFactory);
     _connections[connection.id] = connection;
     request.response.headers.set(_connectionHeader, connection.id);
     try {
@@ -332,6 +330,11 @@ class AcpHttpServer {
     response.headers.contentType = ContentType.text;
     response.write(text);
     await response.close();
+  }
+
+  String _newConnectionId() {
+    final bytes = List<int>.generate(16, (_) => _connectionIds.nextInt(256));
+    return 'acp-${bytes.map((byte) => byte.toRadixString(16).padLeft(2, '0')).join()}';
   }
 }
 
@@ -398,6 +401,7 @@ class _HttpConnection {
   WebSocket? _webSocket;
   Future<void> _webSocketChain = Future.value();
   bool _webSocketInitialized = false;
+  bool _closed = false;
   void Function()? _onWebSocketClosed;
 
   void expectInitial(dynamic id) => _initialId = id;
@@ -438,6 +442,8 @@ class _HttpConnection {
   }
 
   Future<void> close() async {
+    if (_closed) return;
+    _closed = true;
     final webSocket = _webSocket;
     if (webSocket != null && webSocket.readyState == WebSocket.open) {
       await webSocket.close(WebSocketStatus.goingAway, 'Server shutting down');
@@ -528,6 +534,19 @@ class _HttpConnection {
       return;
     }
     if (decoded is Map<String, dynamic>) {
+      if (decoded['method'] == 'initialize' && decoded['id'] != null) {
+        _webSocket?.add(
+          jsonEncode({
+            'jsonrpc': '2.0',
+            'id': decoded['id'],
+            'error': {
+              'code': -32600,
+              'message': 'Initialize not allowed on existing connection',
+            },
+          }),
+        );
+        return;
+      }
       inbound.add(decoded);
     } else {
       unawaited(
