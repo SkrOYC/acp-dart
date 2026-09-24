@@ -37,7 +37,8 @@ ACP_TYPESCRIPT_SDK_DIR=/path/to/typescript-sdk-v1.5.0 \
 ```
 
 Set `ACP_TYPESCRIPT_SDK_DIR` to any local clone whose `HEAD` is exactly tagged
-`v1.5.0`. The test does not access the network.
+`v1.5.0`. The tests use local loopback connections and do not contact an
+external service.
 
 The reverse WebSocket direction is excluded from the gate. Bun 1.3.13 doesn't
 implement the `ws.WebSocket` `upgrade` event used by the pinned SDK's Node
