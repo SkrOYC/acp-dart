@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:collection';
 
 import 'package:acp_dart/src/acp.dart';
 import 'package:acp_dart/src/content_block_converter.dart';
@@ -76,8 +77,15 @@ class ActiveSession {
   )
   _prompt;
   final Future<void> Function() _dispose;
+  final Future<ActiveSessionMessage> Function() _nextUpdate;
 
-  ActiveSession._(this.response, this.updates, this._prompt, this._dispose);
+  ActiveSession._(
+    this.response,
+    this.updates,
+    this._prompt,
+    this._dispose,
+    this._nextUpdate,
+  );
 
   String get sessionId => response.sessionId;
 
@@ -85,6 +93,36 @@ class ActiveSession {
       _prompt(_promptBlocks(prompt), cancellation);
 
   Future<void> dispose() => _dispose();
+
+  Future<ActiveSessionMessage> nextUpdate() => _nextUpdate();
+}
+
+sealed class ActiveSessionMessage {
+  const ActiveSessionMessage();
+
+  String get kind;
+}
+
+class ActiveSessionUpdate extends ActiveSessionMessage {
+  final SessionNotification notification;
+
+  const ActiveSessionUpdate(this.notification);
+
+  @override
+  String get kind => 'session_update';
+
+  SessionUpdate get update => notification.update;
+}
+
+class ActiveSessionStop extends ActiveSessionMessage {
+  final PromptResponse response;
+
+  const ActiveSessionStop(this.response);
+
+  @override
+  String get kind => 'stop';
+
+  StopReason get stopReason => response.stopReason;
 }
 
 /// Builder for starting a session.
@@ -100,7 +138,20 @@ class SessionBuilder {
     _request = NewSessionRequest(
       meta: _request.meta,
       cwd: _request.cwd,
+      additionalDirectories: _request.additionalDirectories == null
+          ? null
+          : List.of(_request.additionalDirectories!),
       mcpServers: [..._request.mcpServers, server],
+    );
+    return this;
+  }
+
+  SessionBuilder withAdditionalDirectories(List<String> directories) {
+    _request = NewSessionRequest(
+      meta: _request.meta,
+      cwd: _request.cwd,
+      additionalDirectories: List.of(directories),
+      mcpServers: List.of(_request.mcpServers),
     );
     return this;
   }
@@ -108,10 +159,24 @@ class SessionBuilder {
   NewSessionRequest toRequest() => NewSessionRequest(
     meta: _request.meta,
     cwd: _request.cwd,
+    additionalDirectories: _request.additionalDirectories == null
+        ? null
+        : List.unmodifiable(_request.additionalDirectories!),
     mcpServers: List.unmodifiable(_request.mcpServers),
   );
 
   Future<ActiveSession> start() => _start(toRequest());
+
+  Future<T> withSession<T>(
+    FutureOr<T> Function(ActiveSession) operation,
+  ) async {
+    final session = await start();
+    try {
+      return await operation(session);
+    } finally {
+      await session.dispose();
+    }
+  }
 }
 
 /// Agent-side app with request and notification handlers.
@@ -250,7 +315,7 @@ class ClientApp {
 
   AppContext _connect(AcpStream stream) {
     late final AppContext context;
-    final sessions = <String, StreamController<SessionNotification>>{};
+    final sessions = <String, _ActiveSessionUpdates>{};
     late final Connection connection;
     Future<dynamic> dispatch(
       String method,
@@ -287,10 +352,12 @@ class ClientApp {
     );
     unawaited(
       connection.closed.then((_) async {
-        final controllers = sessions.values.toList();
+        final activeSessions = sessions.values.toList();
         sessions.clear();
-        for (final controller in controllers) {
-          await controller.close();
+        for (final session in activeSessions) {
+          await session.close(
+            connection.closeReason ?? StateError('ACP connection closed'),
+          );
         }
       }),
     );
@@ -307,7 +374,7 @@ class ClientApp {
 
   Future<ActiveSession> _startSession(
     Connection connection,
-    Map<String, StreamController<SessionNotification>> sessions,
+    Map<String, _ActiveSessionUpdates> sessions,
     NewSessionRequest request,
   ) async {
     final response = await connection.sendRequest<dynamic>(
@@ -317,38 +384,128 @@ class ClientApp {
     final parsed = response is NewSessionResponse
         ? response
         : NewSessionResponse.fromJson(response as Map<String, dynamic>);
-    final updates = StreamController<SessionNotification>.broadcast();
+    final updates = _ActiveSessionUpdates();
     sessions[parsed.sessionId] = updates;
     return ActiveSession._(
       parsed,
       updates.stream,
       (prompt, cancellation) async {
+        updates.events.clearErrors();
         final params = {
           'sessionId': parsed.sessionId,
           'prompt': prompt.map(_encodeContentBlock).toList(),
         };
-        final result = cancellation == null
-            ? await connection.sendRequest<dynamic>(
-                agentMethods['sessionPrompt']!,
-                params,
-              )
-            : await connection.sendRequestWithCancellation<dynamic>(
-                agentMethods['sessionPrompt']!,
-                cancellation: cancellation,
-                params: params,
-              );
-        return result is PromptResponse
-            ? result
-            : PromptResponse.fromJson(result as Map<String, dynamic>);
+        try {
+          final result = cancellation == null
+              ? await connection.sendRequest<dynamic>(
+                  agentMethods['sessionPrompt']!,
+                  params,
+                )
+              : await connection.sendRequestWithCancellation<dynamic>(
+                  agentMethods['sessionPrompt']!,
+                  cancellation: cancellation,
+                  params: params,
+                );
+          final promptResponse = result is PromptResponse
+              ? result
+              : PromptResponse.fromJson(result as Map<String, dynamic>);
+          updates.events.enqueue(ActiveSessionStop(promptResponse));
+          return promptResponse;
+        } catch (error) {
+          updates.events.reject(error);
+          rethrow;
+        }
       },
       () async {
         if (identical(sessions[parsed.sessionId], updates)) {
           sessions.remove(parsed.sessionId);
         }
-        await updates.close();
+        await updates.close(StateError('Active session disposed'));
       },
+      updates.events.next,
     );
   }
+}
+
+class _ActiveSessionUpdates {
+  final StreamController<SessionNotification> _controller =
+      StreamController<SessionNotification>.broadcast();
+  final _ActiveSessionEventQueue events = _ActiveSessionEventQueue();
+  bool _isClosed = false;
+
+  Stream<SessionNotification> get stream => _controller.stream;
+
+  void add(SessionNotification notification) {
+    if (_isClosed) return;
+    _controller.add(notification);
+    events.enqueue(ActiveSessionUpdate(notification));
+  }
+
+  Future<void> close(Object error) async {
+    if (_isClosed) return;
+    _isClosed = true;
+    events.fail(error);
+    await _controller.close();
+  }
+}
+
+class _ActiveSessionEventQueue {
+  final Queue<Object> _values = Queue<Object>();
+  final Queue<Completer<ActiveSessionMessage>> _waiters =
+      Queue<Completer<ActiveSessionMessage>>();
+  bool _isClosed = false;
+  Object? _failure;
+
+  Future<ActiveSessionMessage> next() {
+    if (_values.isNotEmpty) {
+      final value = _values.removeFirst();
+      if (value is _QueuedSessionError) return Future.error(value.error);
+      return Future.value(value as ActiveSessionMessage);
+    }
+    if (_isClosed) return Future.error(_failure!);
+    final waiter = Completer<ActiveSessionMessage>();
+    _waiters.addLast(waiter);
+    return waiter.future;
+  }
+
+  void enqueue(ActiveSessionMessage value) {
+    if (_isClosed) return;
+    if (_waiters.isNotEmpty) {
+      _waiters.removeFirst().complete(value);
+    } else {
+      _values.addLast(value);
+    }
+  }
+
+  void reject(Object error) {
+    if (_isClosed) return;
+    if (_waiters.isNotEmpty) {
+      while (_waiters.isNotEmpty) {
+        _waiters.removeFirst().completeError(error);
+      }
+    } else {
+      _values.addLast(_QueuedSessionError(error));
+    }
+  }
+
+  void clearErrors() {
+    _values.removeWhere((value) => value is _QueuedSessionError);
+  }
+
+  void fail(Object error) {
+    if (_isClosed) return;
+    _isClosed = true;
+    _failure = error;
+    while (_waiters.isNotEmpty) {
+      _waiters.removeFirst().completeError(error);
+    }
+  }
+}
+
+class _QueuedSessionError {
+  final Object error;
+
+  const _QueuedSessionError(this.error);
 }
 
 Future<void> _runConnectHandlers(
