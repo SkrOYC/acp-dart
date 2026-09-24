@@ -1,4 +1,6 @@
 import 'package:acp_dart/src/schema.dart';
+import 'package:acp_dart/src/schema_v15_client.dart';
+import 'package:acp_dart/src/schema_v15_experimental.dart';
 import 'package:json_annotation/json_annotation.dart';
 
 class SessionUpdateConverter
@@ -35,6 +37,16 @@ class SessionUpdateConverter
         return SessionInfoUpdate.fromJson(data);
       case 'usage_update':
         return UsageUpdate.fromJson(data);
+      case 'plan_update':
+        return PlanUpdateSessionUpdateV15.fromJson(data);
+      case 'plan_removed':
+        return PlanRemovedSessionUpdateV15.fromJson(data);
+      case 'notice':
+        return NoticeSessionUpdateV15.fromJson(json);
+      case 'compaction_update':
+        return CompactionUpdateSessionUpdateV15.fromJson(data);
+      case 'compaction_summary_chunk':
+        return CompactionSummaryChunkSessionUpdateV15.fromJson(data);
 
       default:
         return UnknownSessionUpdate(rawJson: json);
@@ -75,6 +87,21 @@ class SessionUpdateConverter
     }
     if (object is UsageUpdate) {
       return {'sessionUpdate': 'usage_update', ...object.toJson()};
+    }
+    if (object is PlanUpdateSessionUpdateV15) {
+      return {'sessionUpdate': 'plan_update', ...object.toJson()};
+    }
+    if (object is PlanRemovedSessionUpdateV15) {
+      return {'sessionUpdate': 'plan_removed', ...object.toJson()};
+    }
+    if (object is NoticeSessionUpdateV15) {
+      return object.toJson();
+    }
+    if (object is CompactionUpdateSessionUpdateV15) {
+      return {'sessionUpdate': 'compaction_update', ...object.toJson()};
+    }
+    if (object is CompactionSummaryChunkSessionUpdateV15) {
+      return {'sessionUpdate': 'compaction_summary_chunk', ...object.toJson()};
     }
 
     if (object is UnknownSessionUpdate) {
