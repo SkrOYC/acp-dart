@@ -1,0 +1,1 @@
+{"jsonrpc":"2.0","id":2,"result":{"sessionId":"sess-1","configOptions":[{"id":"approval","name":"Approval","type":"select","currentValue":"ask","options":[{"value":"ask","name":"Ask"},{"value":"always","name":"Always"}]}]}}

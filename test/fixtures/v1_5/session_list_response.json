@@ -1,0 +1,1 @@
+{"jsonrpc":"2.0","id":5,"result":{"sessions":[{"sessionId":"sess-1","cwd":"/workspace/demo","title":"Demo","updatedAt":"2026-09-24T12:00:00Z"}],"nextCursor":null}}
