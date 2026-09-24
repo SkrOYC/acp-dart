@@ -86,7 +86,9 @@ dart run build_runner build --delete-conflicting-outputs
 dart test
 ```
 
-The test suite includes connected byte-stream and process tests, HTTP and WebSocket loopback tests, and JSON fixtures checked against the pinned TypeScript SDK schema. To run the opt-in test against an actual TypeScript v1.5.0 peer, follow the [interop test instructions](tool/README.md).
+The test suite includes connected byte-stream and process tests, HTTP and WebSocket loopback tests, and JSON fixtures checked against the pinned TypeScript SDK schema.
+
+The opt-in peer suite runs the official TypeScript v1.5.0 client and server against Dart. It covers stdio, HTTP with SSE, and WebSocket. The suite tests concurrent sessions, bidirectional callbacks, cancellation, malformed messages, routing, closure, and reconnection. For instructions, see [TypeScript v1.5 interop tests](tool/README.md).
 
 For release checks, use the [parity verification checklist](parity_verification_checklist.md).
 
