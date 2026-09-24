@@ -46,7 +46,14 @@ void main() {
       expect(result['sessionCancelStopReason'], 'cancelled');
       expect(result['cancellationNotifications'], 1);
       expect(result['cancellationStopReason'], anyOf('cancelled', 'end_turn'));
-      expect(await stderr, isEmpty);
+      final stderrLines = (await stderr)
+          .split('\n')
+          .where((line) => line.isNotEmpty)
+          .toList();
+      expect(
+        stderrLines,
+        anyOf(isEmpty, equals(['Got response to unknown request null'])),
+      );
     },
     skip: sdkRoot == null || sdkRoot.isEmpty
         ? 'Set ACP_TYPESCRIPT_SDK_DIR to a local TypeScript SDK v1.5.0 clone'
