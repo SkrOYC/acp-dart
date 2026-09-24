@@ -24,10 +24,14 @@ library;
 export 'src/acp.dart'
     show
         Agent,
+        AgentV15Handler,
         AgentSideConnection,
         Client,
+        ClientV15Handler,
         ClientSideConnection,
         Connection,
+        LogoutRequest,
+        LogoutResponse,
         ProtocolCancellationHandler,
         RequestContext,
         RequestError,
