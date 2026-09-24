@@ -12,6 +12,9 @@ Add the published package to a Dart project:
 dart pub add acp_dart
 ```
 
+The published `0.4.0` package predates the v1.5 work in this source tree.
+Use a source checkout to evaluate these APIs before the next package release.
+
 To run the examples from a source checkout, install dependencies and start the client:
 
 ```sh
@@ -88,4 +91,4 @@ For release checks, use the [parity verification checklist](parity_verification_
 
 ## License
 
-Apache 2.0. See [LICENSE](LICENSE).
+MIT. See [LICENSE](LICENSE).
