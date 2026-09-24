@@ -314,4 +314,150 @@ void main() {
       );
     },
   );
+
+  test('configuration request and option discriminators reject mismatches', () {
+    expect(
+      () => SetSessionConfigOptionRequest(
+        sessionId: 's1',
+        configId: 'enabled',
+        value: true,
+      ),
+      throwsArgumentError,
+    );
+    expect(
+      () => SetSessionConfigOptionRequest(
+        sessionId: 's1',
+        configId: 'mode',
+        value: 'fast',
+        type: 'boolean',
+      ),
+      throwsArgumentError,
+    );
+    expect(
+      () => SetSessionConfigOptionRequest.fromJson({
+        'sessionId': 's1',
+        'configId': 'enabled',
+        'type': 'boolean',
+        'value': 'true',
+      }),
+      throwsArgumentError,
+    );
+    expect(
+      () => SetSessionConfigOptionRequest.fromJson({
+        'sessionId': 's1',
+        'configId': 'enabled',
+        'value': true,
+      }),
+      throwsArgumentError,
+    );
+    expect(
+      () => SessionConfigOption(
+        id: 'enabled',
+        name: 'Enabled',
+        type: 'boolean',
+        currentValue: true,
+        options: UngroupedSessionConfigSelectOptions(options: const []),
+      ),
+      throwsArgumentError,
+    );
+    expect(
+      () => SessionConfigOption(
+        id: 'mode',
+        name: 'Mode',
+        type: 'select',
+        currentValue: true,
+        options: UngroupedSessionConfigSelectOptions(options: const []),
+      ),
+      throwsArgumentError,
+    );
+    expect(
+      () => SessionConfigOption.fromJson({
+        'id': 'enabled',
+        'name': 'Enabled',
+        'type': 'boolean',
+        'currentValue': 'true',
+      }),
+      throwsArgumentError,
+    );
+    expect(
+      () => SessionConfigOption.fromJson({
+        'id': 'mode',
+        'name': 'Mode',
+        'type': 'select',
+        'currentValue': 'fast',
+      }),
+      throwsArgumentError,
+    );
+    expect(
+      () => SessionConfigOption.fromJson({
+        'id': 'mode',
+        'name': 'Mode',
+        'currentValue': 'fast',
+        'options': [],
+      }),
+      throwsArgumentError,
+    );
+    expect(
+      () => SessionConfigOption.fromJson({
+        'id': 'future',
+        'name': 'Future',
+        'type': 'custom',
+        'currentValue': 'x',
+      }),
+      throwsArgumentError,
+    );
+  });
+
+  test('initialize parsing applies TypeScript SDK capability defaults', () {
+    final request = InitializeRequest.fromJson({'protocolVersion': 1});
+    expect(request.clientCapabilities?.terminal, isFalse);
+    expect(request.clientCapabilities?.fs?.readTextFile, isFalse);
+    expect(request.clientCapabilities?.fs?.writeTextFile, isFalse);
+    expect(request.clientCapabilities?.auth?.terminal, isFalse);
+    expect(roundTrip(request.toJson())['clientCapabilities'], {
+      'fs': {'readTextFile': false, 'writeTextFile': false},
+      'terminal': false,
+      'auth': {'terminal': false},
+    });
+
+    final emptyRequestCapabilities = InitializeRequest.fromJson({
+      'protocolVersion': 1,
+      'clientCapabilities': {},
+    }).clientCapabilities!;
+    expect(emptyRequestCapabilities.fs?.readTextFile, isFalse);
+    expect(emptyRequestCapabilities.auth?.terminal, isFalse);
+
+    final response = InitializeResponse.fromJson({'protocolVersion': 1});
+    expect(response.agentCapabilities?.loadSession, isFalse);
+    expect(response.agentCapabilities?.promptCapabilities?.image, isFalse);
+    expect(response.agentCapabilities?.mcpCapabilities?.http, isFalse);
+    expect(response.agentCapabilities?.mcpCapabilities?.sse, isFalse);
+    expect(response.agentCapabilities?.sessionCapabilities, isNotNull);
+    expect(response.agentCapabilities?.auth, isNotNull);
+    expect(response.authMethods, isEmpty);
+    expect(roundTrip(response.toJson()), {
+      'protocolVersion': 1,
+      'agentCapabilities': {
+        'loadSession': false,
+        'promptCapabilities': {
+          'image': false,
+          'audio': false,
+          'embeddedContext': false,
+        },
+        'mcpCapabilities': {'http': false, 'sse': false, 'acp': false},
+        'sessionCapabilities': {},
+        'auth': {},
+      },
+      'authMethods': [],
+    });
+
+    final emptyResponseCapabilities = InitializeResponse.fromJson({
+      'protocolVersion': 1,
+      'agentCapabilities': {},
+    }).agentCapabilities!;
+    expect(emptyResponseCapabilities.promptCapabilities?.audio, isFalse);
+    expect(emptyResponseCapabilities.mcpCapabilities?.acp, isFalse);
+    expect(emptyResponseCapabilities.sessionCapabilities, isNotNull);
+    expect(emptyResponseCapabilities.auth, isNotNull);
+  });
 }

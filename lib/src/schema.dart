@@ -167,9 +167,9 @@ class Implementation {
 class InitializeRequest {
   @JsonKey(name: '_meta', includeIfNull: false)
   final Map<String, dynamic>? meta;
-  @JsonKey(name: 'clientCapabilities')
+  @JsonKey(name: 'clientCapabilities', includeIfNull: false)
   final ClientCapabilities? clientCapabilities;
-  @JsonKey(name: 'clientInfo')
+  @JsonKey(name: 'clientInfo', includeIfNull: false)
   final Implementation? clientInfo;
   final int protocolVersion;
 
@@ -222,7 +222,7 @@ class ClientCapabilities {
   });
 
   factory ClientCapabilities.fromJson(Map<String, dynamic> json) =>
-      _$ClientCapabilitiesFromJson(json);
+      _clientCapabilitiesFromJson(json);
 
   Map<String, dynamic> toJson() => _$ClientCapabilitiesToJson(this);
 }
@@ -250,7 +250,9 @@ typedef FileSystemCapabilities = FileSystemCapability;
 class ClientSessionCapabilities {
   @JsonKey(name: '_meta', includeIfNull: false)
   final Map<String, dynamic>? meta;
+  @JsonKey(includeIfNull: false)
   final CompactionCapabilities? compaction;
+  @JsonKey(includeIfNull: false)
   final SessionConfigOptionsCapabilities? configOptions;
   ClientSessionCapabilities({this.meta, this.compaction, this.configOptions});
   factory ClientSessionCapabilities.fromJson(Map<String, dynamic> json) =>
@@ -840,7 +842,17 @@ class SetSessionConfigOptionRequest {
     required this.configId,
     required this.value,
     this.type,
-  });
+  }) {
+    _validate();
+  }
+
+  void _validate() {
+    if (value is bool && type == 'boolean') return;
+    if (value is String && type == null) return;
+    throw ArgumentError(
+      'Expected a boolean value with type "boolean" or a string select value',
+    );
+  }
 
   factory SetSessionConfigOptionRequest.fromJson(Map<String, dynamic> json) =>
       _$SetSessionConfigOptionRequestFromJson(json);
@@ -1382,9 +1394,9 @@ class InitializeResponse {
   @JsonKey(name: '_meta', includeIfNull: false)
   final Map<String, dynamic>? meta;
   final int protocolVersion;
-  @JsonKey(name: 'agentCapabilities')
+  @JsonKey(name: 'agentCapabilities', includeIfNull: false)
   final AgentCapabilities? agentCapabilities;
-  @JsonKey(name: 'agentInfo')
+  @JsonKey(name: 'agentInfo', includeIfNull: false)
   final Implementation? agentInfo;
   @JsonKey(defaultValue: <AuthMethod>[])
   final List<AuthMethod> authMethods;
@@ -1437,7 +1449,7 @@ class AgentCapabilities {
   });
 
   factory AgentCapabilities.fromJson(Map<String, dynamic> json) =>
-      _$AgentCapabilitiesFromJson(json);
+      _agentCapabilitiesFromJson(json);
 
   Map<String, dynamic> toJson() => _$AgentCapabilitiesToJson(this);
 }
@@ -1511,6 +1523,7 @@ class SessionCloseCapabilities {
 class AgentAuthCapabilities {
   @JsonKey(name: '_meta', includeIfNull: false)
   final Map<String, dynamic>? meta;
+  @JsonKey(includeIfNull: false)
   final LogoutCapabilities? logout;
   AgentAuthCapabilities({this.meta, this.logout});
   factory AgentAuthCapabilities.fromJson(Map<String, dynamic> json) =>
@@ -1771,8 +1784,15 @@ class McpCapabilities {
   final bool http;
   @JsonKey(defaultValue: false)
   final bool sse;
+  @JsonKey(defaultValue: false)
+  final bool acp;
 
-  McpCapabilities({this.meta, this.http = false, this.sse = false});
+  McpCapabilities({
+    this.meta,
+    this.http = false,
+    this.sse = false,
+    this.acp = false,
+  });
 
   factory McpCapabilities.fromJson(Map<String, dynamic> json) =>
       _$McpCapabilitiesFromJson(json);
@@ -1962,10 +1982,20 @@ class SessionConfigOption {
     this.type = 'select',
     required this.currentValue,
     this.options,
-  });
+  }) {
+    _validate();
+  }
+
+  void _validate() {
+    if (type == 'boolean' && currentValue is bool && options == null) return;
+    if (type == 'select' && currentValue is String && options != null) return;
+    throw ArgumentError(
+      'Session config option fields do not match type "$type"',
+    );
+  }
 
   factory SessionConfigOption.fromJson(Map<String, dynamic> json) =>
-      _$SessionConfigOptionFromJson(json);
+      _sessionConfigOptionFromJson(json);
 
   Map<String, dynamic> toJson() => _$SessionConfigOptionToJson(this);
 }
@@ -3094,6 +3124,64 @@ int? _optionalUInt32(Object? value) {
   return null;
 }
 
+Map<String, dynamic> _wireObject(Object? value) =>
+    value is Map ? Map<String, dynamic>.from(value) : <String, dynamic>{};
+
+bool _boolOrFalse(Object? value) => value is bool ? value : false;
+
+ClientCapabilities _clientCapabilitiesFromJson(Map<String, dynamic> json) {
+  final fs = _wireObject(json['fs']);
+  final auth = _wireObject(json['auth']);
+  return _$ClientCapabilitiesFromJson({
+    ...json,
+    'fs': {
+      ...fs,
+      'readTextFile': _boolOrFalse(fs['readTextFile']),
+      'writeTextFile': _boolOrFalse(fs['writeTextFile']),
+    },
+    'terminal': _boolOrFalse(json['terminal']),
+    'auth': {...auth, 'terminal': _boolOrFalse(auth['terminal'])},
+  });
+}
+
+AgentCapabilities _agentCapabilitiesFromJson(Map<String, dynamic> json) {
+  final mcp = _wireObject(json['mcpCapabilities']);
+  final prompt = _wireObject(json['promptCapabilities']);
+  final session = _wireObject(json['sessionCapabilities']);
+  final auth = _wireObject(json['auth']);
+  return _$AgentCapabilitiesFromJson({
+    ...json,
+    'loadSession': _boolOrFalse(json['loadSession']),
+    'mcpCapabilities': {
+      ...mcp,
+      'http': _boolOrFalse(mcp['http']),
+      'sse': _boolOrFalse(mcp['sse']),
+      'acp': _boolOrFalse(mcp['acp']),
+    },
+    'promptCapabilities': {
+      ...prompt,
+      'image': _boolOrFalse(prompt['image']),
+      'audio': _boolOrFalse(prompt['audio']),
+      'embeddedContext': _boolOrFalse(prompt['embeddedContext']),
+    },
+    'sessionCapabilities': session,
+    'auth': auth,
+  });
+}
+
+SessionConfigOption _sessionConfigOptionFromJson(Map<String, dynamic> json) {
+  final type = json['type'];
+  final currentValue = json['currentValue'];
+  final options = json['options'];
+  if (type == 'boolean' && currentValue is bool && options == null) {
+    return _$SessionConfigOptionFromJson(json);
+  }
+  if (type == 'select' && currentValue is String && options != null) {
+    return _$SessionConfigOptionFromJson(json);
+  }
+  throw ArgumentError('Session config option fields do not match type "$type"');
+}
+
 InitializeRequest _initializeRequestFromJson(Map<String, dynamic> json) =>
     _$InitializeRequestFromJson({
       ...json,
@@ -3101,6 +3189,9 @@ InitializeRequest _initializeRequestFromJson(Map<String, dynamic> json) =>
         json['protocolVersion'],
         'protocolVersion',
       ),
+      'clientCapabilities': json['clientCapabilities'] is Map
+          ? _wireObject(json['clientCapabilities'])
+          : <String, dynamic>{},
     });
 
 InitializeResponse _initializeResponseFromJson(Map<String, dynamic> json) =>
@@ -3110,6 +3201,9 @@ InitializeResponse _initializeResponseFromJson(Map<String, dynamic> json) =>
         json['protocolVersion'],
         'protocolVersion',
       ),
+      'agentCapabilities': json['agentCapabilities'] is Map
+          ? _wireObject(json['agentCapabilities'])
+          : <String, dynamic>{},
     });
 
 ReadTextFileRequest _readTextFileRequestFromJson(Map<String, dynamic> json) =>
