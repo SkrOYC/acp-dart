@@ -129,7 +129,7 @@ void main() {
       await pair.close();
     });
 
-    test('all checked-in fixtures are standalone JSON-RPC objects', () async {
+    test('fixture files parse and RPC messages carry envelopes', () async {
       final files = Directory(_fixtureDir).listSync().whereType<File>();
       expect(files, isNotEmpty);
       for (final file in files.where((file) => file.path.endsWith('.json'))) {
