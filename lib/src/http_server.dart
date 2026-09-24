@@ -35,8 +35,9 @@ class AcpHttpServer {
   }
 
   Future<void> close() async {
+    final connections = _connections.values.toList();
     await _server.close(force: true);
-    for (final connection in _connections.values) {
+    for (final connection in connections) {
       await connection.close();
     }
     _connections.clear();
@@ -265,10 +266,12 @@ class AcpHttpServer {
       );
       await _writeChunk(socket, ':\n\n');
       while (true) {
+        final take = queue.take();
         final message = await Future.any([
-          queue.take(),
+          take.future,
           clientClosed.future.then<Map<String, dynamic>?>((_) => null),
         ]);
+        take.cancel();
         if (message == null) break;
         await _writeChunk(socket, 'data: ${jsonEncode(message)}\n\n');
       }
@@ -617,12 +620,14 @@ class _MessageQueue {
     }
   }
 
-  Future<Map<String, dynamic>?> take() {
-    if (_messages.isNotEmpty) return Future.value(_messages.removeAt(0));
-    if (_closed) return Future.value(null);
+  _MessageQueueTake take() {
+    if (_messages.isNotEmpty) {
+      return _MessageQueueTake(Future.value(_messages.removeAt(0)), () {});
+    }
+    if (_closed) return _MessageQueueTake(Future.value(null), () {});
     final waiter = Completer<Map<String, dynamic>?>();
     _waiters.add(waiter);
-    return waiter.future;
+    return _MessageQueueTake(waiter.future, () => _waiters.remove(waiter));
   }
 
   void close() {
@@ -632,4 +637,10 @@ class _MessageQueue {
     }
     _waiters.clear();
   }
+}
+
+class _MessageQueueTake {
+  final Future<Map<String, dynamic>?> future;
+  final void Function() cancel;
+  const _MessageQueueTake(this.future, this.cancel);
 }

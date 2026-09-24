@@ -41,6 +41,7 @@ class _WebSocketAcpStream {
   WebSocket? _socket;
   Future<WebSocket>? _opening;
   Future<void> _writeChain = Future<void>.value();
+  Future<void>? _closeFuture;
   bool _closed = false;
 
   _WebSocketAcpStream(this.serverUrl, this.options)
@@ -50,7 +51,7 @@ class _WebSocketAcpStream {
     _opening!.then<void>(
       (_) {},
       onError: (Object error, StackTrace stack) {
-        if (!_readable.isClosed) _readable.addError(error, stack);
+        unawaited(_fail(error, stack));
       },
     );
     _writable.stream.listen(
@@ -59,11 +60,11 @@ class _WebSocketAcpStream {
           Object error,
           StackTrace stack,
         ) {
-          if (!_readable.isClosed) _readable.addError(error, stack);
+          unawaited(_fail(error, stack));
         });
       },
       onError: (Object error, StackTrace stack) =>
-          _readable.addError(error, stack),
+          unawaited(_fail(error, stack)),
       onDone: _close,
     );
     _readable.onCancel = _close;
@@ -186,11 +187,24 @@ class _WebSocketAcpStream {
           );
         })
         .catchError((Object error, StackTrace stack) {
-          if (!_readable.isClosed) _readable.addError(error, stack);
+          unawaited(_fail(error, stack));
         });
   }
 
-  Future<void> _close() async {
+  Future<void> _fail(Object error, StackTrace stack) async {
+    if (_closed) return;
+    _closed = true;
+    _clearOwnedCookies();
+    if (!_readable.isClosed) {
+      _readable.addError(error, stack);
+      await _readable.close();
+    }
+  }
+
+  Future<void> _close() => _closeFuture ??= _closeImpl();
+
+  Future<void> _closeImpl() async {
+    await _writeChain;
     if (_closed) return;
     _closed = true;
     var socket = _socket;

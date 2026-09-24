@@ -41,6 +41,7 @@ class _HttpAcpStream {
   final Map<String?, Future<void>> _eventStreams = {};
   final Map<String, String> _pendingServerRequestSessions = {};
   final Map<String, String> _pendingSessionRequestSessions = {};
+  Future<void>? _closeFuture;
   bool _closed = false;
 
   _HttpAcpStream(String url, this._options)
@@ -160,12 +161,13 @@ class _HttpAcpStream {
   Future<void> _consumeEvents(String? sessionId, Completer<void> ready) async {
     try {
       final request = await _client.getUrl(_uri);
-      request.headers.set(HttpHeaders.acceptHeader, 'text/event-stream');
-      request.headers.set(_connectionHeader, _connectionId!);
-      if (sessionId != null) request.headers.set('Acp-Session-Id', sessionId);
       for (final header in _options.headers.entries) {
         request.headers.set(header.key, header.value);
       }
+      request.headers.set(HttpHeaders.acceptHeader, 'text/event-stream');
+      request.headers.set(_connectionHeader, _connectionId!);
+      request.headers.removeAll('Acp-Session-Id');
+      if (sessionId != null) request.headers.set('Acp-Session-Id', sessionId);
       _applyCookies(request);
       final response = await request.close();
       _storeCookies(response);
@@ -187,6 +189,7 @@ class _HttpAcpStream {
           data.add(value);
         }
       }
+      _emitEvent(data, sessionId);
       if (!_closed) {
         _eventStreams.remove(sessionId);
         if (sessionId == null) {
@@ -204,9 +207,13 @@ class _HttpAcpStream {
 
   void _emitEvent(List<String> data, String? streamSessionId) {
     if (data.isEmpty) return;
-    final decoded = jsonDecode(data.join('\n'));
-    if (decoded is! Map<String, dynamic>) {
-      throw const FormatException('ACP SSE data must be a JSON object');
+    Map<String, dynamic> decoded;
+    try {
+      final value = jsonDecode(data.join('\n'));
+      if (value is! Map<String, dynamic>) return;
+      decoded = value;
+    } on FormatException {
+      return;
     }
     final responseId = _responseId(decoded);
     if (responseId != null) _pendingSessionRequestSessions.remove(responseId);
@@ -259,10 +266,11 @@ class _HttpAcpStream {
     if (id != null) {
       try {
         final request = await _client.deleteUrl(_uri);
-        request.headers.set(_connectionHeader, id);
         for (final header in _options.headers.entries) {
           request.headers.set(header.key, header.value);
         }
+        request.headers.set(_connectionHeader, id);
+        request.headers.removeAll('Acp-Session-Id');
         _applyCookies(request);
         final response = await request.close();
         _storeCookies(response);
@@ -273,17 +281,21 @@ class _HttpAcpStream {
     _clearOwnedCookies();
   }
 
-  Future<void> _close() async {
+  Future<void> _close() => _closeFuture ??= _closeImpl();
+
+  Future<void> _closeImpl() async {
+    await _writes;
     if (_closed) return;
     _closed = true;
     final id = _connectionId;
     if (id != null) {
       try {
         final request = await _client.deleteUrl(_uri);
-        request.headers.set(_connectionHeader, id);
         for (final header in _options.headers.entries) {
           request.headers.set(header.key, header.value);
         }
+        request.headers.set(_connectionHeader, id);
+        request.headers.removeAll('Acp-Session-Id');
         _applyCookies(request);
         final response = await request.close();
         _storeCookies(response);

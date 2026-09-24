@@ -266,7 +266,25 @@ void main() {
       secondRequest.headers.set('Acp-Connection-Id', connectionId);
       final secondResponse = await secondRequest.close();
       expect(secondResponse.statusCode, 200);
-      await secondResponse.listen((_) {}).cancel();
+      final responseLines = utf8.decoder
+          .bind(secondResponse)
+          .transform(const LineSplitter());
+      final post = await retryClient.postUrl(Uri.parse(base));
+      post.headers.contentType = ContentType.json;
+      post.headers.set('Acp-Connection-Id', connectionId);
+      post.write(
+        jsonEncode({
+          'jsonrpc': '2.0',
+          'id': 2,
+          'method': 'session/new',
+          'params': {'cwd': '/tmp', 'mcpServers': []},
+        }),
+      );
+      expect((await post.close()).statusCode, 202);
+      final event = await responseLines
+          .firstWhere((line) => line.startsWith('data: '))
+          .timeout(const Duration(seconds: 2));
+      expect(jsonDecode(event.substring(6)), containsPair('id', 2));
     },
   );
 
