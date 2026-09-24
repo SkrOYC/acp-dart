@@ -1,0 +1,1 @@
+{"jsonrpc":"2.0","id":3,"method":"session/load","params":{"cwd":"/workspace/demo","sessionId":"sess-1","mcpServers":[],"additionalDirectories":["/workspace/shared"]}}

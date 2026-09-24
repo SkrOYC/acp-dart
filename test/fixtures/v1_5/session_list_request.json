@@ -1,0 +1,1 @@
+{"jsonrpc":"2.0","id":5,"method":"session/list","params":{"cwd":"/workspace/demo","cursor":"page-2"}}

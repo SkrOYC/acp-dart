@@ -1,0 +1,1 @@
+{"jsonrpc":"2.0","id":8,"method":"elicitation/create","params":{"mode":"form","message":"Choose a value","sessionId":"sess-1","requestedSchema":{"type":"object","properties":{"enabled":{"type":"boolean"},"label":{"type":"string","enum":["a","b"]}}}}}

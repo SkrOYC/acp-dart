@@ -1,0 +1,1 @@
+{"id":"model","name":"Model","type":"select","currentValue":"model-a","options":[{"value":"model-a","name":"Model A"},{"value":"model-b","name":"Model B","description":"Faster"}]}
