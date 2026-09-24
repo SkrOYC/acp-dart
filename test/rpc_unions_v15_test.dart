@@ -1,4 +1,5 @@
 import 'package:acp_dart/src/rpc_unions.dart';
+import 'package:acp_dart/src/acp.dart' show LogoutResponse;
 import 'package:acp_dart/src/schema.dart';
 import 'package:acp_dart/src/schema_v15_client.dart';
 import 'package:acp_dart/src/schema_v15_experimental.dart';
@@ -187,6 +188,10 @@ void main() {
       (false, 'providers/disable', {}, V15ProviderMutationResponse),
       (true, 'mcp/connect', {'connectionId': 'c1'}, V15ConnectMcpResponse),
       (true, 'mcp/disconnect', {}, V15DisconnectMcpResponse),
+      (false, 'logout', {}, LogoutResponse),
+      (false, 'nes/start', {'sessionId': 's1'}, V15StartNesResponse),
+      (false, 'nes/suggest', {'suggestions': []}, V15SuggestNesResponse),
+      (false, 'nes/close', {}, V15CloseNesResponse),
     ];
     for (final (isClientResponse, method, result, expectedType) in cases) {
       final json = {'id': 1, 'result': result};
@@ -195,21 +200,6 @@ void main() {
           : V15AgentResponse.fromJson(json, method: method);
       expect(response.result.runtimeType, expectedType, reason: method);
       expect(response.toJson()['result'], result, reason: method);
-    }
-  });
-
-  test('logout empty response has an explicit raw model gap', () {
-    for (final method in const [
-      'logout',
-      'nes/start',
-      'nes/suggest',
-      'nes/close',
-    ]) {
-      final response = V15AgentResponse.fromJson({
-        'id': 2,
-        'result': {},
-      }, method: method);
-      expect(response.result, isA<V15RawJsonPayload>(), reason: method);
     }
   });
 
