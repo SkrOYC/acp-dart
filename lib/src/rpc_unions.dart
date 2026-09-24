@@ -1057,7 +1057,7 @@ class V15AgentRequest extends _Request {
       method,
       _decode(method, json['params']),
       _clientMethods.contains(method),
-      false,
+      method == 'mcp/message',
     );
   }
 }
@@ -1198,17 +1198,77 @@ class _Response {
   };
 }
 
-Object? _response(Object? value) {
-  if (value is! Map<String, dynamic>) return V15RawJsonPayload(value);
-  if (value.containsKey('protocolVersion')) {
-    return InitializeResponse.fromJson(value);
+Object? _responseForMethod(String? method, Object? value) {
+  if (value is! Map) return V15RawJsonPayload(value);
+  final json = Map<String, dynamic>.from(value);
+  if (method == null && json.containsKey('protocolVersion')) {
+    return InitializeResponse.fromJson(json);
   }
-  return V15RawJsonPayload(Map<String, dynamic>.from(value));
+  switch (method) {
+    case 'initialize':
+      return InitializeResponse.fromJson(json);
+    case 'authenticate':
+      return AuthenticateResponse.fromJson(json);
+    case 'session/new':
+      return NewSessionResponse.fromJson(json);
+    case 'session/load':
+      return LoadSessionResponse.fromJson(json);
+    case 'session/list':
+      return ListSessionsResponse.fromJson(json);
+    case 'session/delete':
+      return DeleteSessionResponse.fromJson(json);
+    case 'session/fork':
+      return ForkSessionResponse.fromJson(json);
+    case 'session/resume':
+      return ResumeSessionResponse.fromJson(json);
+    case 'session/close':
+      return CloseSessionResponse.fromJson(json);
+    case 'session/set_mode':
+      return SetSessionModeResponse.fromJson(json);
+    case 'session/set_config_option':
+      return SetSessionConfigOptionResponse.fromJson(json);
+    case 'session/prompt':
+      return PromptResponse.fromJson(json);
+    case 'session/request_permission':
+      return RequestPermissionResponse.fromJson(json);
+    case 'fs/write_text_file':
+      return WriteTextFileResponse.fromJson(json);
+    case 'fs/read_text_file':
+      return ReadTextFileResponse.fromJson(json);
+    case 'terminal/create':
+      return CreateTerminalResponse.fromJson(json);
+    case 'terminal/output':
+      return TerminalOutputResponse.fromJson(json);
+    case 'terminal/release':
+      return ReleaseTerminalResponse.fromJson(json);
+    case 'terminal/wait_for_exit':
+      return WaitForTerminalExitResponse.fromJson(json);
+    case 'terminal/kill':
+      return KillTerminalCommandResponse.fromJson(json);
+    case 'elicitation/create':
+      return CreateElicitationResponse.fromJson(json);
+    case 'mcp/message':
+      return V15MessageMcpResponse.fromJson(json);
+    case 'mcp/connect':
+      return V15ConnectMcpResponse.fromJson(json);
+    case 'mcp/disconnect':
+      return V15DisconnectMcpResponse.fromJson(json);
+    case 'providers/list':
+      return V15ListProvidersResponse.fromJson(json);
+    case 'providers/set':
+    case 'providers/disable':
+      return V15ProviderMutationResponse.fromJson(json);
+    default:
+      return V15RawJsonPayload(json);
+  }
 }
 
 class V15AgentResponse extends _Response {
   V15AgentResponse._(super.id, super.result, super.error, [super._wireResult]);
-  factory V15AgentResponse.fromJson(Map<String, dynamic> json) {
+  factory V15AgentResponse.fromJson(
+    Map<String, dynamic> json, {
+    String? method,
+  }) {
     if (json.containsKey('error')) {
       return V15AgentResponse._(
         json['id'],
@@ -1218,7 +1278,7 @@ class V15AgentResponse extends _Response {
     }
     return V15AgentResponse._(
       json['id'],
-      _response(json['result']),
+      _responseForMethod(method, json['result']),
       null,
       json['result'],
     );
@@ -1227,7 +1287,10 @@ class V15AgentResponse extends _Response {
 
 class V15ClientResponse extends _Response {
   V15ClientResponse._(super.id, super.result, super.error, [super._wireResult]);
-  factory V15ClientResponse.fromJson(Map<String, dynamic> json) {
+  factory V15ClientResponse.fromJson(
+    Map<String, dynamic> json, {
+    String? method,
+  }) {
     if (json.containsKey('error')) {
       return V15ClientResponse._(
         json['id'],
@@ -1237,7 +1300,7 @@ class V15ClientResponse extends _Response {
     }
     return V15ClientResponse._(
       json['id'],
-      _response(json['result']),
+      _responseForMethod(method, json['result']),
       null,
       json['result'],
     );

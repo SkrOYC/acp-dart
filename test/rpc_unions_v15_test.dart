@@ -112,6 +112,107 @@ void main() {
     expect(request.toJson()['params'], {});
   });
 
+  test('mcp/message request is accepted in both protocol directions', () {
+    final payload = {'method': 'ping'};
+    final agentRequest = V15AgentRequest.fromJson({
+      'id': 10,
+      'method': 'mcp/message',
+      'params': {'connectionId': 'c1', 'method': 'ping', 'params': payload},
+    });
+    final clientRequest = V15ClientRequest.fromJson({
+      'id': 11,
+      'method': 'mcp/message',
+      'params': {'connectionId': 'c1', 'method': 'ping', 'params': payload},
+    });
+    expect(agentRequest.params, isA<V15MessageMcpRequest>());
+    expect(clientRequest.params, isA<V15MessageMcpRequest>());
+    expect(agentRequest.isExperimental, isTrue);
+    expect(clientRequest.isExperimental, isTrue);
+    expect(agentRequest.toJson()['method'], 'mcp/message');
+    expect(clientRequest.toJson()['method'], 'mcp/message');
+    final response = V15AgentResponse.fromJson({
+      'id': 10,
+      'result': {},
+    }, method: 'mcp/message');
+    expect(response.result, isA<V15MessageMcpResponse>());
+  });
+
+  test('stable response methods decode to existing response models', () {
+    final cases = <(bool, String, Map<String, dynamic>, Type)>[
+      (false, 'authenticate', {}, AuthenticateResponse),
+      (false, 'session/new', {'sessionId': 's'}, NewSessionResponse),
+      (false, 'session/load', {}, LoadSessionResponse),
+      (false, 'session/list', {'sessions': []}, ListSessionsResponse),
+      (false, 'session/delete', {}, DeleteSessionResponse),
+      (false, 'session/fork', {'sessionId': 's2'}, ForkSessionResponse),
+      (false, 'session/resume', {}, ResumeSessionResponse),
+      (false, 'session/close', {}, CloseSessionResponse),
+      (false, 'session/set_mode', {}, SetSessionModeResponse),
+      (
+        false,
+        'session/set_config_option',
+        {'configOptions': []},
+        SetSessionConfigOptionResponse,
+      ),
+      (false, 'session/prompt', {'stopReason': 'end_turn'}, PromptResponse),
+      (
+        true,
+        'session/request_permission',
+        {
+          'outcome': {'outcome': 'cancelled'},
+        },
+        RequestPermissionResponse,
+      ),
+      (true, 'fs/write_text_file', {}, WriteTextFileResponse),
+      (true, 'fs/read_text_file', {'content': 'hello'}, ReadTextFileResponse),
+      (true, 'terminal/create', {'terminalId': 't'}, CreateTerminalResponse),
+      (
+        true,
+        'terminal/output',
+        {'output': '', 'truncated': false},
+        TerminalOutputResponse,
+      ),
+      (true, 'terminal/release', {}, ReleaseTerminalResponse),
+      (true, 'terminal/wait_for_exit', {}, WaitForTerminalExitResponse),
+      (true, 'terminal/kill', {}, KillTerminalCommandResponse),
+      (
+        true,
+        'elicitation/create',
+        {'action': 'decline'},
+        CreateElicitationResponse,
+      ),
+      (false, 'mcp/message', {}, V15MessageMcpResponse),
+      (false, 'providers/list', {'providers': []}, V15ListProvidersResponse),
+      (false, 'providers/set', {}, V15ProviderMutationResponse),
+      (false, 'providers/disable', {}, V15ProviderMutationResponse),
+      (true, 'mcp/connect', {'connectionId': 'c1'}, V15ConnectMcpResponse),
+      (true, 'mcp/disconnect', {}, V15DisconnectMcpResponse),
+    ];
+    for (final (isClientResponse, method, result, expectedType) in cases) {
+      final json = {'id': 1, 'result': result};
+      final response = isClientResponse
+          ? V15ClientResponse.fromJson(json, method: method)
+          : V15AgentResponse.fromJson(json, method: method);
+      expect(response.result.runtimeType, expectedType, reason: method);
+      expect(response.toJson()['result'], result, reason: method);
+    }
+  });
+
+  test('logout empty response has an explicit raw model gap', () {
+    for (final method in const [
+      'logout',
+      'nes/start',
+      'nes/suggest',
+      'nes/close',
+    ]) {
+      final response = V15AgentResponse.fromJson({
+        'id': 2,
+        'result': {},
+      }, method: method);
+      expect(response.result, isA<V15RawJsonPayload>(), reason: method);
+    }
+  });
+
   test('unsupported complex known method uses explicit raw JSON payload', () {
     final request = V15ClientRequest.fromJson({
       'id': 2,
@@ -167,7 +268,7 @@ void main() {
     final response = V15AgentResponse.fromJson({
       'id': 3,
       'result': {'protocolVersion': 1},
-    });
+    }, method: 'initialize');
     expect(response.result, isA<InitializeResponse>());
     expect(response.toJson(), {
       'id': 3,
