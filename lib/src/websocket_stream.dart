@@ -31,6 +31,7 @@ AcpStream createWebSocketStream(
 }
 
 class _WebSocketAcpStream {
+  static const _noErrorData = Object();
   final String serverUrl;
   final WebSocketStreamOptions options;
   final AcpCookieStore cookieStore;
@@ -149,21 +150,44 @@ class _WebSocketAcpStream {
   }
 
   void _receive(dynamic frame) {
-    if (frame is! String) {
-      _readable.addError(
-        const FormatException('Expected WebSocket text frame'),
-      );
+    if (frame is! String) return;
+    dynamic value;
+    try {
+      value = jsonDecode(frame);
+    } on FormatException {
+      _sendProtocolError(-32700, 'Parse error');
       return;
     }
-    try {
-      final value = jsonDecode(frame);
-      if (value is! Map<String, dynamic>) {
-        throw const FormatException('Expected a JSON object');
-      }
-      _readable.add(value);
-    } on FormatException catch (error, stack) {
-      _readable.addError(error, stack);
+    if (value is! Map<String, dynamic>) {
+      _sendProtocolError(-32600, 'Invalid request', value);
+      return;
     }
+    _readable.add(value);
+  }
+
+  void _sendProtocolError(
+    int code,
+    String message, [
+    dynamic data = _noErrorData,
+  ]) {
+    _writeChain = _writeChain
+        .then((_) async {
+          if (_closed) return;
+          _socket?.add(
+            jsonEncode({
+              'jsonrpc': '2.0',
+              'id': null,
+              'error': {
+                'code': code,
+                'message': message,
+                if (!identical(data, _noErrorData)) 'data': data,
+              },
+            }),
+          );
+        })
+        .catchError((Object error, StackTrace stack) {
+          if (!_readable.isClosed) _readable.addError(error, stack);
+        });
   }
 
   Future<void> _close() async {
