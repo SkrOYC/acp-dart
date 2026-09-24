@@ -460,4 +460,153 @@ void main() {
     expect(emptyResponseCapabilities.sessionCapabilities, isNotNull);
     expect(emptyResponseCapabilities.auth, isNotNull);
   });
+
+  test(
+    'malformed optional initialization capabilities follow Zod fallbacks',
+    () {
+      final client = InitializeRequest.fromJson({
+        'protocolVersion': 1,
+        'clientCapabilities': {
+          'fs': 'bad',
+          'terminal': 'bad',
+          'session': 'bad',
+          'auth': 'bad',
+          'elicitation': 'bad',
+          'plan': 'bad',
+          'nes': 'bad',
+          'notices': 'bad',
+          'positionEncodings': 'bad',
+          '_meta': {'client': 'keep'},
+        },
+      }).clientCapabilities!;
+      expect(client.fs?.readTextFile, isFalse);
+      expect(client.fs?.writeTextFile, isFalse);
+      expect(client.terminal, isFalse);
+      expect(client.auth?.terminal, isFalse);
+      expect(client.session, isNull);
+      expect(client.elicitation, isNull);
+      expect(client.plan, isNull);
+      expect(client.nes, isNull);
+      expect(client.notices, isNull);
+      expect(client.positionEncodings, isEmpty);
+      expect(client.meta, {'client': 'keep'});
+
+      final nestedClient = InitializeRequest.fromJson({
+        'protocolVersion': 1,
+        'clientCapabilities': {
+          'fs': {
+            'readTextFile': 'bad',
+            '_meta': {'fs': 'keep'},
+          },
+          'auth': {
+            'terminal': 'bad',
+            '_meta': {'auth': 'keep'},
+          },
+          'positionEncodings': ['utf-8', 'invalid', 'utf-32'],
+        },
+      }).clientCapabilities!;
+      expect(nestedClient.fs?.readTextFile, isFalse);
+      expect(nestedClient.fs?.meta, {'fs': 'keep'});
+      expect(nestedClient.auth?.terminal, isFalse);
+      expect(nestedClient.auth?.meta, {'auth': 'keep'});
+      expect(nestedClient.positionEncodings, [
+        PositionEncodingKind.utf8,
+        PositionEncodingKind.utf32,
+      ]);
+
+      final nestedClientCapabilities = InitializeRequest.fromJson({
+        'protocolVersion': 1,
+        'clientCapabilities': {
+          'session': {
+            'compaction': {'_meta': 'bad'},
+            'configOptions': {
+              'boolean': {'_meta': 'bad'},
+            },
+          },
+          'elicitation': {
+            'form': {'_meta': 'bad'},
+            'url': {
+              '_meta': {'url': 'keep'},
+            },
+          },
+          'nes': {
+            'jump': 'bad',
+            'rename': {'_meta': 'bad'},
+          },
+        },
+      }).clientCapabilities!;
+      expect(
+        nestedClientCapabilities.session?.configOptions?.boolean?.meta,
+        isNull,
+      );
+      expect(nestedClientCapabilities.elicitation?.form?.meta, isNull);
+      expect(nestedClientCapabilities.elicitation?.url?.meta, {'url': 'keep'});
+      expect(nestedClientCapabilities.nes?.jump, isNull);
+      expect(nestedClientCapabilities.nes?.rename?.meta, isNull);
+
+      final agent = InitializeResponse.fromJson({
+        'protocolVersion': 1,
+        'agentCapabilities': {
+          'promptCapabilities': 'bad',
+          'mcpCapabilities': 'bad',
+          'sessionCapabilities': 'bad',
+          'auth': 'bad',
+          'providers': 'bad',
+          'nes': 'bad',
+          'positionEncoding': 'bad',
+          '_meta': {'agent': 'keep'},
+        },
+      }).agentCapabilities!;
+      expect(agent.promptCapabilities?.image, isFalse);
+      expect(agent.mcpCapabilities?.http, isFalse);
+      expect(agent.mcpCapabilities?.sse, isFalse);
+      expect(agent.mcpCapabilities?.acp, isFalse);
+      expect(agent.sessionCapabilities, isNotNull);
+      expect(agent.auth, isNotNull);
+      expect(agent.providers, isNull);
+      expect(agent.nes, isNull);
+      expect(agent.positionEncoding, isNull);
+      expect(agent.meta, {'agent': 'keep'});
+
+      final nestedAgent = InitializeResponse.fromJson({
+        'protocolVersion': 1,
+        'agentCapabilities': {
+          'mcpCapabilities': {
+            'http': 'bad',
+            '_meta': {'mcp': 'keep'},
+          },
+        },
+      }).agentCapabilities!;
+      expect(nestedAgent.mcpCapabilities?.http, isFalse);
+      expect(nestedAgent.mcpCapabilities?.meta, {'mcp': 'keep'});
+
+      final nestedAgentCapabilities = InitializeResponse.fromJson({
+        'protocolVersion': 1,
+        'agentCapabilities': {
+          'sessionCapabilities': {
+            'list': {'_meta': 'bad'},
+          },
+          'auth': {
+            'logout': {'_meta': 'bad'},
+          },
+          'providers': {'_meta': 'bad'},
+          'nes': {
+            'events': {
+              'document': {
+                'didOpen': 'bad',
+                'didChange': {'syncKind': 'bad'},
+              },
+            },
+            'context': {'diagnostics': 'bad'},
+          },
+        },
+      }).agentCapabilities!;
+      expect(nestedAgentCapabilities.sessionCapabilities?.list?.meta, isNull);
+      expect(nestedAgentCapabilities.auth?.logout?.meta, isNull);
+      expect(nestedAgentCapabilities.providers?.meta, isNull);
+      expect(nestedAgentCapabilities.nes?.events?.document?.didOpen, isNull);
+      expect(nestedAgentCapabilities.nes?.events?.document?.didChange, isNull);
+      expect(nestedAgentCapabilities.nes?.context?.diagnostics, isNull);
+    },
+  );
 }
