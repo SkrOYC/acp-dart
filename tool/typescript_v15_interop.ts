@@ -1,5 +1,4 @@
-import { spawn } from "node:child_process";
-import { execFileSync } from "node:child_process";
+import { execFileSync, spawn } from "node:child_process";
 import { Readable, Writable } from "node:stream";
 
 type SessionMessage =
@@ -57,8 +56,13 @@ const agent = spawn("dart", ["run", "example/agent.dart"], {
   cwd: root,
   stdio: ["pipe", "pipe", "inherit"],
 });
-const input = Writable.toWeb(agent.stdin!);
-const output = Readable.toWeb(agent.stdout!) as ReadableStream<Uint8Array>;
+const agentStdin = agent.stdin;
+const agentStdout = agent.stdout;
+if (agentStdin === null || agentStdout === null) {
+  throw new Error("Unable to open Dart agent stdio pipes");
+}
+const input = Writable.toWeb(agentStdin);
+const output = Readable.toWeb(agentStdout);
 const updates: string[] = [];
 let permissionRequests = 0;
 let cancellationNotifications = 0;
@@ -79,7 +83,7 @@ process.on("SIGINT", () => {
 
 try {
   // A malformed line must not prevent the next valid request from being read.
-  agent.stdin!.write("{malformed-json}\n");
+  agentStdin.write("{malformed-json}\n");
   const app = acp
     .client({ name: "typescript-v1.5-interop" })
     .onRequest(
@@ -119,100 +123,104 @@ try {
     }),
   };
 
-  const result = (await app.connectWith(
-    observedTransport,
-    async (ctx: ClientContext) => {
-      const initialized = await ctx.request<{ protocolVersion: number }>(
-        acp.methods.agent.initialize,
-        {
-          protocolVersion: acp.PROTOCOL_VERSION,
-          clientCapabilities: {},
-        },
-      );
-      if (initialized.protocolVersion !== acp.PROTOCOL_VERSION) {
-        throw new Error(
-          `Unexpected protocol version ${initialized.protocolVersion}`,
-        );
-      }
-
-      let methodNotFoundCode: number | undefined;
-      try {
-        await ctx.request("interop/unknown_method", {});
-      } catch (error) {
-        methodNotFoundCode = (error as { code?: number }).code;
-      }
-      if (methodNotFoundCode !== -32601) {
-        throw new Error(
-          `Expected JSON-RPC method-not-found, got ${methodNotFoundCode}`,
-        );
-      }
-
-      return ctx.buildSession(root).withSession(async (session) => {
-        await session.prompt(
-          "Please inspect and update the project configuration.",
-        );
-        let promptResponse: { stopReason: string } | undefined;
-        for (;;) {
-          const message = await session.nextUpdate();
-          if (message.kind === "stop") {
-            promptResponse = message.response;
-            break;
-          }
-          updates.push(message.notification.update.sessionUpdate);
-        }
-        if (!promptResponse)
-          throw new Error("Prompt finished without a response");
-
-        const sessionCancelPrompt = session.prompt(
-          "Please begin a cancellable turn.",
-        );
-        await session.nextUpdate();
-        await ctx.notify(acp.methods.agent.session.cancel, {
-          sessionId: session.sessionId,
-        });
-        let sessionCancelResponse: { stopReason: string } | undefined;
-        for (;;) {
-          const message = await session.nextUpdate();
-          if (message.kind === "stop") {
-            sessionCancelResponse = message.response;
-            break;
-          }
-        }
-        await sessionCancelPrompt;
-        if (!sessionCancelResponse) {
-          throw new Error("session/cancel finished without a response");
-        }
-        if (sessionCancelResponse.stopReason !== "cancelled") {
-          throw new Error(
-            `Unexpected session/cancel stop reason ${sessionCancelResponse.stopReason}`,
-          );
-        }
-
-        const cancellation = new AbortController();
-        const cancelledPrompt = session.prompt("Please begin another turn.", {
-          cancellationSignal: cancellation.signal,
-        });
-        setTimeout(() => cancellation.abort(), 100);
-        const cancellationResponse = await cancelledPrompt;
-        if (
-          !["cancelled", "end_turn"].includes(cancellationResponse.stopReason)
-        ) {
-          throw new Error(
-            `Unexpected cancellation response ${cancellationResponse.stopReason}`,
-          );
-        }
-        return {
-          promptResponse,
-          sessionCancelStopReason: sessionCancelResponse.stopReason,
-          cancellationStopReason: cancellationResponse.stopReason,
-        };
-      });
-    },
-  )) as {
+  const result: {
     promptResponse: { stopReason: string };
     sessionCancelStopReason: string;
     cancellationStopReason: string;
-  };
+  } = await app.connectWith(observedTransport, async (ctx: ClientContext) => {
+    const initialized = await ctx.request<{ protocolVersion: number }>(
+      acp.methods.agent.initialize,
+      {
+        protocolVersion: acp.PROTOCOL_VERSION,
+        clientCapabilities: {},
+      },
+    );
+    if (initialized.protocolVersion !== acp.PROTOCOL_VERSION) {
+      throw new Error(
+        `Unexpected protocol version ${initialized.protocolVersion}`,
+      );
+    }
+
+    let methodNotFoundCode: number | undefined;
+    try {
+      await ctx.request("interop/unknown_method", {});
+    } catch (error) {
+      if (
+        typeof error === "object" &&
+        error !== null &&
+        "code" in error &&
+        typeof error.code === "number"
+      ) {
+        methodNotFoundCode = error.code;
+      }
+    }
+    if (methodNotFoundCode !== -32601) {
+      throw new Error(
+        `Expected JSON-RPC method-not-found, got ${methodNotFoundCode}`,
+      );
+    }
+
+    return ctx.buildSession(root).withSession(async (session) => {
+      await session.prompt(
+        "Please inspect and update the project configuration.",
+      );
+      let promptResponse: { stopReason: string } | undefined;
+      for (;;) {
+        const message = await session.nextUpdate();
+        if (message.kind === "stop") {
+          promptResponse = message.response;
+          break;
+        }
+        updates.push(message.notification.update.sessionUpdate);
+      }
+      if (!promptResponse)
+        throw new Error("Prompt finished without a response");
+
+      const sessionCancelPrompt = session.prompt(
+        "Please begin a cancellable turn.",
+      );
+      await session.nextUpdate();
+      await ctx.notify(acp.methods.agent.session.cancel, {
+        sessionId: session.sessionId,
+      });
+      let sessionCancelResponse: { stopReason: string } | undefined;
+      for (;;) {
+        const message = await session.nextUpdate();
+        if (message.kind === "stop") {
+          sessionCancelResponse = message.response;
+          break;
+        }
+      }
+      await sessionCancelPrompt;
+      if (!sessionCancelResponse) {
+        throw new Error("session/cancel finished without a response");
+      }
+      if (sessionCancelResponse.stopReason !== "cancelled") {
+        throw new Error(
+          `Unexpected session/cancel stop reason ${sessionCancelResponse.stopReason}`,
+        );
+      }
+
+      const cancellation = new AbortController();
+      const cancelledPrompt = session.prompt("Please begin another turn.", {
+        cancellationSignal: cancellation.signal,
+      });
+      setTimeout(() => cancellation.abort(), 100);
+      const cancellationResponse = await cancelledPrompt;
+      if (
+        !["cancelled", "end_turn"].includes(cancellationResponse.stopReason)
+      ) {
+        throw new Error(
+          `Unexpected cancellation response ${cancellationResponse.stopReason}`,
+        );
+      }
+      return {
+        promptResponse,
+        sessionCancelStopReason: sessionCancelResponse.stopReason,
+        cancellationStopReason: cancellationResponse.stopReason,
+      };
+    });
+  });
 
   const expected = ["agent_message_chunk", "tool_call", "tool_call_update"];
   if (!expected.every((name) => updates.includes(name))) {
