@@ -234,6 +234,56 @@ void main() {
       await writable.close();
     });
 
+    test(
+      'fractional JSON-RPC IDs are accepted and echoed over NDJSON',
+      () async {
+        final input = StreamController<List<int>>();
+        final output = StreamController<List<int>>();
+        final responseBytes = Completer<List<int>>();
+        final outputSubscription = output.stream.listen(responseBytes.complete);
+        final connection = Connection(
+          (_, _) async => {'ok': true},
+          (_, _) async {},
+          ndJsonStream(input.stream, output.sink),
+        );
+        input.add(
+          utf8.encode('{"jsonrpc":"2.0","id":1.5,"method":"fractional"}\n'),
+        );
+        final response =
+            jsonDecode(utf8.decode(await responseBytes.future))
+                as Map<String, dynamic>;
+        expect(response['id'], 1.5);
+        expect(response['result'], {'ok': true});
+        connection.close();
+        await input.close();
+        await output.close();
+        await outputSubscription.cancel();
+      },
+    );
+
+    test('cancel notifications reject invalid request IDs', () async {
+      final readable = StreamController<Map<String, dynamic>>();
+      final writable = StreamController<Map<String, dynamic>>();
+      final writableSubscription = writable.stream.listen((_) {});
+      final connection = Connection(
+        (_, _) async => null,
+        (_, _) async {},
+        AcpStream(readable: readable.stream, writable: writable.sink),
+      );
+      for (final invalidId in [true, <String, dynamic>{}, double.infinity]) {
+        await expectLater(
+          connection.sendCancelRequestNotification(
+            CancelRequestNotification(requestId: invalidId),
+          ),
+          throwsA(isA<ArgumentError>()),
+        );
+      }
+      connection.close();
+      await readable.close();
+      await writable.close();
+      await writableSubscription.cancel();
+    });
+
     test('stable NDJSON connections close on JSON-RPC batches', () async {
       final input = StreamController<List<int>>();
       final output = StreamController<List<int>>();
