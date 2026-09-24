@@ -3,11 +3,15 @@ import 'package:json_annotation/json_annotation.dart';
 import 'schema.dart';
 
 class SessionConfigSelectOptionsConverter
-    implements JsonConverter<SessionConfigSelectOptions, List<dynamic>> {
+    implements JsonConverter<SessionConfigSelectOptions?, dynamic> {
   const SessionConfigSelectOptionsConverter();
 
   @override
-  SessionConfigSelectOptions fromJson(List<dynamic> json) {
+  SessionConfigSelectOptions? fromJson(dynamic json) {
+    if (json == null) return null;
+    if (json is! List<dynamic>) {
+      throw ArgumentError('Expected session config select option list');
+    }
     if (json.isEmpty) {
       return UngroupedSessionConfigSelectOptions(options: const []);
     }
@@ -48,7 +52,8 @@ class SessionConfigSelectOptionsConverter
   }
 
   @override
-  List<dynamic> toJson(SessionConfigSelectOptions object) {
+  dynamic toJson(SessionConfigSelectOptions? object) {
+    if (object == null) return null;
     if (object is UngroupedSessionConfigSelectOptions) {
       return object.options.map((option) => option.toJson()).toList();
     }
