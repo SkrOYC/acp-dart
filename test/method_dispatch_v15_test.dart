@@ -2,9 +2,6 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:acp_dart/acp_dart.dart';
-import 'package:acp_dart/src/acp.dart'
-    show AgentV15Handler, ClientV15Handler, LogoutRequest, LogoutResponse;
-import 'package:acp_dart/src/schema_v15_client.dart';
 import 'package:test/test.dart';
 
 void main() {
