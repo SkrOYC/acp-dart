@@ -8,6 +8,7 @@ export 'src/schema.dart';
 export 'src/schema_v15_client.dart';
 export 'src/schema_v15_experimental.dart';
 export 'src/rpc_unions.dart';
+export 'src/protocol_version.dart';
 export 'src/app.dart';
 export 'src/cookie_store.dart';
 export 'src/http_stream.dart' show HttpStreamOptions, createHttpStream;
