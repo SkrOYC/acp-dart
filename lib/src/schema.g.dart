@@ -39,8 +39,8 @@ InitializeRequest _$InitializeRequestFromJson(Map<String, dynamic> json) =>
 Map<String, dynamic> _$InitializeRequestToJson(InitializeRequest instance) =>
     <String, dynamic>{
       '_meta': ?instance.meta,
-      'clientCapabilities': instance.clientCapabilities,
-      'clientInfo': instance.clientInfo,
+      'clientCapabilities': ?instance.clientCapabilities,
+      'clientInfo': ?instance.clientInfo,
       'protocolVersion': instance.protocolVersion,
     };
 
@@ -138,8 +138,8 @@ Map<String, dynamic> _$ClientSessionCapabilitiesToJson(
   ClientSessionCapabilities instance,
 ) => <String, dynamic>{
   '_meta': ?instance.meta,
-  'compaction': instance.compaction,
-  'configOptions': instance.configOptions,
+  'compaction': ?instance.compaction,
+  'configOptions': ?instance.configOptions,
 };
 
 CompactionCapabilities _$CompactionCapabilitiesFromJson(
@@ -1041,8 +1041,8 @@ Map<String, dynamic> _$InitializeResponseToJson(InitializeResponse instance) =>
     <String, dynamic>{
       '_meta': ?instance.meta,
       'protocolVersion': instance.protocolVersion,
-      'agentCapabilities': instance.agentCapabilities,
-      'agentInfo': instance.agentInfo,
+      'agentCapabilities': ?instance.agentCapabilities,
+      'agentInfo': ?instance.agentInfo,
       'authMethods': instance.authMethods,
     };
 
@@ -1179,7 +1179,7 @@ AgentAuthCapabilities _$AgentAuthCapabilitiesFromJson(
 
 Map<String, dynamic> _$AgentAuthCapabilitiesToJson(
   AgentAuthCapabilities instance,
-) => <String, dynamic>{'_meta': ?instance.meta, 'logout': instance.logout};
+) => <String, dynamic>{'_meta': ?instance.meta, 'logout': ?instance.logout};
 
 LogoutCapabilities _$LogoutCapabilitiesFromJson(Map<String, dynamic> json) =>
     LogoutCapabilities(meta: json['_meta'] as Map<String, dynamic>?);
@@ -1460,6 +1460,7 @@ McpCapabilities _$McpCapabilitiesFromJson(Map<String, dynamic> json) =>
       meta: json['_meta'] as Map<String, dynamic>?,
       http: json['http'] as bool? ?? false,
       sse: json['sse'] as bool? ?? false,
+      acp: json['acp'] as bool? ?? false,
     );
 
 Map<String, dynamic> _$McpCapabilitiesToJson(McpCapabilities instance) =>
@@ -1467,6 +1468,7 @@ Map<String, dynamic> _$McpCapabilitiesToJson(McpCapabilities instance) =>
       '_meta': ?instance.meta,
       'http': instance.http,
       'sse': instance.sse,
+      'acp': instance.acp,
     };
 
 PromptCapabilities _$PromptCapabilitiesFromJson(Map<String, dynamic> json) =>
