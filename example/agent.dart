@@ -13,7 +13,7 @@ class AgentSession {
 }
 
 /// Example agent implementation demonstrating ACP protocol usage
-class ExampleAgent implements Agent {
+class ExampleAgent extends Agent {
   final AgentSideConnection _connection;
   final Map<String, AgentSession> _sessions = {};
 
@@ -113,7 +113,7 @@ class ExampleAgent implements Agent {
     session.pendingPrompt = completer;
 
     try {
-      await _simulateTurn(params.sessionId, completer.future.asStream());
+      await _simulateTurn(params.sessionId, completer.future);
     } catch (err) {
       if (session.pendingPrompt != null && session.pendingPrompt!.isCompleted) {
         return PromptResponse(stopReason: StopReason.cancelled);
@@ -127,7 +127,7 @@ class ExampleAgent implements Agent {
   }
 
   /// Simulates an agent turn with text chunks and tool calls
-  Future<void> _simulateTurn(String sessionId, Stream<void> abortStream) async {
+  Future<void> _simulateTurn(String sessionId, Future<void> abortFuture) async {
     // Send initial text chunk
     await _connection.sessionUpdate(
       SessionNotification(
@@ -141,7 +141,7 @@ class ExampleAgent implements Agent {
       ),
     );
 
-    await _simulateModelInteraction(abortStream);
+    await _simulateModelInteraction(abortFuture);
 
     // Send a tool call that doesn't need permission
     await _connection.sessionUpdate(
@@ -158,7 +158,7 @@ class ExampleAgent implements Agent {
       ),
     );
 
-    await _simulateModelInteraction(abortStream);
+    await _simulateModelInteraction(abortFuture);
 
     // Update tool call to completed
     await _connection.sessionUpdate(
@@ -179,7 +179,7 @@ class ExampleAgent implements Agent {
       ),
     );
 
-    await _simulateModelInteraction(abortStream);
+    await _simulateModelInteraction(abortFuture);
 
     // Send more text
     await _connection.sessionUpdate(
@@ -194,7 +194,7 @@ class ExampleAgent implements Agent {
       ),
     );
 
-    await _simulateModelInteraction(abortStream);
+    await _simulateModelInteraction(abortFuture);
 
     // Send a tool call that DOES need permission
     await _connection.sessionUpdate(
@@ -259,7 +259,7 @@ class ExampleAgent implements Agent {
           ),
         );
 
-        await _simulateModelInteraction(abortStream);
+        await _simulateModelInteraction(abortFuture);
 
         await _connection.sessionUpdate(
           SessionNotification(
@@ -274,7 +274,7 @@ class ExampleAgent implements Agent {
         );
         break;
       case SelectedOutcome(optionId: final optionId) when optionId == "reject":
-        await _simulateModelInteraction(abortStream);
+        await _simulateModelInteraction(abortFuture);
 
         await _connection.sessionUpdate(
           SessionNotification(
@@ -307,11 +307,14 @@ class ExampleAgent implements Agent {
   }
 
   /// Simulates model interaction with a delay
-  Future<void> _simulateModelInteraction(Stream<void> abortStream) {
-    return abortStream
-        .any((_) => true)
-        .then((_) => Future.value())
-        .timeout(Duration(seconds: 1), onTimeout: () => {});
+  Future<void> _simulateModelInteraction(Future<void> abortFuture) async {
+    final cancelled = await Future.any<bool>([
+      abortFuture.then((_) => true),
+      Future.delayed(const Duration(seconds: 1), () => false),
+    ]);
+    if (cancelled) {
+      throw RequestError.requestCancelled();
+    }
   }
 
   @override
