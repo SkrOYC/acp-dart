@@ -201,6 +201,14 @@ void main() {
     );
     const rejection = {'sessionId': 's', 'id': 's1', 'reason': 'ignored'};
     expect(V15RejectNesNotification.fromJson(rejection).toJson(), rejection);
+    expect(
+      () => V15RejectNesNotification.fromJson({
+        'sessionId': 's',
+        'id': 's1',
+        'reason': 'unknown',
+      }),
+      throwsFormatException,
+    );
     const request = {
       'sessionId': 'nes-1',
       'uri': 'file:///src/a.dart',
@@ -409,6 +417,10 @@ void main() {
       };
       expect(V15CompactionUpdate.fromJson(compaction).toJson(), compaction);
       expect(
+        V15CompactionUpdate.fromJson(compaction).summary!.single,
+        isA<TextContentBlock>(),
+      );
+      expect(
         CompactionUpdateSessionUpdateV15.fromJson(compaction).toJson(),
         compaction,
       );
@@ -417,6 +429,10 @@ void main() {
         'content': {'type': 'text', 'text': 'More summary'},
       };
       expect(V15CompactionSummaryChunk.fromJson(chunk).toJson(), chunk);
+      expect(
+        V15CompactionSummaryChunk.fromJson(chunk).content,
+        isA<TextContentBlock>(),
+      );
       expect(
         CompactionSummaryChunkSessionUpdateV15.fromJson(chunk).toJson(),
         chunk,
