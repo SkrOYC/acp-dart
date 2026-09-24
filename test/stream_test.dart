@@ -240,5 +240,62 @@ void main() {
 
       outputController.close();
     });
+
+    test('malformed and non-object JSON lines emit JSON-RPC errors', () async {
+      final input = StreamController<List<int>>();
+      final output = StreamController<List<int>>();
+      final responses = <Map<String, dynamic>>[];
+      final outputDone = output.stream.listen((bytes) {
+        responses.add(jsonDecode(utf8.decode(bytes)) as Map<String, dynamic>);
+      });
+      final stream = ndJsonStream(input.stream, output.sink);
+      final received = <Map<String, dynamic>>[];
+      final readDone = stream.readable.listen(received.add).asFuture<void>();
+      input.add(utf8.encode('oops\ntrue\n{"jsonrpc":"2.0","id":1}\n'));
+      await input.close();
+      await readDone;
+      await Future<void>.delayed(Duration.zero);
+      expect(received, hasLength(1));
+      expect(responses.map((m) => m['error']['code']), [-32700, -32600]);
+      await outputDone.cancel();
+      await output.close();
+    });
+
+    test('flushes a final line without a newline', () async {
+      final input = StreamController<List<int>>();
+      final output = StreamController<List<int>>();
+      final outputSubscription = output.stream.listen((_) {});
+      final stream = ndJsonStream(input.stream, output.sink);
+      final messages = <Map<String, dynamic>>[];
+      final done = stream.readable.listen(messages.add).asFuture<void>();
+      input.add(utf8.encode('{"jsonrpc":"2.0","id":1}'));
+      await input.close();
+      await done;
+      expect(messages, hasLength(1));
+      await output.close();
+      await outputSubscription.cancel();
+    });
+
+    test('optional line limit discards an oversized line', () async {
+      final input = StreamController<List<int>>();
+      final output = StreamController<List<int>>();
+      final outputSubscription = output.stream.listen((_) {});
+      final errors = <Object>[];
+      final stream = ndJsonStream(
+        input.stream,
+        output.sink,
+        maxLineBytes: 8,
+        onParseError: (_, error) => errors.add(error),
+      );
+      final messages = <Map<String, dynamic>>[];
+      final done = stream.readable.listen(messages.add).asFuture<void>();
+      input.add(utf8.encode('{"long":123456}\n{}\n'));
+      await input.close();
+      await done;
+      expect(messages, [{}]);
+      expect(errors, hasLength(1));
+      await output.close();
+      await outputSubscription.cancel();
+    });
   });
 }
