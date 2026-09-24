@@ -1,4 +1,11 @@
-## Unreleased
+## 0.5.0
+
+### Breaking changes
+
+- Remote JSON-RPC errors now complete request futures with `RequestError` instead of a raw JSON map. Catch `RequestError` and read its `code`, `message`, and `data` fields.
+- `cancelPendingRequest` no longer rejects the pending request locally. It sends `$/cancel_request`, and the original request future stays pending until the peer replies or the connection closes. Use `sendRequestWithCancellation` when you have a cancellation future for a specific request.
+- Configuration values now support both select strings and booleans. Check an option's `type` before reading `currentValue`; create boolean options with `type: 'boolean'`, a boolean value, and no select options. Tool-call `rawInput` and `rawOutput` can also contain any JSON value, so narrow them before treating them as maps.
+- `ndJsonStream` now sends JSON-RPC parse or invalid-request errors for malformed nonempty input instead of silently dropping it.
 
 ### Added
 
@@ -10,7 +17,7 @@
 
 ### Changed
 
-- Reject pending requests when connections close, return typed `RequestError` values for remote JSON-RPC errors, and send JSON-RPC parse errors for malformed NDJSON lines.
+- Reject pending requests when connections close and expose cooperative request-scoped cancellation to handlers.
 - Decode boolean configuration options, resource content blocks, grouped options, terminal authentication fields, and every v1.5 session update discriminator through the public schema API.
 - Keep `unstableListSessions` and `unstableResumeSession` as compatibility aliases while exposing stable `listSessions` and `resumeSession` methods.
 - Replace README examples that used invalid Dart model fields with verified source examples and a v1.5 method matrix.
