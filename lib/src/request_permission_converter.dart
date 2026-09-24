@@ -9,7 +9,9 @@ class RequestPermissionOutcomeConverter
   RequestPermissionOutcome fromJson(Map<String, dynamic> json) {
     final type = json['outcome'] as String?;
     if (type == null) {
-      throw ArgumentError('Missing or null "outcome" field in RequestPermissionOutcome JSON: $json');
+      throw ArgumentError(
+        'Missing or null "outcome" field in RequestPermissionOutcome JSON: $json',
+      );
     }
     switch (type) {
       case 'cancelled':
@@ -29,6 +31,8 @@ class RequestPermissionOutcomeConverter
     if (object is SelectedOutcome) {
       return object.toJson();
     }
-    throw ArgumentError('Unknown RequestPermissionOutcome type: ${object.runtimeType}');
+    throw ArgumentError(
+      'Unknown RequestPermissionOutcome type: ${object.runtimeType}',
+    );
   }
 }

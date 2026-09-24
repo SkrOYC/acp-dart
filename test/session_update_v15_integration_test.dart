@@ -6,11 +6,7 @@ void main() {
     (
       'plan_update',
       {
-        'plan': {
-          'type': 'markdown',
-          'planId': 'p1',
-          'content': '# Plan',
-        },
+        'plan': {'type': 'markdown', 'planId': 'p1', 'content': '# Plan'},
       },
       PlanUpdateSessionUpdateV15,
     ),

@@ -110,16 +110,16 @@ void main() {
       () async {
         final data = await _data();
         final methods = data['authMethods'] as List<dynamic>;
-      final response = InitializeResponse.fromJson({
-        'protocolVersion': 1,
-        'authMethods': methods,
-      });
-      expect(
-        response.authMethods
-            .map((method) => _withoutNulls(method.toJson()))
-            .toList(),
-        methods,
-      );
+        final response = InitializeResponse.fromJson({
+          'protocolVersion': 1,
+          'authMethods': methods,
+        });
+        expect(
+          response.authMethods
+              .map((method) => _withoutNulls(method.toJson()))
+              .toList(),
+          methods,
+        );
       },
     );
 
