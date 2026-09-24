@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:acp_dart/src/schema.dart';
 import 'package:acp_dart/src/schema_v15_experimental.dart';
 import 'package:test/test.dart';
 
@@ -176,8 +177,20 @@ void main() {
         'isRegex': false,
       },
     ];
-    for (final suggestion in suggestions) {
-      expect(V15NesSuggestion.fromJson(suggestion).toJson(), suggestion);
+    for (var i = 0; i < suggestions.length; i++) {
+      final decoded = V15NesSuggestion.fromJson(suggestions[i]);
+      expect(decoded.toJson(), suggestions[i]);
+      if (i == 0) {
+        final typed = decoded as V15NesEditSuggestion;
+        expect(typed.edits, isNotEmpty);
+        expect(typed.edits.single.range.start.line, 0);
+      } else if (i == 1) {
+        expect(decoded, isA<V15NesJumpSuggestion>());
+      } else if (i == 2) {
+        expect(decoded, isA<V15NesRenameSuggestion>());
+      } else {
+        expect(decoded, isA<V15NesSearchAndReplaceSuggestion>());
+      }
     }
     expect(
       V15AcceptNesNotification.fromJson({
@@ -197,6 +210,134 @@ void main() {
     };
     expect(V15SuggestNesRequest.fromJson(request).toJson(), request);
   });
+
+  test('NES start, context, and response models validate nested schemas', () {
+    const start = {
+      'workspaceUri': 'file:///workspace',
+      'workspaceFolders': [
+        {'uri': 'file:///workspace', 'name': 'workspace'},
+      ],
+      'repository': {
+        'name': 'repo',
+        'owner': 'owner',
+        'remoteUrl': 'https://example.com/owner/repo.git',
+      },
+      '_meta': {'request': 1},
+    };
+    expect(V15StartNesRequest.fromJson(start).toJson(), start);
+    const context = {
+      'recentFiles': [
+        {'uri': 'file:///a.dart', 'languageId': 'dart', 'text': 'main();'},
+      ],
+      'relatedSnippets': [
+        {
+          'uri': 'file:///b.dart',
+          'excerpts': [
+            {'startLine': 1, 'endLine': 2, 'text': 'code'},
+          ],
+        },
+      ],
+      'editHistory': [
+        {'uri': 'file:///a.dart', 'diff': '+new'},
+      ],
+      'userActions': [
+        {
+          'action': 'typing',
+          'uri': 'file:///a.dart',
+          'position': {'line': 1, 'character': 0},
+          'timestampMs': 123,
+        },
+      ],
+      'openFiles': [
+        {
+          'uri': 'file:///a.dart',
+          'languageId': 'dart',
+          'visibleRange': null,
+          'lastFocusedMs': 123,
+        },
+      ],
+      'diagnostics': [
+        {
+          'uri': 'file:///a.dart',
+          'range': {
+            'start': {'line': 0, 'character': 0},
+            'end': {'line': 0, 'character': 1},
+          },
+          'severity': 'warning',
+          'message': 'check',
+        },
+      ],
+      '_meta': null,
+    };
+    expect(V15NesSuggestContext.fromJson(context).toJson(), context);
+    expect(
+      V15NesSuggestContext.fromJson(context).recentFiles!.single.text,
+      'main();',
+    );
+    expect(
+      V15NesSuggestContext.fromJson(context).diagnostics!.single.severity,
+      'warning',
+    );
+    const response = {
+      'suggestions': [
+        {
+          'kind': 'jump',
+          'id': 's1',
+          'uri': 'file:///a.dart',
+          'position': {'line': 1, 'character': 2},
+        },
+      ],
+    };
+    expect(V15SuggestNesResponse.fromJson(response).toJson(), response);
+    expect(V15StartNesResponse.fromJson({'sessionId': 'nes-1'}).toJson(), {
+      'sessionId': 'nes-1',
+    });
+    expect(V15CloseNesRequest.fromJson({'sessionId': 'nes-1'}).toJson(), {
+      'sessionId': 'nes-1',
+    });
+    expect(V15CloseNesResponse.fromJson({}).toJson(), <String, dynamic>{});
+    expect(
+      () => V15SuggestNesRequest.fromJson({
+        'sessionId': 'nes-1',
+        'uri': 'file:///a.dart',
+        'version': 1,
+        'position': {'line': 0, 'character': 0},
+        'triggerKind': 'unknown',
+      }),
+      throwsFormatException,
+    );
+  });
+
+  test(
+    'NES suggestion edit payload validates every nested edit and nullable cursor',
+    () {
+      const edit = {
+        'kind': 'edit',
+        'id': 's1',
+        'uri': 'file:///a.dart',
+        'edits': [
+          {
+            'range': {
+              'start': {'line': 0, 'character': 0},
+              'end': {'line': 0, 'character': 1},
+            },
+            'newText': 'x',
+          },
+        ],
+        'cursorPosition': null,
+        '_meta': null,
+      };
+      expect(V15NesSuggestion.fromJson(edit).toJson(), edit);
+      expect(
+        () => V15NesSuggestContext.fromJson({
+          'diagnostics': [
+            {'uri': 'bad'},
+          ],
+        }),
+        throwsA(anyOf(isA<FormatException>(), isA<TypeError>())),
+      );
+    },
+  );
 
   test(
     'plan updates and compaction notifications preserve patch-shaped fields',
@@ -218,9 +359,44 @@ void main() {
         {'type': 'markdown', 'planId': 'p3', 'content': '# Plan'},
       ];
       for (final plan in plans) {
-        expect(V15PlanUpdateContent.fromJson(plan).toJson(), plan);
+        final decoded = V15PlanUpdateContent.fromJson(plan);
+        expect(decoded.toJson(), plan);
+        if (plan['type'] == 'items') {
+          expect(decoded, isA<V15PlanItems>());
+        } else if (plan['type'] == 'file') {
+          expect(decoded, isA<V15PlanFile>());
+        } else {
+          expect(decoded, isA<V15PlanMarkdown>());
+        }
       }
+      const update = {
+        'plan': {'type': 'markdown', 'planId': 'p4', 'content': '# Next'},
+      };
+      expect(V15PlanUpdate.fromJson(update).toJson(), update);
+      final planSessionUpdate = PlanUpdateSessionUpdateV15.fromJson(update);
+      expect(planSessionUpdate, isA<SessionUpdate>());
+      expect(planSessionUpdate.toJson(), update);
+      expect(
+        () => PlanUpdateSessionUpdateV15.fromJson({
+          'sessionUpdate': 'plan_removed',
+          'plan': update['plan'],
+        }),
+        throwsFormatException,
+      );
+      expect(
+        () => V15PlanUpdateContent.fromJson({
+          'type': 'items',
+          'planId': 'bad',
+          'entries': [
+            {'content': 'bad', 'priority': 'urgent', 'status': 'pending'},
+          ],
+        }),
+        throwsFormatException,
+      );
       expect(V15PlanRemoved.fromJson({'planId': 'p4'}).toJson(), {
+        'planId': 'p4',
+      });
+      expect(PlanRemovedSessionUpdateV15.fromJson({'planId': 'p4'}).toJson(), {
         'planId': 'p4',
       });
       const compaction = {
@@ -232,11 +408,19 @@ void main() {
         '_meta': {'retained': true},
       };
       expect(V15CompactionUpdate.fromJson(compaction).toJson(), compaction);
+      expect(
+        CompactionUpdateSessionUpdateV15.fromJson(compaction).toJson(),
+        compaction,
+      );
       const chunk = {
         'compactionId': 'c1',
         'content': {'type': 'text', 'text': 'More summary'},
       };
       expect(V15CompactionSummaryChunk.fromJson(chunk).toJson(), chunk);
+      expect(
+        CompactionSummaryChunkSessionUpdateV15.fromJson(chunk).toJson(),
+        chunk,
+      );
     },
   );
 }
