@@ -1,46 +1,42 @@
-# ACP Parity Verification Checklist
+# ACP parity verification checklist
 
-Use this checklist before each release to keep parity claims aligned with shipped behavior.
+Use this checklist before a package release. The comparison target is the ACP v1 entry point of [TypeScript SDK v1.5.0](https://github.com/agentclientprotocol/typescript-sdk/tree/v1.5.0). Keep draft ACP v2 separate.
 
-## 1) Method Inventory Verification
+## Method inventory
 
-- Compare `agentMethods`, `clientMethods`, and `protocolMethods` in `lib/src/schema.dart` against current ACP stable and unstable method inventories.
-- Confirm each method is represented in:
-  - Connection dispatch logic (`lib/src/acp.dart`)
-  - Typed unions (`lib/src/rpc_unions.dart`)
-  - Tests (`test/acp_test.dart`, `test/rpc_unions_test.dart`)
+- Run `dart test test/upstream_v15_methods_test.dart test/rpc_unions_v15_test.dart`.
+- Compare `agentMethods`, `clientMethods`, and `protocolMethods` with `src/schema/index.ts` in the pinned SDK tag.
+- Verify each stable method has a dispatch path, a typed request or notification payload, a response model where applicable, and a connected-stream test.
+- Mark experimental methods in public documentation. Keep `session/set_model` identified as a Dart legacy extension.
 
-## 2) Capability-Gated Surface Verification
+## Schema and wire behavior
 
-- For optional methods, verify behavior when handler/capability is absent:
-  - Expected JSON-RPC error is `-32601 Method not found` where appropriate.
-- Verify extension method/notification pass-through semantics are unchanged.
-- Verify `$/cancel_request` behavior on both connection sides.
+- Run `dart test test/upstream_v1_5_fixture_integration_test.dart test/upstream_v1_5_schema_variants_integration_test.dart test/session_update_v15_integration_test.dart`.
+- Check content, tool-call, permission, authentication, configuration, elicitation, and session-update variants against the pinned schema and Zod validators.
+- Test required-field failures, optional fields, `_meta`, unknown extension fields, and JSON-RPC error codes.
+- Regenerate `lib/src/schema.g.dart` after changing serializable models.
 
-## 3) Schema Variant Verification
+## Connected flows
 
-- Verify session update discriminators handled by `SessionUpdateConverter` match expected parity targets.
-- Add/refresh round-trip tests for any newly added request/response/update/content variants.
-- Confirm unknown variant fallback behavior remains intact.
+- Run the process, app, HTTP, WebSocket, and server integration tests in `test/`.
+- Exercise initialize, session creation, prompts, updates, permission callbacks, cancellation, stream closure, and request errors through connected peers.
+- Check that optional handlers return `-32601 Method not found` when absent.
+- Verify HTTP connection and session headers, SSE routing, WebSocket error recovery, and cookie handling.
 
-## 4) Documentation Sync
+## TypeScript interoperability
 
-- Update `README.md` protocol matrix:
-  - Stable supported
-  - Unstable supported
-  - Known unsupported/partial
-- Ensure examples and installation version snippets are correct for the release.
+- Clone the official SDK at tag `v1.5.0` and install its dependencies with Bun.
+- Follow [the interop test setup](tool/README.md) to run the actual TypeScript client against the Dart example agent.
+- Record the pinned tag, test commands, and results in the release notes or pull request.
 
-## 5) Changelog Sync
+## Documentation and release checks
 
-- Ensure release notes include only verified implemented behavior.
-- Mark unstable features explicitly as unstable.
-- Remove or clarify any claims that exceed current implementation.
+- Check the README support matrix, examples, installation command, and transport limits against the shipped code.
+- Mark experimental APIs and local extensions explicitly in the changelog.
+- Run the complete validation commands:
 
-## 6) Validation Commands
-
-- Run full tests:
-  - `dart test`
-- If schema/models changed, regenerate code and rerun tests:
-  - `dart run build_runner build --delete-conflicting-outputs`
-  - `dart test`
+```sh
+dart run build_runner build --delete-conflicting-outputs
+dart analyze
+dart test
+```

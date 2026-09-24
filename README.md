@@ -1,168 +1,89 @@
-# ACP Dart Library
+# ACP Dart
 
-[![pub](https://img.shields.io/pub/v/acp_dart)](https://pub.dev/packages/acp_dart)
-[![Mintlify Docs](https://img.shields.io/badge/Mintlify-Docs-blue)](https://mintlify.com/SkrOYC/acp-dart/)
+A Dart SDK for the [Agent Client Protocol (ACP)](https://agentclientprotocol.com/). It lets Dart agents and clients exchange JSON-RPC messages over newline-delimited JSON (NDJSON), HTTP with server-sent events (SSE), and WebSocket streams.
 
-The official Dart implementation of the Agent Client Protocol (ACP) — a standardized communication protocol between code editors and AI-powered coding agents.
+This source tree tracks the ACP v1 entry point of the [official TypeScript SDK v1.5.0](https://github.com/agentclientprotocol/typescript-sdk/tree/v1.5.0). The draft ACP v2 entry point is outside this package's scope. Protocol methods marked experimental in v1.5.0 can change in later versions.
 
-Learn more at https://agentclientprotocol.com
+## Install and run an example
 
-## Installation
+Add the published package to a Dart project:
 
-Add the package to your `pubspec.yaml`:
-
-```yaml
-dependencies:
-  acp_dart: ^0.4.0
+```sh
+dart pub add acp_dart
 ```
 
-Then run:
-```bash
+To run the examples from a source checkout, install dependencies and start the client:
+
+```sh
 dart pub get
-```
-
-## Get Started
-
-### Understand the Protocol
-
-Start by reading the [ACP documentation](https://agentclientprotocol.com) to understand the core concepts and protocol specification.
-
-### Try the Examples
-
-The [examples directory](https://github.com/SkrOYC/acp-dart/tree/master/example) contains simple implementations of both Agents and Clients in Dart. These examples can be run from your terminal or from an ACP Client like [Zed](https://zed.dev), making them great starting points for your own integration!
-
-To run the example agent:
-```bash
-dart run example/agent.dart
-```
-
-To run the example client:
-```bash
 dart run example/client.dart
 ```
 
-### Explore the API
+The client starts `example/agent.dart` as a subprocess. Enter a number when it requests permission. The example exchanges initialization, session, prompt, update, and permission messages. See the [agent](example/agent.dart) and [client](example/client.dart) source for complete implementations.
 
-The library provides:
+## Choose an API
 
-- **Agent-side**: `AgentSideConnection` for implementing AI agents
-- **Client-side**: `ClientSideConnection` for implementing ACP clients
-- **Core types**: Comprehensive schema definitions for all ACP messages
-- **RPC unions**: Type-safe request, response, and notification unions for exhaustive handling
-- **Stream handling**: `ndJsonStream` for NDJSON-based communication
-- **Type safety**: Full Dart type annotations and null safety
+| API | Use it for |
+| --- | --- |
+| `agent()` and `client()` | Register request and notification handlers, then connect to an `AcpStream`. `connectWith` closes the connection after its callback completes. |
+| `AgentSideConnection` and `ClientSideConnection` | Implement the v1 agent or client interfaces with typed method wrappers. These classes remain available for existing integrations. |
+| `Connection` | Exchange lower-level JSON-RPC requests and notifications. Use `RequestContext` to observe request-scoped cancellation. |
+| `SessionBuilder` and `ActiveSession` | Create a session, send prompts, and consume updates or stop messages from a client app. |
 
-If you're building an [Agent](https://agentclientprotocol.com/protocol/overview#agent), start with implementing the `Agent` interface and using `AgentSideConnection`.
+The package entry point is `package:acp_dart/acp_dart.dart`. For example, create a client connection to a child process with `ndJsonStream(process.stdout, process.stdin)`, then pass the stream to `ClientSideConnection` or `client().connectWith(...)`.
 
-If you're building a [Client](https://agentclientprotocol.com/protocol/overview#client), start with implementing the `Client` interface and using `ClientSideConnection`.
+## Protocol coverage
 
-### Key Features
+The following method inventory matches the TypeScript SDK v1.5.0 schema. Stable methods have typed Dart models and connection dispatch. Experimental methods have method constants and payload models; use the app handler API or the v1.5 handler mixins where a typed legacy wrapper is available.
 
-- **Type Safety**: Full Dart type annotations with null safety
-- **RPC Unions**: Sealed union types for exhaustive request/response handling
-- **JSON Serialization**: Automatic serialization using `json_serializable`
-- **Stream-based Communication**: NDJSON-based communication over stdio
-- **Error Handling**: Comprehensive error types and handling mechanisms
-- **JSON-RPC Error Mapping**: Parameter-validation failures map to `-32602 Invalid params`, while unexpected failures map to `-32603 Internal error`
-- **Protocol Cancellation**: Typed `$/cancel_request` notifications with `-32800` cancelled error semantics
-- **Extensible**: Support for extension methods and notifications (method names are passed through as provided; include leading `_` for protocol extension methods)
+| Direction | Stable methods |
+| --- | --- |
+| Client to agent | `initialize`, `authenticate`, `logout`, `session/new`, `session/load`, `session/list`, `session/delete`, `session/resume`, `session/close`, `session/set_mode`, `session/set_config_option`, `session/prompt`, `session/cancel` |
+| Agent to client | `session/request_permission`, `session/update`, `fs/read_text_file`, `fs/write_text_file`, `terminal/create`, `terminal/output`, `terminal/wait_for_exit`, `terminal/kill`, `terminal/release`, `elicitation/create`, `elicitation/complete` |
+| Either direction | `$/cancel_request` |
 
-## Protocol Support Matrix
+The v1.5.0 entry point also defines these experimental method families:
 
-The implementation tracks ACP stable and unstable surfaces explicitly.
+- Agent methods: `session/fork`, `providers/*`, `nes/*`, `document/didOpen`, `document/didChange`, `document/didClose`, `document/didSave`, `document/didFocus`, and `mcp/message`.
+- Client methods: `mcp/connect`, `mcp/message`, and `mcp/disconnect`.
+- Session updates: `plan_update`, `plan_removed`, `compaction_update`, and `compaction_summary_chunk`.
 
-### Stable Supported
+`session/set_model` remains a Dart legacy extension. It is absent from the TypeScript SDK v1.5.0 `AGENT_METHODS` inventory. The Dart API retains `unstableListSessions` and `unstableResumeSession` for compatibility; use `listSessions` and `resumeSession` for the stable v1.5.0 methods.
 
-- Agent methods: `initialize`, `authenticate`, `session/new`, `session/load`, `session/prompt`, `session/cancel`, `session/set_mode`, `session/set_config_option`
-- Client methods: `fs/read_text_file`, `fs/write_text_file`, `session/request_permission`, `session/update`
-- Terminal methods: `terminal/create`, `terminal/output`, `terminal/wait_for_exit`, `terminal/kill`, `terminal/release`
-- Protocol cancellation notification: `$/cancel_request`
-- Session updates: `user_message_chunk`, `agent_message_chunk`, `agent_thought_chunk`, `tool_call`, `tool_call_update`, `plan`, `available_commands_update`, `current_mode_update`, `config_option_update`
+Unknown session-update payloads retain their raw JSON. The source includes typed models for content, tool calls, configuration options, permissions, elicitation, and the v1.5.0 update variants.
 
-### Unstable Supported
+## Transports
 
-- `session/list`
-- `session/fork`
-- `session/resume`
-- `session/set_model`
-- Additional update variants implemented for parity tracking: `session_info_update`, `usage_update`
+`ndJsonStream` connects byte streams, including process stdin and stdout. It sends JSON-RPC parse errors for malformed nonempty lines and accepts a final line without a newline. ACP v1 connections reject JSON-RPC batches.
 
-### Known Unsupported / Partial
+`createHttpStream` opens an ACP Streamable HTTP client with connection and session SSE streams. `createWebSocketStream` opens a WebSocket client. `AcpHttpServer.bind` hosts HTTP, SSE, and WebSocket ACP connections through `dart:io`. These transport adapters use `dart:io` and run on the Dart VM; they don't provide browser transports.
 
-- Filesystem methods beyond ACP stable surface (for example delete/move/mkdir/list operations)
-- Any ACP methods or update variants not represented in `agentMethods`, `clientMethods`, and typed schema unions in this package
+`AcpCookieStore` lets client transports share affinity cookies across requests. `MemoryAcpCookieStore` stores cookie names and values in memory.
 
-See [`parity_verification_checklist.md`](parity_verification_checklist.md) for the release-time parity verification process.
+## Errors and cancellation
 
-### Error and Stream Behavior
+Failed JSON-RPC requests complete with `RequestError`, which exposes the protocol code, message, and optional data. A closed connection rejects pending requests. `sendRequestWithCancellation` sends `$/cancel_request` when its cancellation future completes and waits for the peer's reply. Incoming handlers can observe cancellation through `RequestContext`. Session turns can also be cancelled with `session/cancel`.
 
-- Incoming request parameter/validation failures are returned as JSON-RPC `Invalid params` (`-32602`).
-- Unexpected runtime failures are returned as JSON-RPC `Internal error` (`-32603`) without exposing raw internal exception details.
-- `ndJsonStream` skips malformed non-empty lines and continues processing subsequent valid messages. Use the optional `onParseError` callback to handle parse diagnostics (for example, routing logs to `stderr` or a structured logger).
+## Verify the package
 
-## Usage Examples
+Run analysis and the Dart test suite from the repository root:
 
-### Creating an Agent
-
-```dart
-import 'package:acp_dart/acp_dart.dart';
-
-class MyAgent implements Agent {
-  final AgentSideConnection _connection;
-
-  MyAgent(this._connection);
-
-  @override
-  Future<InitializeResponse> initialize(InitializeRequest params) async {
-    return InitializeResponse(
-      protocolVersion: '0.1.0',
-      capabilities: AgentCapabilities(
-        loadSession: false,
-        auth: [],
-      ),
-    );
-  }
-
-  // Implement other required methods...
-}
-
-void main() {
-  final stream = ndJsonStream(stdin, stdout);
-  final connection = AgentSideConnection((conn) => MyAgent(conn), stream);
-}
+```sh
+dart analyze
+dart test
 ```
 
-### Creating a Client
+If you edit serializable models, regenerate serializers before testing:
 
-```dart
-import 'package:acp_dart/acp_dart.dart';
-
-class MyClient implements Client {
-  @override
-  Future<RequestPermissionResponse> requestPermission(
-    RequestPermissionRequest params,
-  ) async {
-    // Handle permission requests
-    return RequestPermissionResponse(optionId: params.options.first.id);
-  }
-
-  @override
-  Future<void> sessionUpdate(SessionNotification params) async {
-    // Handle session updates
-    print('Session update: ${params.update}');
-  }
-
-  // Implement other required methods...
-}
+```sh
+dart run build_runner build --delete-conflicting-outputs
+dart test
 ```
 
-## Resources
+The test suite includes connected byte-stream and process tests, HTTP and WebSocket loopback tests, and JSON fixtures checked against the pinned TypeScript SDK schema. To run the opt-in test against an actual TypeScript v1.5.0 peer, follow the [interop test instructions](tool/README.md).
 
-- [Protocol Documentation](https://agentclientprotocol.com)
-- [GitHub Repository](https://github.com/SkrOYC/acp-dart)
-- [Zed ACP GitHub Repository](https://github.com/zed-industries/agent-client-protocol)
-- [Examples](https://github.com/SkrOYC/acp-dart/tree/master/example)
+For release checks, use the [parity verification checklist](parity_verification_checklist.md).
 
-## Contributing
+## License
 
-See the official [ACP repository](https://github.com/zed-industries/agent-client-protocol) for contribution guidelines.
+Apache 2.0. See [LICENSE](LICENSE).
