@@ -6,7 +6,24 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:acp_dart/src/schema.dart';
+import 'package:acp_dart/src/schema_v15_client.dart';
 import 'package:acp_dart/src/stream.dart';
+
+class LogoutRequest {
+  final Map<String, dynamic>? meta;
+  const LogoutRequest({this.meta});
+  factory LogoutRequest.fromJson(Map<String, dynamic> json) =>
+      LogoutRequest(meta: json['_meta'] as Map<String, dynamic>?);
+  Map<String, dynamic> toJson() => {if (meta != null) '_meta': meta};
+}
+
+class LogoutResponse {
+  final Map<String, dynamic>? meta;
+  const LogoutResponse({this.meta});
+  factory LogoutResponse.fromJson(Map<String, dynamic> json) =>
+      LogoutResponse(meta: json['_meta'] as Map<String, dynamic>?);
+  Map<String, dynamic> toJson() => {if (meta != null) '_meta': meta};
+}
 
 class ErrorResponse {
   final int code;
@@ -67,6 +84,29 @@ bool _isValidRequestId(Object? value) =>
 /// Optional interface for participants that handle `$/cancel_request`.
 abstract class ProtocolCancellationHandler {
   Future<void> cancelRequest(CancelRequestNotification params);
+}
+
+/// Optional v1.5 agent request handlers.
+mixin AgentV15Handler {
+  Future<ListSessionsResponse>? listSessions(ListSessionsRequest params) =>
+      null;
+  Future<ResumeSessionResponse>? resumeSession(ResumeSessionRequest params) =>
+      null;
+  Future<DeleteSessionResponse>? deleteSession(DeleteSessionRequest params) =>
+      null;
+  Future<CloseSessionResponse>? closeSession(CloseSessionRequest params) =>
+      null;
+  Future<LogoutResponse>? logout(LogoutRequest params) => null;
+}
+
+/// Optional v1.5 elicitation handlers for clients.
+mixin ClientV15Handler {
+  Future<CreateElicitationResponse>? createElicitation(
+    CreateElicitationRequest params,
+  ) => null;
+  Future<void> completeElicitation(
+    CompleteElicitationNotification params,
+  ) async {}
 }
 
 /// Pending response promise container
@@ -590,7 +630,7 @@ abstract class Client {
 /// agents to communicate with clients. It implements the Client interface
 /// to provide methods for requesting permissions, accessing the file system,
 /// and sending session updates.
-class AgentSideConnection implements Client {
+class AgentSideConnection implements Client, ClientV15Handler {
   late final Connection _connection;
 
   /// Creates a new agent-side connection to a client.
@@ -645,7 +685,36 @@ class AgentSideConnection implements Client {
             method,
             params,
             ListSessionsRequest.fromJson,
-            agent.unstableListSessions,
+            agent is AgentV15Handler
+                ? (agent as AgentV15Handler).listSessions
+                : agent.unstableListSessions,
+          );
+        case 'session/delete':
+          return handleOptionalRequest(
+            method,
+            params,
+            DeleteSessionRequest.fromJson,
+            agent is AgentV15Handler
+                ? (agent as AgentV15Handler).deleteSession
+                : (_) => null,
+          );
+        case 'session/close':
+          return handleOptionalRequest(
+            method,
+            params,
+            CloseSessionRequest.fromJson,
+            agent is AgentV15Handler
+                ? (agent as AgentV15Handler).closeSession
+                : (_) => null,
+          );
+        case 'logout':
+          return handleOptionalRequest(
+            method,
+            params,
+            LogoutRequest.fromJson,
+            agent is AgentV15Handler
+                ? (agent as AgentV15Handler).logout
+                : (_) => null,
           );
         case 'session/fork':
           return handleOptionalRequest(
@@ -659,7 +728,9 @@ class AgentSideConnection implements Client {
             method,
             params,
             ResumeSessionRequest.fromJson,
-            agent.unstableResumeSession,
+            agent is AgentV15Handler
+                ? (agent as AgentV15Handler).resumeSession
+                : agent.unstableResumeSession,
           );
         case 'session/set_mode':
           final validatedParams = SetSessionModeRequest.fromJson(
@@ -746,6 +817,21 @@ class AgentSideConnection implements Client {
       params.toJson(),
     );
   }
+
+  @override
+  Future<CreateElicitationResponse> createElicitation(
+    CreateElicitationRequest params,
+  ) async {
+    final result = await _connection.sendRequest(
+      'elicitation/create',
+      params.toJson(),
+    );
+    return CreateElicitationResponse.fromJson(result as Map<String, dynamic>);
+  }
+
+  @override
+  Future<void> completeElicitation(CompleteElicitationNotification params) =>
+      _connection.sendNotification('elicitation/complete', params.toJson());
 
   @override
   Future<RequestPermissionResponse> requestPermission(
@@ -910,6 +996,15 @@ class ClientSideConnection implements Agent {
             params as Map<String, dynamic>,
           );
           return client.requestPermission(validatedParams);
+        case 'elicitation/create':
+          if (client is! ClientV15Handler) {
+            throw RequestError.methodNotFound(method);
+          }
+          final result = await (client as ClientV15Handler).createElicitation(
+            CreateElicitationRequest.fromJson(params as Map<String, dynamic>),
+          );
+          if (result == null) throw RequestError.methodNotFound(method);
+          return result;
         case 'terminal/create':
           final validatedParams = CreateTerminalRequest.fromJson(
             params as Map<String, dynamic>,
@@ -971,6 +1066,15 @@ class ClientSideConnection implements Agent {
             params as Map<String, dynamic>,
           );
           return client.sessionUpdate(validatedParams);
+        case 'elicitation/complete':
+          if (client is ClientV15Handler) {
+            return (client as ClientV15Handler).completeElicitation(
+              CompleteElicitationNotification.fromJson(
+                params as Map<String, dynamic>,
+              ),
+            );
+          }
+          return;
         case r'$/cancel_request':
           final validatedParams = CancelRequestNotification.fromJson(
             params as Map<String, dynamic>,
@@ -1047,6 +1151,9 @@ class ClientSideConnection implements Agent {
     );
   }
 
+  Future<ListSessionsResponse> listSessions(ListSessionsRequest params) =>
+      unstableListSessions(params);
+
   @override
   Future<ForkSessionResponse> unstableForkSession(
     ForkSessionRequest params,
@@ -1068,6 +1175,28 @@ class ClientSideConnection implements Agent {
       ResumeSessionResponse.fromJson,
     );
   }
+
+  Future<ResumeSessionResponse> resumeSession(ResumeSessionRequest params) =>
+      unstableResumeSession(params);
+
+  Future<DeleteSessionResponse> deleteSession(
+    DeleteSessionRequest params,
+  ) async => DeleteSessionResponse.fromJson(
+    await _connection.sendRequest('session/delete', params.toJson())
+        as Map<String, dynamic>,
+  );
+
+  Future<CloseSessionResponse> closeSession(CloseSessionRequest params) async =>
+      CloseSessionResponse.fromJson(
+        await _connection.sendRequest('session/close', params.toJson())
+            as Map<String, dynamic>,
+      );
+
+  Future<LogoutResponse> logout(LogoutRequest params) async =>
+      LogoutResponse.fromJson(
+        await _connection.sendRequest('logout', params.toJson())
+            as Map<String, dynamic>,
+      );
 
   @override
   Future<SetSessionModeResponse?>? setSessionMode(
