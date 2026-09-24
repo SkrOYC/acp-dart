@@ -1,3 +1,25 @@
+## Unreleased
+
+### Added
+
+- Track the ACP v1 method inventory from the official TypeScript SDK v1.5.0, including stable session lifecycle and elicitation methods and explicitly experimental provider, NES, document, MCP, plan, and compaction payloads.
+- Provide app-style `agent()` and `client()` handler registration, connection contexts, session builders, session update queues, and request-scoped cancellation.
+- Add HTTP with SSE and WebSocket client transports, an HTTP and WebSocket server adapter, and an in-memory affinity cookie store for Dart VM integrations.
+- Add pinned upstream JSON fixtures, connected byte-stream tests, process and HTTP/WebSocket loopback tests, and an opt-in TypeScript-to-Dart interoperability test.
+
+### Changed
+
+- Reject pending requests when connections close, return typed `RequestError` values for remote JSON-RPC errors, and send JSON-RPC parse errors for malformed NDJSON lines.
+- Decode boolean configuration options, resource content blocks, grouped options, terminal authentication fields, and every v1.5 session update discriminator through the public schema API.
+- Keep `unstableListSessions` and `unstableResumeSession` as compatibility aliases while exposing stable `listSessions` and `resumeSession` methods.
+- Replace README examples that used invalid Dart model fields with verified source examples and a v1.5 method matrix.
+
+### Compatibility
+
+- ACP v2 is outside this package's scope. The TypeScript SDK v1.5.0 marks provider, NES, document, MCP-over-ACP, plan, and compaction surfaces as experimental.
+- `session/set_model` remains a Dart legacy extension and is absent from the TypeScript SDK v1.5.0 agent method inventory.
+- HTTP, SSE, and WebSocket adapters in this release use `dart:io` and do not run in a browser.
+
 ## 0.4.0
 
 ### Added
