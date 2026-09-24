@@ -1,41 +1,8 @@
-/// A Dart implementation of the Agent Client Protocol (ACP).
-///
-/// This library provides a complete implementation of the ACP specification,
-/// enabling communication between AI agents and client applications.
-///
-/// ## Key Components
-///
-/// - [ClientSideConnection] and [AgentSideConnection] for managing ACP connections
-/// - [Client] and [Agent] abstract interfaces for implementing protocol participants
-/// - [TerminalHandle] for controlling terminal operations
-/// - [ndJsonStream] for NDJSON-based communication
-/// - Comprehensive schema definitions for all ACP messages
-///
-/// ## Example Usage
-///
-/// See the examples directory for complete implementations of agents and clients.
-///
-/// ## Protocol Documentation
-///
-/// For detailed protocol information, see: https://agentclientprotocol.com/
+/// Dart APIs for ACP v1 agents, clients, schemas, and transports.
 
 library;
 
-export 'src/acp.dart'
-    show
-        Agent,
-        AgentV15Handler,
-        AgentSideConnection,
-        Client,
-        ClientV15Handler,
-        ClientSideConnection,
-        Connection,
-        LogoutRequest,
-        LogoutResponse,
-        ProtocolCancellationHandler,
-        RequestContext,
-        RequestError,
-        TerminalHandle;
+export 'src/acp.dart';
 
 export 'src/schema.dart';
 export 'src/schema_v15_client.dart';
@@ -46,6 +13,6 @@ export 'src/cookie_store.dart';
 export 'src/http_stream.dart' show HttpStreamOptions, createHttpStream;
 export 'src/websocket_stream.dart'
     show WebSocketStreamOptions, createWebSocketStream;
-export 'src/http_server.dart' show AcpHttpServer;
+export 'src/http_server.dart' show AcpAgentFactory, AcpHttpServer;
 
 export 'src/stream.dart' show AcpStream, ndJsonStream;
