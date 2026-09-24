@@ -32,7 +32,7 @@ void main() {
       ];
 
       for (final expected in cases) {
-        final decoded = ElicitationResponseV15.fromJson(expected);
+        final decoded = CreateElicitationResponse.fromJson(expected);
         expect(jsonDecode(jsonEncode(decoded.toJson())), equals(expected));
       }
     });
@@ -41,7 +41,7 @@ void main() {
       'accept action validates values and custom actions stay extensible',
       () {
         expect(
-          () => ElicitationResponseV15.fromJson({
+          () => CreateElicitationResponse.fromJson({
             'action': 'accept',
             'content': {
               'bad': [1, 'mixed'],
@@ -50,21 +50,21 @@ void main() {
           throwsFormatException,
         );
         expect(
-          () => ElicitationResponseV15.fromJson({
+          () => CreateElicitationResponse.fromJson({
             'action': 'accept',
             'content': [],
           }),
           throwsFormatException,
         );
         expect(
-          ElicitationResponseV15.fromJson({
+          CreateElicitationResponse.fromJson({
             'action': 'future_action',
             'content': [],
           }).toJson()['content'],
           isEmpty,
         );
         expect(
-          () => ElicitationResponseV15.fromJson({}),
+          () => CreateElicitationResponse.fromJson({}),
           throwsFormatException,
         );
       },
@@ -78,7 +78,7 @@ void main() {
       expect(
         jsonDecode(
           jsonEncode(
-            CompleteElicitationNotificationV15.fromJson(payload).toJson(),
+            CompleteElicitationNotification.fromJson(payload).toJson(),
           ),
         ),
         equals(payload),
@@ -87,7 +87,7 @@ void main() {
 
     test('complete elicitation notification requires its identifier', () {
       expect(
-        () => CompleteElicitationNotificationV15.fromJson({}),
+        () => CompleteElicitationNotification.fromJson({}),
         throwsFormatException,
       );
     });
@@ -141,6 +141,75 @@ void main() {
 
     test('session update requires its discriminator', () {
       expect(() => SessionUpdateV15.fromJson({}), throwsFormatException);
+    });
+
+    test(
+      'elicitation property schemas serialize every upstream property form',
+      () {
+        final properties = <String, ElicitationPropertySchema>{
+          'name': StringPropertySchema(
+            minLength: 1,
+            maxLength: 40,
+            format: StringFormat.email,
+            defaultValue: 'agent@example.com',
+          ),
+          'choice': StringPropertySchema(
+            oneOf: [
+              EnumOption(constValue: 'a', title: 'Option A'),
+              EnumOption(constValue: 'b', title: 'Option B'),
+            ],
+          ),
+          'rating': NumberPropertySchema(minimum: 0.0, maximum: 1.0),
+          'count': IntegerPropertySchema(defaultValue: 2),
+          'enabled': BooleanPropertySchema(defaultValue: true),
+          'tags': MultiSelectPropertySchema(
+            items: StringMultiSelectItems(enumValues: ['one', 'two']),
+            minItems: 1,
+            maxItems: 2,
+          ),
+          'titledTags': MultiSelectPropertySchema(
+            items: TitledMultiSelectItems(
+              anyOf: [EnumOption(constValue: 'x', title: 'X')],
+            ),
+          ),
+        };
+        expect(properties['enabled']!.toJson(), {
+          'type': 'boolean',
+          'default': true,
+        });
+        expect(properties['tags']!.toJson(), {
+          'type': 'array',
+          'items': {
+            'type': 'string',
+            'enum': ['one', 'two'],
+          },
+          'minItems': 1,
+          'maxItems': 2,
+        });
+        expect(properties['choice']!.toJson()['type'], 'string');
+        expect(properties['rating']!.toJson()['minimum'], 0.0);
+        expect(properties['count']!.toJson()['type'], 'integer');
+        expect(properties['name']!.toJson()['format'], 'email');
+        expect(properties['titledTags']!.toJson()['type'], 'array');
+      },
+    );
+
+    test('typed notice update round-trips upstream session update shape', () {
+      const notice = NoticeSessionUpdateV15(
+        severity: 'warning',
+        title: 'Attention',
+        description: 'Review this',
+      );
+      expect(notice.toJson(), {
+        'sessionUpdate': 'notice',
+        'severity': 'warning',
+        'title': 'Attention',
+        'description': 'Review this',
+      });
+      expect(
+        NoticeSessionUpdateV15.fromJson(notice.toJson()).title,
+        'Attention',
+      );
     });
   });
 }
