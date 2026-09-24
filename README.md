@@ -2,18 +2,15 @@
 
 A Dart SDK for the [Agent Client Protocol (ACP)](https://agentclientprotocol.com/). It lets Dart agents and clients exchange JSON-RPC messages over newline-delimited JSON (NDJSON), HTTP with server-sent events (SSE), and WebSocket streams.
 
-This source tree tracks the ACP v1 entry point of the [official TypeScript SDK v1.5.0](https://github.com/agentclientprotocol/typescript-sdk/tree/v1.5.0). The draft ACP v2 entry point is outside this package's scope. Protocol methods marked experimental in v1.5.0 can change in later versions.
+Version 0.5.0 tracks the ACP v1 entry point of the [official TypeScript SDK v1.5.0](https://github.com/agentclientprotocol/typescript-sdk/tree/v1.5.0). The draft ACP v2 entry point is outside this package's scope. Protocol methods marked experimental in v1.5.0 can change in later versions.
 
 ## Install and run an example
 
-Add the published package to a Dart project:
+Add version 0.5.0 to a Dart project:
 
 ```sh
-dart pub add acp_dart
+dart pub add acp_dart:^0.5.0
 ```
-
-The published `0.4.0` package predates the v1.5 work in this source tree.
-Use a source checkout to evaluate these APIs before the next package release.
 
 To run the examples from a source checkout, install dependencies and start the client:
 
