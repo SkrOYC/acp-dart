@@ -122,6 +122,18 @@ class AcpHttpServer {
       await _text(request.response, 400, 'Mismatched Acp-Session-Id');
       return;
     }
+    if (!message.containsKey('method') && message['id'] != null) {
+      final route = connection.clientRequestRoutes[message['id']];
+      if (route != null && sessionId == null) {
+        await _text(request.response, 400, 'Missing Acp-Session-Id');
+        return;
+      }
+      if (route != null && sessionId != route) {
+        await _text(request.response, 400, 'Mismatched Acp-Session-Id');
+        return;
+      }
+      connection.clientRequestRoutes.remove(message['id']);
+    }
     if (message['id'] != null && message['method'] is String) {
       connection.responseRoutes[message['id']] =
           sessionId == null || message['method'] == 'session/load'
@@ -152,9 +164,12 @@ class AcpHttpServer {
       _connections[connection.id] = connection;
       connection.expectInitial(id);
       connection.inbound.add(message);
-      final response = await connection.initialResponse.future.timeout(
-        const Duration(seconds: 30),
-      );
+      final response = await Future.any([
+        connection.initialResponse.future,
+        request.response.done.then<Map<String, dynamic>>(
+          (_) => throw const _ClientDisconnected(),
+        ),
+      ]).timeout(const Duration(seconds: 30));
       request.response.statusCode = 200;
       request.response.headers.contentType = ContentType.json;
       request.response.headers.set(_connectionHeader, connection.id);
@@ -165,6 +180,7 @@ class AcpHttpServer {
         _connections.remove(connection.id);
         await connection.close();
       }
+      if (error is _ClientDisconnected) return;
       request.response.statusCode = 500;
       request.response.headers.contentType = ContentType.json;
       request.response.write(
@@ -185,11 +201,7 @@ class AcpHttpServer {
   Future<void> _get(HttpRequest request) async {
     if (request.headers.value(HttpHeaders.upgradeHeader)?.toLowerCase() ==
         'websocket') {
-      await _text(
-        request.response,
-        426,
-        'WebSocket upgrade is not implemented',
-      );
+      await _upgradeWebSocket(request);
       return;
     }
     if (!(request.headers.value(HttpHeaders.acceptHeader) ?? '')
@@ -226,11 +238,20 @@ class AcpHttpServer {
     response.headers.set(HttpHeaders.contentTypeHeader, 'text/event-stream');
     response.headers.set(HttpHeaders.cacheControlHeader, 'no-cache');
     response.headers.set(HttpHeaders.connectionHeader, 'keep-alive');
+    final keepAlive = Timer.periodic(const Duration(seconds: 15), (_) {
+      response.write(':\n\n');
+      unawaited(response.flush().catchError((Object _) {}));
+    });
     try {
       response.write(':\n\n');
       await response.flush();
       while (true) {
-        final message = await queue.take();
+        final message = await Future.any([
+          queue.take(),
+          response.done
+              .then<Map<String, dynamic>?>((_) => null)
+              .catchError((Object _) => null),
+        ]);
         if (message == null) break;
         response.write('data: ${jsonEncode(message)}\n\n');
         await response.flush();
@@ -238,8 +259,32 @@ class AcpHttpServer {
     } on IOException {
       // Client disconnected.
     } finally {
+      keepAlive.cancel();
       queue.release();
       await response.close();
+    }
+  }
+
+  Future<void> _upgradeWebSocket(HttpRequest request) async {
+    if (!WebSocketTransformer.isUpgradeRequest(request)) {
+      await _text(request.response, 400, 'Invalid WebSocket upgrade');
+      return;
+    }
+    final connection = _HttpConnection(
+      'acp-${++_nextConnection}',
+      _agentFactory,
+    );
+    _connections[connection.id] = connection;
+    request.response.headers.set(_connectionHeader, connection.id);
+    try {
+      final socket = await WebSocketTransformer.upgrade(request);
+      connection.attachWebSocket(
+        socket,
+        () => _connections.remove(connection.id),
+      );
+    } catch (_) {
+      _connections.remove(connection.id);
+      await connection.close();
     }
   }
 
@@ -269,6 +314,10 @@ class AcpHttpServer {
     response.write(text);
     await response.close();
   }
+}
+
+class _ClientDisconnected implements Exception {
+  const _ClientDisconnected();
 }
 
 bool _requiresSession(String method) => const {
@@ -306,8 +355,13 @@ class _HttpConnection {
   final connectionQueue = _MessageQueue();
   final Map<String, _MessageQueue> _sessionQueues = {};
   final Map<dynamic, String?> responseRoutes = {};
+  final Map<dynamic, String?> clientRequestRoutes = {};
   final initialResponse = Completer<Map<String, dynamic>>();
   dynamic _initialId;
+  WebSocket? _webSocket;
+  Future<void> _webSocketChain = Future.value();
+  bool _webSocketInitialized = false;
+  void Function()? _onWebSocketClosed;
 
   void expectInitial(dynamic id) => _initialId = id;
 
@@ -319,6 +373,13 @@ class _HttpConnection {
     if (message['id'] != null && message['id'] == _initialId) {
       _initialId = null;
       if (!initialResponse.isCompleted) initialResponse.complete(message);
+      return;
+    }
+    final webSocket = _webSocket;
+    if (webSocket != null) {
+      if (_webSocketInitialized && webSocket.readyState == WebSocket.open) {
+        webSocket.add(jsonEncode(message));
+      }
       return;
     }
     if (!message.containsKey('method') && message.containsKey('id')) {
@@ -333,14 +394,111 @@ class _HttpConnection {
     }
     final params = message['params'];
     final session = params is Map ? params['sessionId'] : null;
+    if (message['method'] is String && message['id'] != null) {
+      clientRequestRoutes[message['id']] = session is String ? session : null;
+    }
     (session is String ? sessionQueue(session) : connectionQueue).add(message);
   }
 
   Future<void> close() async {
+    final webSocket = _webSocket;
+    if (webSocket != null && webSocket.readyState == WebSocket.open) {
+      await webSocket.close(WebSocketStatus.goingAway, 'Server shutting down');
+    }
     await inbound.close();
     connectionQueue.close();
     for (final queue in _sessionQueues.values) {
       queue.close();
+    }
+  }
+
+  void attachWebSocket(WebSocket socket, void Function() onClosed) {
+    _webSocket = socket;
+    _onWebSocketClosed = onClosed;
+    socket.listen(
+      (data) {
+        _webSocketChain = _webSocketChain
+            .then((_) => _handleWebSocketData(data))
+            .catchError((Object _) async {
+              await _webSocket?.close(
+                WebSocketStatus.internalServerError,
+                'Message handling failed',
+              );
+            });
+      },
+      onDone: () {
+        _onWebSocketClosed?.call();
+        unawaited(close());
+      },
+      onError: (_) {
+        _onWebSocketClosed?.call();
+        unawaited(close());
+      },
+      cancelOnError: true,
+    );
+  }
+
+  Future<void> _handleWebSocketData(dynamic data) async {
+    final text = switch (data) {
+      String value => value,
+      List<int> bytes => utf8.decode(bytes, allowMalformed: true),
+      _ => null,
+    };
+    if (text == null) return;
+    dynamic decoded;
+    try {
+      decoded = jsonDecode(text);
+    } on FormatException {
+      if (_webSocketInitialized) {
+        _webSocket?.add(
+          jsonEncode({
+            'jsonrpc': '2.0',
+            'id': null,
+            'error': {'code': -32700, 'message': 'Parse error'},
+          }),
+        );
+      } else {
+        await _webSocket?.close(
+          WebSocketStatus.protocolError,
+          'First message must be initialize',
+        );
+      }
+      return;
+    }
+    if (!_webSocketInitialized) {
+      final batched = decoded is List;
+      final init = batched && decoded.length == 1 ? decoded.single : decoded;
+      if (init is! Map<String, dynamic> ||
+          init['method'] != 'initialize' ||
+          init['id'] == null) {
+        await _webSocket?.close(
+          WebSocketStatus.protocolError,
+          'First message must be initialize',
+        );
+        return;
+      }
+      expectInitial(init['id']);
+      inbound.add(init);
+      final response = await initialResponse.future;
+      _webSocketInitialized = true;
+      _webSocket?.add(jsonEncode(batched ? [response] : response));
+      if (response.containsKey('error')) {
+        await _webSocket?.close(
+          WebSocketStatus.internalServerError,
+          'Initialize failed',
+        );
+      }
+      return;
+    }
+    if (decoded is Map<String, dynamic>) {
+      inbound.add(decoded);
+    } else {
+      unawaited(
+        _webSocket?.close(
+          WebSocketStatus.protocolError,
+          'JSON-RPC batches are not supported',
+        ),
+      );
     }
   }
 }
