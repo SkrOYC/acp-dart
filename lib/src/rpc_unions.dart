@@ -45,6 +45,7 @@ library;
 
 import 'package:collection/collection.dart';
 
+import 'acp.dart' show LogoutResponse;
 import 'schema.dart';
 import 'schema_v15_client.dart';
 import 'schema_v15_experimental.dart';
@@ -1253,6 +1254,14 @@ Object? _responseForMethod(String? method, Object? value) {
       return V15ConnectMcpResponse.fromJson(json);
     case 'mcp/disconnect':
       return V15DisconnectMcpResponse.fromJson(json);
+    case 'logout':
+      return LogoutResponse.fromJson(json);
+    case 'nes/start':
+      return V15StartNesResponse.fromJson(json);
+    case 'nes/suggest':
+      return V15SuggestNesResponse.fromJson(json);
+    case 'nes/close':
+      return V15CloseNesResponse.fromJson(json);
     case 'providers/list':
       return V15ListProvidersResponse.fromJson(json);
     case 'providers/set':
