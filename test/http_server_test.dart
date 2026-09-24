@@ -199,6 +199,42 @@ void main() {
     expect((await batch.close()).statusCode, 501);
   });
 
+  test(
+    'releases the SSE receiver lease after a client closes the stream',
+    () async {
+      final server = await AcpHttpServer.bind(
+        InternetAddress.loopbackIPv4,
+        0,
+        agentFactory: (_) => _Agent(),
+      );
+      addTearDown(server.close);
+      final client = HttpClient();
+      addTearDown(client.close);
+      final base = 'http://${server.address.address}:${server.port}';
+      final connectionId = await _initialize(client, base);
+      final firstRequest = await client.getUrl(Uri.parse(base));
+      firstRequest.headers.set(HttpHeaders.acceptHeader, 'text/event-stream');
+      firstRequest.headers.set('Acp-Connection-Id', connectionId);
+      final firstResponse = await firstRequest.close();
+      final firstChunk = Completer<void>();
+      final subscription = firstResponse.listen((_) {
+        if (!firstChunk.isCompleted) firstChunk.complete();
+      });
+      await firstChunk.future.timeout(const Duration(seconds: 2));
+      await subscription.cancel();
+      client.close(force: true);
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+      final retryClient = HttpClient();
+      addTearDown(retryClient.close);
+      final secondRequest = await retryClient.getUrl(Uri.parse(base));
+      secondRequest.headers.set(HttpHeaders.acceptHeader, 'text/event-stream');
+      secondRequest.headers.set('Acp-Connection-Id', connectionId);
+      final secondResponse = await secondRequest.close();
+      expect(secondResponse.statusCode, 200);
+      await secondResponse.listen((_) {}).cancel();
+    },
+  );
+
   test('initializes and processes ACP over a WebSocket upgrade', () async {
     final server = await AcpHttpServer.bind(
       InternetAddress.loopbackIPv4,

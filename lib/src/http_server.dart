@@ -238,30 +238,49 @@ class AcpHttpServer {
     response.headers.set(HttpHeaders.contentTypeHeader, 'text/event-stream');
     response.headers.set(HttpHeaders.cacheControlHeader, 'no-cache');
     response.headers.set(HttpHeaders.connectionHeader, 'keep-alive');
+    response.contentLength = -1;
+    Socket? socket;
+    final clientClosed = Completer<void>();
+    StreamSubscription<List<int>>? clientSubscription;
     final keepAlive = Timer.periodic(const Duration(seconds: 15), (_) {
-      response.write(':\n\n');
-      unawaited(response.flush().catchError((Object _) {}));
+      final activeSocket = socket;
+      if (activeSocket != null && !clientClosed.isCompleted) {
+        unawaited(_writeChunk(activeSocket, ':\n\n'));
+      }
     });
     try {
-      response.write(':\n\n');
-      await response.flush();
+      socket = await response.detachSocket();
+      clientSubscription = socket.listen(
+        (_) {},
+        onDone: () {
+          if (!clientClosed.isCompleted) clientClosed.complete();
+        },
+        onError: (_) {
+          if (!clientClosed.isCompleted) clientClosed.complete();
+        },
+        cancelOnError: true,
+      );
+      await _writeChunk(socket, ':\n\n');
       while (true) {
         final message = await Future.any([
           queue.take(),
-          response.done
-              .then<Map<String, dynamic>?>((_) => null)
-              .catchError((Object _) => null),
+          clientClosed.future.then<Map<String, dynamic>?>((_) => null),
         ]);
         if (message == null) break;
-        response.write('data: ${jsonEncode(message)}\n\n');
-        await response.flush();
+        await _writeChunk(socket, 'data: ${jsonEncode(message)}\n\n');
       }
     } on IOException {
       // Client disconnected.
     } finally {
       keepAlive.cancel();
       queue.release();
-      await response.close();
+      if (socket != null) {
+        if (!clientClosed.isCompleted) {
+          await _writeChunk(socket, '', finalChunk: true);
+        }
+        await clientSubscription?.cancel();
+        await socket.close();
+      }
     }
   }
 
@@ -314,6 +333,24 @@ class AcpHttpServer {
     response.write(text);
     await response.close();
   }
+}
+
+Future<void> _writeChunk(
+  Socket socket,
+  String value, {
+  bool finalChunk = false,
+}) async {
+  if (finalChunk) {
+    socket.add(utf8.encode('0\r\n\r\n'));
+  } else {
+    final bytes = utf8.encode(value);
+    socket.add(utf8.encode('${bytes.length.toRadixString(16)}\r\n'));
+    socket.add(bytes);
+    socket.add(utf8.encode('\r\n'));
+  }
+  try {
+    await socket.flush();
+  } catch (_) {}
 }
 
 class _ClientDisconnected implements Exception {
