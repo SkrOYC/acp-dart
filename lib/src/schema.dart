@@ -3127,11 +3127,85 @@ int? _optionalUInt32(Object? value) {
 Map<String, dynamic> _wireObject(Object? value) =>
     value is Map ? Map<String, dynamic>.from(value) : <String, dynamic>{};
 
+Map<String, dynamic>? _optionalWireObject(Object? value) =>
+    value is Map ? Map<String, dynamic>.from(value) : null;
+
+Map<String, dynamic> _normalizeOptionalObjects(
+  Map<String, dynamic> value,
+  Iterable<String> fields,
+) {
+  final normalized = Map<String, dynamic>.from(value);
+  for (final field in fields) {
+    if (normalized.containsKey(field)) {
+      final nested = _optionalWireObject(normalized[field]);
+      if (nested != null && nested.containsKey('_meta')) {
+        nested['_meta'] = _optionalWireObject(nested['_meta']);
+      }
+      normalized[field] = nested;
+    }
+  }
+  if (normalized.containsKey('_meta')) {
+    normalized['_meta'] = _optionalWireObject(normalized['_meta']);
+  }
+  return normalized;
+}
+
+Map<String, dynamic>? _normalizeClientSession(
+  Map<String, dynamic>? session,
+  Map<String, dynamic>? configOptions,
+) {
+  if (session == null) return null;
+  final normalized = _normalizeOptionalObjects(session, [
+    'compaction',
+    'configOptions',
+  ]);
+  normalized['configOptions'] = configOptions == null
+      ? null
+      : _normalizeOptionalObjects(configOptions, ['boolean']);
+  return normalized;
+}
+
+Map<String, dynamic>? _normalizeNesEvents(
+  Map<String, dynamic>? events,
+  Map<String, dynamic>? document,
+) {
+  if (events == null) return null;
+  final normalized = _normalizeOptionalObjects(events, ['document']);
+  if (document == null) {
+    normalized['document'] = null;
+    return normalized;
+  }
+  final normalizedDocument = _normalizeOptionalObjects(document, [
+    'didOpen',
+    'didChange',
+    'didClose',
+    'didSave',
+    'didFocus',
+  ]);
+  final didChange = _optionalWireObject(document['didChange']);
+  if (didChange != null &&
+      !const {'full', 'incremental'}.contains(didChange['syncKind'])) {
+    normalizedDocument['didChange'] = null;
+  }
+  normalized['document'] = normalizedDocument;
+  return normalized;
+}
+
 bool _boolOrFalse(Object? value) => value is bool ? value : false;
 
 ClientCapabilities _clientCapabilitiesFromJson(Map<String, dynamic> json) {
   final fs = _wireObject(json['fs']);
   final auth = _wireObject(json['auth']);
+  final session = _optionalWireObject(json['session']);
+  final configOptions = _optionalWireObject(session?['configOptions']);
+  final elicitation = _optionalWireObject(json['elicitation']);
+  final plan = _optionalWireObject(json['plan']);
+  final notices = _optionalWireObject(json['notices']);
+  final clientNes = _optionalWireObject(json['nes']);
+  final positionEncodings = json['positionEncodings'];
+  if (fs.containsKey('_meta')) {
+    fs['_meta'] = _optionalWireObject(fs['_meta']);
+  }
   return _$ClientCapabilitiesFromJson({
     ...json,
     'fs': {
@@ -3140,7 +3214,34 @@ ClientCapabilities _clientCapabilitiesFromJson(Map<String, dynamic> json) {
       'writeTextFile': _boolOrFalse(fs['writeTextFile']),
     },
     'terminal': _boolOrFalse(json['terminal']),
-    'auth': {...auth, 'terminal': _boolOrFalse(auth['terminal'])},
+    'session': _normalizeClientSession(session, configOptions),
+    'auth': _normalizeOptionalObjects(auth, const [])
+      ..['terminal'] = _boolOrFalse(auth['terminal']),
+    'elicitation': elicitation == null
+        ? null
+        : _normalizeOptionalObjects(elicitation, ['form', 'url']),
+    'plan': plan == null ? null : _normalizeOptionalObjects(plan, const []),
+    'notices': notices == null
+        ? null
+        : _normalizeOptionalObjects(notices, const []),
+    'nes': clientNes == null
+        ? null
+        : _normalizeOptionalObjects(clientNes, [
+            'jump',
+            'rename',
+            'searchAndReplace',
+          ]),
+    if (json.containsKey('positionEncodings'))
+      'positionEncodings': positionEncodings is List
+          ? positionEncodings
+                .whereType<String>()
+                .where(
+                  (value) =>
+                      const {'utf-8', 'utf-16', 'utf-32'}.contains(value),
+                )
+                .toList()
+          : <String>[],
+    if (json.containsKey('_meta')) '_meta': _optionalWireObject(json['_meta']),
   });
 }
 
@@ -3149,6 +3250,11 @@ AgentCapabilities _agentCapabilitiesFromJson(Map<String, dynamic> json) {
   final prompt = _wireObject(json['promptCapabilities']);
   final session = _wireObject(json['sessionCapabilities']);
   final auth = _wireObject(json['auth']);
+  final providers = _optionalWireObject(json['providers']);
+  final agentNes = _optionalWireObject(json['nes']);
+  final events = _optionalWireObject(agentNes?['events']);
+  final document = _optionalWireObject(events?['document']);
+  final context = _optionalWireObject(agentNes?['context']);
   return _$AgentCapabilitiesFromJson({
     ...json,
     'loadSession': _boolOrFalse(json['loadSession']),
@@ -3157,15 +3263,49 @@ AgentCapabilities _agentCapabilitiesFromJson(Map<String, dynamic> json) {
       'http': _boolOrFalse(mcp['http']),
       'sse': _boolOrFalse(mcp['sse']),
       'acp': _boolOrFalse(mcp['acp']),
+      if (mcp.containsKey('_meta')) '_meta': _optionalWireObject(mcp['_meta']),
     },
     'promptCapabilities': {
       ...prompt,
       'image': _boolOrFalse(prompt['image']),
       'audio': _boolOrFalse(prompt['audio']),
       'embeddedContext': _boolOrFalse(prompt['embeddedContext']),
+      if (prompt.containsKey('_meta'))
+        '_meta': _optionalWireObject(prompt['_meta']),
     },
-    'sessionCapabilities': session,
-    'auth': auth,
+    'sessionCapabilities': _normalizeOptionalObjects(session, [
+      'list',
+      'delete',
+      'additionalDirectories',
+      'fork',
+      'resume',
+      'close',
+    ]),
+    'auth': _normalizeOptionalObjects(auth, ['logout']),
+    'providers': providers == null
+        ? null
+        : _normalizeOptionalObjects(providers, const []),
+    'nes': agentNes == null
+        ? null
+        : {
+            ..._normalizeOptionalObjects(agentNes, ['events', 'context']),
+            'events': _normalizeNesEvents(events, document),
+            'context': context == null
+                ? null
+                : _normalizeOptionalObjects(context, [
+                    'recentFiles',
+                    'relatedSnippets',
+                    'editHistory',
+                    'userActions',
+                    'openFiles',
+                    'diagnostics',
+                  ]),
+          },
+    'positionEncoding':
+        const {'utf-8', 'utf-16', 'utf-32'}.contains(json['positionEncoding'])
+        ? json['positionEncoding']
+        : null,
+    if (json.containsKey('_meta')) '_meta': _optionalWireObject(json['_meta']),
   });
 }
 
