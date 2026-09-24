@@ -332,6 +332,36 @@ void main() {
     await peer.close();
   });
 
+  test('MCP wrappers preserve arbitrary JSON responses', () async {
+    final results = <Object?>[
+      'ok',
+      [1, true, null],
+      null,
+    ];
+    for (final result in results) {
+      final peer = _Peer();
+      final client = AgentSideConnection((_) => _Agent(), peer.stream);
+      final response = client.unstableMessageMcp(
+        V15MessageMcpRequest(connectionId: 'conn', method: 'tools/list'),
+      );
+      final request = await peer.next();
+      peer.respond(request, result);
+      expect((await response).value, result);
+      await peer.close();
+    }
+    for (final result in results) {
+      final peer = _Peer();
+      final agent = ClientSideConnection((_) => _Client(), peer.stream);
+      final response = agent.unstableMessageMcp(
+        V15MessageMcpRequest(connectionId: 'conn', method: 'tools/list'),
+      );
+      final request = await peer.next();
+      peer.respond(request, result);
+      expect((await response).value, result);
+      await peer.close();
+    }
+  });
+
   test('MCP notifications work in both ACP directions over NDJSON', () async {
     final toAgentPeer = _Peer();
     final clientSide = ClientSideConnection(
@@ -708,7 +738,7 @@ class _Peer {
       });
   void send(Map<String, dynamic> message) =>
       _toServer.add(utf8.encode('${jsonEncode(message)}\n'));
-  void respond(Map<String, dynamic> request, Map<String, dynamic> result) =>
+  void respond(Map<String, dynamic> request, Object? result) =>
       send({'jsonrpc': '2.0', 'id': request['id'], 'result': result});
   Future<Map<String, dynamic>> next() {
     if (_received.isNotEmpty) return Future.value(_received.removeAt(0));

@@ -246,6 +246,12 @@ class AcpHttpServer {
     Socket? socket;
     final clientClosed = Completer<void>();
     StreamSubscription<List<int>>? clientSubscription;
+    void Function()? cancelPendingTake;
+    void clientDisconnected() {
+      cancelPendingTake?.call();
+      if (!clientClosed.isCompleted) clientClosed.complete();
+    }
+
     final keepAlive = Timer.periodic(const Duration(seconds: 15), (_) {
       final activeSocket = socket;
       if (activeSocket != null && !clientClosed.isCompleted) {
@@ -256,22 +262,20 @@ class AcpHttpServer {
       socket = await response.detachSocket();
       clientSubscription = socket.listen(
         (_) {},
-        onDone: () {
-          if (!clientClosed.isCompleted) clientClosed.complete();
-        },
-        onError: (_) {
-          if (!clientClosed.isCompleted) clientClosed.complete();
-        },
+        onDone: clientDisconnected,
+        onError: (Object _) => clientDisconnected(),
         cancelOnError: true,
       );
       await _writeChunk(socket, ':\n\n');
       while (true) {
         final take = queue.take();
+        cancelPendingTake = take.cancel;
         final message = await Future.any([
           take.future,
           clientClosed.future.then<Map<String, dynamic>?>((_) => null),
         ]);
         take.cancel();
+        cancelPendingTake = null;
         if (message == null) break;
         await _writeChunk(socket, 'data: ${jsonEncode(message)}\n\n');
       }

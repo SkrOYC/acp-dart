@@ -5,6 +5,11 @@ import 'dart:io';
 import 'cookie_store.dart';
 import 'stream.dart';
 
+class _UnsupportedSseJsonRpcBatchError extends HttpException {
+  _UnsupportedSseJsonRpcBatchError()
+    : super('ACP SSE JSON-RPC batches are unsupported');
+}
+
 /// Configuration for [createHttpStream].
 class HttpStreamOptions {
   final Map<String, String> headers;
@@ -141,10 +146,10 @@ class _HttpAcpStream {
   }
 
   void _setHeaders(HttpClientRequest request, String contentType) {
-    request.headers.set(HttpHeaders.contentTypeHeader, contentType);
     for (final header in _options.headers.entries) {
       request.headers.set(header.key, header.value);
     }
+    request.headers.set(HttpHeaders.contentTypeHeader, contentType);
     _applyCookies(request);
   }
 
@@ -210,6 +215,7 @@ class _HttpAcpStream {
     Map<String, dynamic> decoded;
     try {
       final value = jsonDecode(data.join('\n'));
+      if (value is List) throw _UnsupportedSseJsonRpcBatchError();
       if (value is! Map<String, dynamic>) return;
       decoded = value;
     } on FormatException {

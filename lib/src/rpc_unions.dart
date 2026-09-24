@@ -912,6 +912,23 @@ class V15RawJsonPayload {
 bool _isValidV15RequestId(Object? value) =>
     value == null || value is String || (value is num && value.isFinite);
 
+bool _isValidV15ErrorResponse(Object? value) =>
+    value is Map && value['code'] is int && value['message'] is String;
+
+void _validateV15Response(Map<String, dynamic> json) {
+  if (!json.containsKey('id') || !_isValidV15RequestId(json['id'])) {
+    throw FormatException('Expected response ID');
+  }
+  final hasResult = json.containsKey('result');
+  final hasError = json.containsKey('error');
+  if (hasResult == hasError) {
+    throw FormatException('Expected exactly one result or error');
+  }
+  if (hasError && !_isValidV15ErrorResponse(json['error'])) {
+    throw FormatException('Expected error code and message');
+  }
+}
+
 Object? _decode(String method, Object? value) {
   if (value is! Map) return V15RawJsonPayload(value);
   final json = Map<String, dynamic>.from(value);
@@ -1206,6 +1223,7 @@ class V15ClientNotification extends _Notification {
       'document/didFocus',
       'nes/accept',
       'nes/reject',
+      'mcp/message',
     }.contains(method)) {
       throw FormatException('Expected notification method');
     }
@@ -1233,6 +1251,9 @@ class _Response {
 }
 
 Object? _responseForMethod(String? method, Object? value) {
+  if (method == 'mcp/message') {
+    return V15MessageMcpResponse.fromJson(value);
+  }
   if (value is! Map) return V15RawJsonPayload(value);
   final json = Map<String, dynamic>.from(value);
   if (method == null && json.containsKey('protocolVersion')) {
@@ -1281,8 +1302,6 @@ Object? _responseForMethod(String? method, Object? value) {
       return KillTerminalCommandResponse.fromJson(json);
     case 'elicitation/create':
       return CreateElicitationResponse.fromJson(json);
-    case 'mcp/message':
-      return V15MessageMcpResponse.fromJson(json);
     case 'mcp/connect':
       return V15ConnectMcpResponse.fromJson(json);
     case 'mcp/disconnect':
@@ -1311,12 +1330,8 @@ class V15AgentResponse extends _Response {
     Map<String, dynamic> json, {
     String? method,
   }) {
-    final hasResult = json.containsKey('result');
-    final hasError = json.containsKey('error');
-    if (hasResult == hasError) {
-      throw FormatException('Expected exactly one result or error');
-    }
-    if (hasError) {
+    _validateV15Response(json);
+    if (json.containsKey('error')) {
       return V15AgentResponse._(
         json['id'],
         null,
@@ -1338,12 +1353,8 @@ class V15ClientResponse extends _Response {
     Map<String, dynamic> json, {
     String? method,
   }) {
-    final hasResult = json.containsKey('result');
-    final hasError = json.containsKey('error');
-    if (hasResult == hasError) {
-      throw FormatException('Expected exactly one result or error');
-    }
-    if (hasError) {
+    _validateV15Response(json);
+    if (json.containsKey('error')) {
       return V15ClientResponse._(
         json['id'],
         null,

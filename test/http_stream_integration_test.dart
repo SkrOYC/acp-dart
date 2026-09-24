@@ -204,6 +204,7 @@ void main() {
           'event-stream',
         );
         request.response.write('data: not-json\n\n');
+        request.response.write('data: true\n\n');
         request.response.write('data: {"jsonrpc":"2.0","method":"ready"}');
       }
       await request.response.close();
@@ -226,6 +227,53 @@ void main() {
     await server.close(force: true);
   });
 
+  test('HTTP stream reports JSON-RPC batches from SSE', () async {
+    final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
+    server.listen((request) async {
+      if (request.method == 'POST') {
+        final message =
+            jsonDecode(await utf8.decoder.bind(request).join())
+                as Map<String, dynamic>;
+        request.response.headers.set('Acp-Connection-Id', 'c-1');
+        request.response.headers.contentType = ContentType.json;
+        request.response.write(
+          jsonEncode({'jsonrpc': '2.0', 'id': message['id'], 'result': {}}),
+        );
+      } else if (request.method == 'GET') {
+        request.response.headers.contentType = ContentType(
+          'text',
+          'event-stream',
+        );
+        request.response.write('data: [{"jsonrpc":"2.0","id":1}]\n\n');
+      }
+      await request.response.close();
+    });
+    final stream = createHttpStream(
+      'http://${server.address.address}:${server.port}/acp',
+    );
+    final incoming = StreamIterator(stream.readable);
+    stream.writable.add({
+      'jsonrpc': '2.0',
+      'id': 1,
+      'method': 'initialize',
+      'params': {},
+    });
+    expect(await incoming.moveNext(), isTrue);
+    await expectLater(
+      incoming.moveNext(),
+      throwsA(
+        isA<HttpException>().having(
+          (error) => error.message,
+          'message',
+          contains('JSON-RPC batches are unsupported'),
+        ),
+      ),
+    );
+    await incoming.cancel();
+    await stream.writable.close();
+    await server.close(force: true);
+  });
+
   test('HTTP transport preserves reserved SSE and delete headers', () async {
     final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
     final observed = <String, Map<String, String?>>{};
@@ -235,6 +283,7 @@ void main() {
     server.listen((request) async {
       observed[request.method] = {
         'accept': request.headers.value(HttpHeaders.acceptHeader),
+        'content-type': request.headers.value(HttpHeaders.contentTypeHeader),
         'connection': request.headers.value('Acp-Connection-Id'),
         'session': request.headers.value('Acp-Session-Id'),
       };
@@ -266,6 +315,7 @@ void main() {
       options: const HttpStreamOptions(
         headers: {
           HttpHeaders.acceptHeader: 'text/plain',
+          HttpHeaders.contentTypeHeader: 'text/plain',
           'Acp-Connection-Id': 'caller',
           'Acp-Session-Id': 'caller-session',
         },
@@ -283,6 +333,7 @@ void main() {
     await stream.writable.close();
     await deleteSeen.future.timeout(const Duration(seconds: 2));
     expect(observed['GET']!['accept'], 'text/event-stream');
+    expect(observed['POST']!['content-type'], 'application/json');
     expect(observed['GET']!['connection'], 'actual');
     expect(observed['GET']!['session'], isNull);
     expect(observed['DELETE']!['connection'], 'actual');
