@@ -82,17 +82,26 @@ typedef NotificationHandler =
 bool _isValidRequestId(Object? value) =>
     value == null || value is String || (value is num && value.isFinite);
 
+T _decodeTypedResponse<T>(
+  Object? value,
+  T Function(Map<String, dynamic>) fromJson,
+) {
+  if (value is T) return value;
+  if (value is Map) return fromJson(Map<String, dynamic>.from(value));
+  throw FormatException('Expected ${T.toString()} response object');
+}
+
 /// Optional interface for participants that handle `$/cancel_request`.
 abstract class ProtocolCancellationHandler {
   Future<void> cancelRequest(CancelRequestNotification params);
 }
 
 /// Optional v1.5 agent request handlers.
-mixin AgentV15Handler {
+mixin AgentV15Handler on Agent {
   Future<ListSessionsResponse>? listSessions(ListSessionsRequest params) =>
-      null;
+      unstableListSessions(params);
   Future<ResumeSessionResponse>? resumeSession(ResumeSessionRequest params) =>
-      null;
+      unstableResumeSession(params);
   Future<DeleteSessionResponse>? deleteSession(DeleteSessionRequest params) =>
       null;
   Future<CloseSessionResponse>? closeSession(CloseSessionRequest params) =>
@@ -738,7 +747,7 @@ class AgentSideConnection implements Client {
             params,
             ListSessionsRequest.fromJson,
             agent is AgentV15Handler
-                ? (agent as AgentV15Handler).listSessions
+                ? agent.listSessions
                 : agent.unstableListSessions,
           );
         case 'session/delete':
@@ -746,27 +755,21 @@ class AgentSideConnection implements Client {
             method,
             params,
             DeleteSessionRequest.fromJson,
-            agent is AgentV15Handler
-                ? (agent as AgentV15Handler).deleteSession
-                : (_) => null,
+            agent is AgentV15Handler ? agent.deleteSession : (_) => null,
           );
         case 'session/close':
           return handleOptionalRequest(
             method,
             params,
             CloseSessionRequest.fromJson,
-            agent is AgentV15Handler
-                ? (agent as AgentV15Handler).closeSession
-                : (_) => null,
+            agent is AgentV15Handler ? agent.closeSession : (_) => null,
           );
         case 'logout':
           return handleOptionalRequest(
             method,
             params,
             LogoutRequest.fromJson,
-            agent is AgentV15Handler
-                ? (agent as AgentV15Handler).logout
-                : (_) => null,
+            agent is AgentV15Handler ? agent.logout : (_) => null,
           );
         case 'providers/list':
           return handleOptionalRequest(
@@ -774,7 +777,7 @@ class AgentSideConnection implements Client {
             params,
             V15ListProvidersRequest.fromJson,
             agent is AgentV15Handler
-                ? (agent as AgentV15Handler).unstableListProviders
+                ? agent.unstableListProviders
                 : (_) => null,
           );
         case 'providers/set':
@@ -782,9 +785,7 @@ class AgentSideConnection implements Client {
             method,
             params,
             V15SetProviderRequest.fromJson,
-            agent is AgentV15Handler
-                ? (agent as AgentV15Handler).unstableSetProvider
-                : (_) => null,
+            agent is AgentV15Handler ? agent.unstableSetProvider : (_) => null,
           );
         case 'providers/disable':
           return handleOptionalRequest(
@@ -792,7 +793,7 @@ class AgentSideConnection implements Client {
             params,
             V15DisableProviderRequest.fromJson,
             agent is AgentV15Handler
-                ? (agent as AgentV15Handler).unstableDisableProvider
+                ? agent.unstableDisableProvider
                 : (_) => null,
           );
         case 'mcp/message':
@@ -800,36 +801,28 @@ class AgentSideConnection implements Client {
             method,
             params,
             V15MessageMcpRequest.fromJson,
-            agent is AgentV15Handler
-                ? (agent as AgentV15Handler).unstableMessageMcp
-                : (_) => null,
+            agent is AgentV15Handler ? agent.unstableMessageMcp : (_) => null,
           );
         case 'nes/start':
           return handleOptionalRequest(
             method,
             params,
             V15StartNesRequest.fromJson,
-            agent is AgentV15Handler
-                ? (agent as AgentV15Handler).unstableStartNes
-                : (_) => null,
+            agent is AgentV15Handler ? agent.unstableStartNes : (_) => null,
           );
         case 'nes/suggest':
           return handleOptionalRequest(
             method,
             params,
             V15SuggestNesRequest.fromJson,
-            agent is AgentV15Handler
-                ? (agent as AgentV15Handler).unstableSuggestNes
-                : (_) => null,
+            agent is AgentV15Handler ? agent.unstableSuggestNes : (_) => null,
           );
         case 'nes/close':
           return handleOptionalRequest(
             method,
             params,
             V15CloseNesRequest.fromJson,
-            agent is AgentV15Handler
-                ? (agent as AgentV15Handler).unstableCloseNes
-                : (_) => null,
+            agent is AgentV15Handler ? agent.unstableCloseNes : (_) => null,
           );
         case 'session/fork':
           return handleOptionalRequest(
@@ -844,7 +837,7 @@ class AgentSideConnection implements Client {
             params,
             ResumeSessionRequest.fromJson,
             agent is AgentV15Handler
-                ? (agent as AgentV15Handler).resumeSession
+                ? agent.resumeSession
                 : agent.unstableResumeSession,
           );
         case 'session/set_mode':
@@ -901,7 +894,7 @@ class AgentSideConnection implements Client {
           return agent.cancel(validatedParams);
         case 'mcp/message':
           if (agent is AgentV15Handler) {
-            await (agent as AgentV15Handler).unstableHandleMcpNotification(
+            await agent.unstableHandleMcpNotification(
               V15MessageMcpNotification.fromJson(
                 params as Map<String, dynamic>,
               ),
@@ -910,7 +903,7 @@ class AgentSideConnection implements Client {
           return;
         case 'document/didOpen':
           if (agent is AgentV15Handler) {
-            await (agent as AgentV15Handler).unstableDidOpenDocument(
+            await agent.unstableDidOpenDocument(
               V15DidOpenDocumentNotification.fromJson(
                 params as Map<String, dynamic>,
               ),
@@ -919,7 +912,7 @@ class AgentSideConnection implements Client {
           return;
         case 'document/didChange':
           if (agent is AgentV15Handler) {
-            await (agent as AgentV15Handler).unstableDidChangeDocument(
+            await agent.unstableDidChangeDocument(
               V15DidChangeDocumentNotification.fromJson(
                 params as Map<String, dynamic>,
               ),
@@ -928,7 +921,7 @@ class AgentSideConnection implements Client {
           return;
         case 'document/didClose':
           if (agent is AgentV15Handler) {
-            await (agent as AgentV15Handler).unstableDidCloseDocument(
+            await agent.unstableDidCloseDocument(
               V15DidCloseDocumentNotification.fromJson(
                 params as Map<String, dynamic>,
               ),
@@ -937,7 +930,7 @@ class AgentSideConnection implements Client {
           return;
         case 'document/didSave':
           if (agent is AgentV15Handler) {
-            await (agent as AgentV15Handler).unstableDidSaveDocument(
+            await agent.unstableDidSaveDocument(
               V15DidSaveDocumentNotification.fromJson(
                 params as Map<String, dynamic>,
               ),
@@ -946,7 +939,7 @@ class AgentSideConnection implements Client {
           return;
         case 'document/didFocus':
           if (agent is AgentV15Handler) {
-            await (agent as AgentV15Handler).unstableDidFocusDocument(
+            await agent.unstableDidFocusDocument(
               V15DidFocusDocumentNotification.fromJson(
                 params as Map<String, dynamic>,
               ),
@@ -955,14 +948,14 @@ class AgentSideConnection implements Client {
           return;
         case 'nes/accept':
           if (agent is AgentV15Handler) {
-            await (agent as AgentV15Handler).unstableAcceptNes(
+            await agent.unstableAcceptNes(
               V15AcceptNesNotification.fromJson(params as Map<String, dynamic>),
             );
           }
           return;
         case 'nes/reject':
           if (agent is AgentV15Handler) {
-            await (agent as AgentV15Handler).unstableRejectNes(
+            await agent.unstableRejectNes(
               V15RejectNesNotification.fromJson(params as Map<String, dynamic>),
             );
           }
@@ -1008,7 +1001,7 @@ class AgentSideConnection implements Client {
       'elicitation/create',
       params.toJson(),
     );
-    return CreateElicitationResponse.fromJson(result as Map<String, dynamic>);
+    return _decodeTypedResponse(result, CreateElicitationResponse.fromJson);
   }
 
   Future<void> completeElicitation(CompleteElicitationNotification params) =>
@@ -1016,22 +1009,23 @@ class AgentSideConnection implements Client {
 
   Future<V15ConnectMcpResponse> unstableConnectMcp(
     V15ConnectMcpRequest params,
-  ) async => V15ConnectMcpResponse.fromJson(
-    await _connection.sendRequest('mcp/connect', params.toJson())
-        as Map<String, dynamic>,
+  ) async => _decodeTypedResponse(
+    await _connection.sendRequest('mcp/connect', params.toJson()),
+    V15ConnectMcpResponse.fromJson,
   );
 
   Future<V15MessageMcpResponse> unstableMessageMcp(
     V15MessageMcpRequest params,
-  ) async => V15MessageMcpResponse.fromJson(
+  ) async => _decodeTypedResponse(
     await _connection.sendRequest('mcp/message', params.toJson()),
+    V15MessageMcpResponse.fromJson,
   );
 
   Future<V15DisconnectMcpResponse> unstableDisconnectMcp(
     V15DisconnectMcpRequest params,
-  ) async => V15DisconnectMcpResponse.fromJson(
-    await _connection.sendRequest('mcp/disconnect', params.toJson())
-        as Map<String, dynamic>,
+  ) async => _decodeTypedResponse(
+    await _connection.sendRequest('mcp/disconnect', params.toJson()),
+    V15DisconnectMcpResponse.fromJson,
   );
 
   Future<void> unstableNotifyMcpMessage(V15MessageMcpNotification params) =>
@@ -1045,7 +1039,7 @@ class AgentSideConnection implements Client {
       clientMethods['sessionRequestPermission']!,
       params.toJson(),
     );
-    return RequestPermissionResponse.fromJson(result as Map<String, dynamic>);
+    return _decodeTypedResponse(result, RequestPermissionResponse.fromJson);
   }
 
   @override
@@ -1054,7 +1048,7 @@ class AgentSideConnection implements Client {
       clientMethods['fsReadTextFile']!,
       params.toJson(),
     );
-    return ReadTextFileResponse.fromJson(result as Map<String, dynamic>);
+    return _decodeTypedResponse(result, ReadTextFileResponse.fromJson);
   }
 
   @override
@@ -1065,7 +1059,7 @@ class AgentSideConnection implements Client {
       clientMethods['fsWriteTextFile']!,
       params.toJson(),
     );
-    return WriteTextFileResponse.fromJson(result as Map<String, dynamic>);
+    return _decodeTypedResponse(result, WriteTextFileResponse.fromJson);
   }
 
   @override
@@ -1076,7 +1070,7 @@ class AgentSideConnection implements Client {
       clientMethods['terminalCreate']!,
       params.toJson(),
     );
-    return CreateTerminalResponse.fromJson(result as Map<String, dynamic>);
+    return _decodeTypedResponse(result, CreateTerminalResponse.fromJson);
   }
 
   @override
@@ -1087,9 +1081,7 @@ class AgentSideConnection implements Client {
       clientMethods['terminalOutput']!,
       params.toJson(),
     );
-    return result is TerminalOutputResponse
-        ? result
-        : TerminalOutputResponse.fromJson(result as Map<String, dynamic>);
+    return _decodeTypedResponse(result, TerminalOutputResponse.fromJson);
   }
 
   @override
@@ -1100,7 +1092,7 @@ class AgentSideConnection implements Client {
       clientMethods['terminalRelease']!,
       params.toJson(),
     );
-    return ReleaseTerminalResponse.fromJson(result as Map<String, dynamic>);
+    return _decodeTypedResponse(result, ReleaseTerminalResponse.fromJson);
   }
 
   @override
@@ -1111,9 +1103,7 @@ class AgentSideConnection implements Client {
       clientMethods['terminalWaitForExit']!,
       params.toJson(),
     );
-    return result is WaitForTerminalExitResponse
-        ? result
-        : WaitForTerminalExitResponse.fromJson(result as Map<String, dynamic>);
+    return _decodeTypedResponse(result, WaitForTerminalExitResponse.fromJson);
   }
 
   @override
@@ -1124,9 +1114,7 @@ class AgentSideConnection implements Client {
       clientMethods['terminalKill']!,
       params.toJson(),
     );
-    return result is KillTerminalCommandResponse
-        ? result
-        : KillTerminalCommandResponse.fromJson(result as Map<String, dynamic>);
+    return _decodeTypedResponse(result, KillTerminalCommandResponse.fromJson);
   }
 
   @override
@@ -1355,7 +1343,7 @@ class ClientSideConnection implements Agent {
     T Function(Map<String, dynamic>) fromJson,
   ) async {
     final result = await _connection.sendRequest(method, params);
-    return fromJson(result as Map<String, dynamic>);
+    return _decodeTypedResponse(result, fromJson);
   }
 
   @override
@@ -1426,48 +1414,49 @@ class ClientSideConnection implements Agent {
 
   Future<DeleteSessionResponse> deleteSession(
     DeleteSessionRequest params,
-  ) async => DeleteSessionResponse.fromJson(
-    await _connection.sendRequest('session/delete', params.toJson())
-        as Map<String, dynamic>,
+  ) async => _decodeTypedResponse(
+    await _connection.sendRequest('session/delete', params.toJson()),
+    DeleteSessionResponse.fromJson,
   );
 
   Future<CloseSessionResponse> closeSession(CloseSessionRequest params) async =>
-      CloseSessionResponse.fromJson(
-        await _connection.sendRequest('session/close', params.toJson())
-            as Map<String, dynamic>,
+      _decodeTypedResponse(
+        await _connection.sendRequest('session/close', params.toJson()),
+        CloseSessionResponse.fromJson,
       );
 
   Future<LogoutResponse> logout(LogoutRequest params) async =>
-      LogoutResponse.fromJson(
-        await _connection.sendRequest('logout', params.toJson())
-            as Map<String, dynamic>,
+      _decodeTypedResponse(
+        await _connection.sendRequest('logout', params.toJson()),
+        LogoutResponse.fromJson,
       );
 
   Future<V15ListProvidersResponse> unstableListProviders(
     V15ListProvidersRequest params,
-  ) async => V15ListProvidersResponse.fromJson(
-    await _connection.sendRequest('providers/list', params.toJson())
-        as Map<String, dynamic>,
+  ) async => _decodeTypedResponse(
+    await _connection.sendRequest('providers/list', params.toJson()),
+    V15ListProvidersResponse.fromJson,
   );
 
   Future<V15SetProviderResponse> unstableSetProvider(
     V15SetProviderRequest params,
-  ) async => V15SetProviderResponse.fromJson(
-    await _connection.sendRequest('providers/set', params.toJson())
-        as Map<String, dynamic>,
+  ) async => _decodeTypedResponse(
+    await _connection.sendRequest('providers/set', params.toJson()),
+    V15SetProviderResponse.fromJson,
   );
 
   Future<V15DisableProviderResponse> unstableDisableProvider(
     V15DisableProviderRequest params,
-  ) async => V15DisableProviderResponse.fromJson(
-    await _connection.sendRequest('providers/disable', params.toJson())
-        as Map<String, dynamic>,
+  ) async => _decodeTypedResponse(
+    await _connection.sendRequest('providers/disable', params.toJson()),
+    V15DisableProviderResponse.fromJson,
   );
 
   Future<V15MessageMcpResponse> unstableMessageMcp(
     V15MessageMcpRequest params,
-  ) async => V15MessageMcpResponse.fromJson(
+  ) async => _decodeTypedResponse(
     await _connection.sendRequest('mcp/message', params.toJson()),
+    V15MessageMcpResponse.fromJson,
   );
 
   Future<void> unstableNotifyMcpMessage(V15MessageMcpNotification params) =>
@@ -1475,23 +1464,23 @@ class ClientSideConnection implements Agent {
 
   Future<V15StartNesResponse> unstableStartNes(
     V15StartNesRequest params,
-  ) async => V15StartNesResponse.fromJson(
-    await _connection.sendRequest('nes/start', params.toJson())
-        as Map<String, dynamic>,
+  ) async => _decodeTypedResponse(
+    await _connection.sendRequest('nes/start', params.toJson()),
+    V15StartNesResponse.fromJson,
   );
 
   Future<V15SuggestNesResponse> unstableSuggestNes(
     V15SuggestNesRequest params,
-  ) async => V15SuggestNesResponse.fromJson(
-    await _connection.sendRequest('nes/suggest', params.toJson())
-        as Map<String, dynamic>,
+  ) async => _decodeTypedResponse(
+    await _connection.sendRequest('nes/suggest', params.toJson()),
+    V15SuggestNesResponse.fromJson,
   );
 
   Future<V15CloseNesResponse> unstableCloseNes(
     V15CloseNesRequest params,
-  ) async => V15CloseNesResponse.fromJson(
-    await _connection.sendRequest('nes/close', params.toJson())
-        as Map<String, dynamic>,
+  ) async => _decodeTypedResponse(
+    await _connection.sendRequest('nes/close', params.toJson()),
+    V15CloseNesResponse.fromJson,
   );
 
   Future<void> unstableDidOpenDocument(V15DidOpenDocumentNotification params) =>

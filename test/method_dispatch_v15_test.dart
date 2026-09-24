@@ -158,6 +158,56 @@ void main() {
     await peer.close();
   });
 
+  test('v1.5 defaults retain legacy list and resume handlers', () async {
+    final peer = _Peer();
+    AgentSideConnection((_) => _LegacyV15Agent(), peer.stream);
+
+    peer.send({
+      'jsonrpc': '2.0',
+      'id': 1,
+      'method': 'session/list',
+      'params': {},
+    });
+    expect(await peer.next(), {
+      'jsonrpc': '2.0',
+      'id': 1,
+      'result': {'nextCursor': null, 'sessions': []},
+    });
+
+    peer.send({
+      'jsonrpc': '2.0',
+      'id': 2,
+      'method': 'session/resume',
+      'params': {'sessionId': 's1', 'cwd': '/workspace'},
+    });
+    expect(await peer.next(), {
+      'jsonrpc': '2.0',
+      'id': 2,
+      'result': {'modes': null, 'models': null},
+    });
+    await peer.close();
+  });
+
+  test('typed wrappers accept typed in-memory stream responses', () async {
+    final incoming = StreamController<Map<String, dynamic>>();
+    final outgoing = StreamController<Map<String, dynamic>>();
+    final connection = ClientSideConnection(
+      (_) => _Client(),
+      AcpStream(readable: incoming.stream, writable: outgoing.sink),
+    );
+    final request = outgoing.stream.first;
+    final listed = connection.listSessions(ListSessionsRequest());
+    final message = await request;
+    incoming.add({
+      'jsonrpc': '2.0',
+      'id': message['id'],
+      'result': ListSessionsResponse(sessions: []),
+    });
+    expect((await listed).sessions, isEmpty);
+    await incoming.close();
+    await outgoing.close();
+  });
+
   test('experimental agent providers and NES requests dispatch', () async {
     final peer = _Peer();
     AgentSideConnection((_) => _ExperimentalAgent(), peer.stream);
@@ -506,6 +556,18 @@ class _SupportedAgent extends _Agent with AgentV15Handler {
   @override
   Future<LogoutResponse>? logout(LogoutRequest params) async =>
       LogoutResponse();
+}
+
+class _LegacyV15Agent extends _Agent with AgentV15Handler {
+  @override
+  Future<ListSessionsResponse>? unstableListSessions(
+    ListSessionsRequest params,
+  ) async => ListSessionsResponse(sessions: []);
+
+  @override
+  Future<ResumeSessionResponse>? unstableResumeSession(
+    ResumeSessionRequest params,
+  ) async => ResumeSessionResponse();
 }
 
 class _ExperimentalAgent extends _SupportedAgent {

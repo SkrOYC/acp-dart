@@ -113,21 +113,25 @@ class ExampleAgent extends Agent {
     session.pendingPrompt = completer;
 
     try {
-      await _simulateTurn(params.sessionId, completer.future);
+      if (await _simulateTurn(params.sessionId, completer.future)) {
+        return PromptResponse(stopReason: StopReason.cancelled);
+      }
     } catch (err) {
-      if (session.pendingPrompt != null && session.pendingPrompt!.isCompleted) {
+      if (completer.isCompleted) {
         return PromptResponse(stopReason: StopReason.cancelled);
       }
       rethrow;
     } finally {
-      session.pendingPrompt = null;
+      if (identical(session.pendingPrompt, completer)) {
+        session.pendingPrompt = null;
+      }
     }
 
     return PromptResponse(stopReason: StopReason.endTurn);
   }
 
   /// Simulates an agent turn with text chunks and tool calls
-  Future<void> _simulateTurn(String sessionId, Future<void> abortFuture) async {
+  Future<bool> _simulateTurn(String sessionId, Future<void> abortFuture) async {
     // Send initial text chunk
     await _connection.sessionUpdate(
       SessionNotification(
@@ -300,10 +304,11 @@ class ExampleAgent extends Agent {
             ),
           ),
         );
-        break;
+        return true;
       default:
         throw Exception('Unexpected permission outcome $outcome');
     }
+    return false;
   }
 
   /// Simulates model interaction with a delay

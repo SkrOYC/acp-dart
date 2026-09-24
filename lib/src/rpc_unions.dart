@@ -909,6 +909,9 @@ class V15RawJsonPayload {
   const V15RawJsonPayload(this.value);
 }
 
+bool _isValidV15RequestId(Object? value) =>
+    value == null || value is String || (value is num && value.isFinite);
+
 Object? _decode(String method, Object? value) {
   if (value is! Map) return V15RawJsonPayload(value);
   final json = Map<String, dynamic>.from(value);
@@ -1000,6 +1003,13 @@ Object? _decode(String method, Object? value) {
   }
 }
 
+Object? _decodeNotification(String method, Object? value) {
+  if (method == 'mcp/message' && value is Map) {
+    return V15MessageMcpNotification.fromJson(Map<String, dynamic>.from(value));
+  }
+  return _decode(method, value);
+}
+
 Object? _encode(Object? value) => switch (value) {
   V15RawJsonPayload(:final value) => value,
   _ => (value as dynamic).toJson(),
@@ -1016,15 +1026,17 @@ class _Request {
   final Object? params;
   final bool isKnownMethod;
   final bool isExperimental;
+  final bool _hasId;
   const _Request(
     this.id,
     this.method,
     this.params,
     this.isKnownMethod,
     this.isExperimental,
+    this._hasId,
   );
   Map<String, dynamic> toJson() => {
-    if (id != null) 'id': id,
+    if (_hasId) 'id': id,
     'method': method,
     if (params != null) 'params': _encode(params),
   };
@@ -1037,11 +1049,15 @@ class V15AgentRequest extends _Request {
     super.params,
     super.isKnownMethod,
     super.isExperimental,
+    super._hasId,
   );
   factory V15AgentRequest.fromJson(Map<String, dynamic> json) {
     final method = json['method'];
     if (method is! String) {
       throw FormatException('Expected method string');
+    }
+    if (!json.containsKey('id') || !_isValidV15RequestId(json['id'])) {
+      throw FormatException('Expected request ID');
     }
     if (const {
               'session/request_permission',
@@ -1066,7 +1082,8 @@ class V15AgentRequest extends _Request {
       method,
       _decode(method, json['params']),
       _clientMethods.contains(method),
-      method == 'mcp/message',
+      const {'mcp/connect', 'mcp/message', 'mcp/disconnect'}.contains(method),
+      true,
     );
   }
 }
@@ -1078,11 +1095,15 @@ class V15ClientRequest extends _Request {
     super.params,
     super.isKnownMethod,
     super.isExperimental,
+    super._hasId,
   );
   factory V15ClientRequest.fromJson(Map<String, dynamic> json) {
     final method = json['method'];
     if (method is! String) {
       throw FormatException('Expected method string');
+    }
+    if (!json.containsKey('id') || !_isValidV15RequestId(json['id'])) {
+      throw FormatException('Expected request ID');
     }
     if (const {
               'initialize',
@@ -1125,6 +1146,7 @@ class V15ClientRequest extends _Request {
         'nes/close',
         'session/fork',
       }.contains(method),
+      true,
     );
   }
 }
@@ -1159,7 +1181,7 @@ class V15AgentNotification extends _Notification {
     }
     return V15AgentNotification._(
       method,
-      _decode(method, json['params']),
+      _decodeNotification(method, json['params']),
       _clientMethods.contains(method),
     );
   }
@@ -1171,6 +1193,9 @@ class V15ClientNotification extends _Notification {
     final method = json['method'];
     if (method is! String) {
       throw FormatException('Expected method string');
+    }
+    if (json.containsKey('id')) {
+      throw FormatException('Expected notification');
     }
     if (!const {
       'session/cancel',
@@ -1186,7 +1211,7 @@ class V15ClientNotification extends _Notification {
     }
     return V15ClientNotification._(
       method,
-      _decode(method, json['params']),
+      _decodeNotification(method, json['params']),
       _agentMethods.contains(method),
     );
   }
@@ -1286,7 +1311,12 @@ class V15AgentResponse extends _Response {
     Map<String, dynamic> json, {
     String? method,
   }) {
-    if (json.containsKey('error')) {
+    final hasResult = json.containsKey('result');
+    final hasError = json.containsKey('error');
+    if (hasResult == hasError) {
+      throw FormatException('Expected exactly one result or error');
+    }
+    if (hasError) {
       return V15AgentResponse._(
         json['id'],
         null,
@@ -1308,7 +1338,12 @@ class V15ClientResponse extends _Response {
     Map<String, dynamic> json, {
     String? method,
   }) {
-    if (json.containsKey('error')) {
+    final hasResult = json.containsKey('result');
+    final hasError = json.containsKey('error');
+    if (hasResult == hasError) {
+      throw FormatException('Expected exactly one result or error');
+    }
+    if (hasError) {
       return V15ClientResponse._(
         json['id'],
         null,

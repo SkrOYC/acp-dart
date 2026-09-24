@@ -14,9 +14,39 @@ void main() {
     final stream = createWebSocketStream(
       'ws://${InternetAddress.loopbackIPv4.address}:$port/acp',
     );
+    final incoming = StreamIterator(stream.readable);
     stream.writable.add({'jsonrpc': '2.0', 'id': 1, 'method': 'initialize'});
-    await expectLater(stream.readable.first, throwsA(isA<SocketException>()));
+    await expectLater(incoming.moveNext(), throwsA(isA<SocketException>()));
+    expect(await incoming.moveNext(), isFalse);
     await stream.writable.close();
+  });
+
+  test('WebSocket stream drains queued frames before writable close', () async {
+    final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
+    final frames = <Map<String, dynamic>>[];
+    final receivedBoth = Completer<void>();
+    server.listen((request) async {
+      final socket = await WebSocketTransformer.upgrade(request);
+      socket.listen((frame) {
+        frames.add(jsonDecode(frame as String) as Map<String, dynamic>);
+        if (frames.length == 2 && !receivedBoth.isCompleted) {
+          receivedBoth.complete();
+        }
+      });
+    });
+    final stream = createWebSocketStream(
+      'ws://${server.address.address}:${server.port}/acp',
+    );
+    stream.writable
+      ..add({'jsonrpc': '2.0', 'id': 1, 'method': 'initialize'})
+      ..add({'jsonrpc': '2.0', 'method': 'session/cancel', 'params': {}});
+    await stream.writable.close();
+    await receivedBoth.future.timeout(const Duration(seconds: 3));
+    expect(frames.map((frame) => frame['method']), [
+      'initialize',
+      'session/cancel',
+    ]);
+    await server.close(force: true);
   });
 
   test('WebSocket stream exchanges JSON-RPC frames over loopback', () async {

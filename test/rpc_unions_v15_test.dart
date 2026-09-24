@@ -85,6 +85,22 @@ void main() {
     });
   });
 
+  test('request unions preserve a null ID and reject a missing ID', () {
+    final request = V15ClientRequest.fromJson({
+      'id': null,
+      'method': 'session/new',
+      'params': {'cwd': '/work', 'mcpServers': []},
+    });
+    expect(request.toJson(), containsPair('id', isNull));
+    expect(
+      () => V15ClientRequest.fromJson({
+        'method': 'session/new',
+        'params': {'cwd': '/work', 'mcpServers': []},
+      }),
+      throwsFormatException,
+    );
+  });
+
   test('agent request decodes the existing permission model', () {
     final request = V15AgentRequest.fromJson({
       'id': 9,
@@ -136,6 +152,19 @@ void main() {
       'result': {},
     }, method: 'mcp/message');
     expect(response.result, isA<V15MessageMcpResponse>());
+  });
+
+  test('MCP connection requests are experimental', () {
+    for (final method in ['mcp/connect', 'mcp/disconnect']) {
+      final request = V15AgentRequest.fromJson({
+        'id': 1,
+        'method': method,
+        'params': method == 'mcp/connect'
+            ? {'serverId': 'server'}
+            : {'connectionId': 'connection'},
+      });
+      expect(request.isExperimental, isTrue, reason: method);
+    }
   });
 
   test('logout and NES requests decode to available models', () {
@@ -231,6 +260,19 @@ void main() {
     }
   });
 
+  test('response unions require exactly one result or error', () {
+    for (final response in [
+      {'id': 1},
+      {
+        'id': 1,
+        'result': {},
+        'error': {'code': -1, 'message': 'bad'},
+      },
+    ]) {
+      expect(() => V15ClientResponse.fromJson(response), throwsFormatException);
+    }
+  });
+
   test('future method payload uses explicit raw JSON variant', () {
     final request = V15ClientRequest.fromJson({
       'id': 2,
@@ -246,6 +288,22 @@ void main() {
       'sessionId': 's',
       'document': {'uri': 'file:///a'},
     });
+  });
+
+  test('client notifications reject IDs and decode MCP notifications', () {
+    expect(
+      () => V15ClientNotification.fromJson({
+        'id': 1,
+        'method': 'session/cancel',
+        'params': {'sessionId': 's1'},
+      }),
+      throwsFormatException,
+    );
+    final notification = V15AgentNotification.fromJson({
+      'method': 'mcp/message',
+      'params': {'connectionId': 'c1', 'method': 'notifications/changed'},
+    });
+    expect(notification.params, isA<V15MessageMcpNotification>());
   });
 
   test('unknown extension methods are preserved as raw payloads', () {
