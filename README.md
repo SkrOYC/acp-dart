@@ -34,6 +34,7 @@ The client starts `example/agent.dart` as a subprocess. Enter a number when it r
 | `SessionBuilder` and `ActiveSession` | Create a session, send prompts, and consume updates or stop messages from a client app. |
 
 The package entry point is `package:acp_dart/acp_dart.dart`. For example, create a client connection to a child process with `ndJsonStream(process.stdout, process.stdin)`, then pass the stream to `ClientSideConnection` or `client().connectWith(...)`.
+Use `acpProtocolVersion` when constructing an `InitializeRequest`.
 
 ## Protocol coverage
 
