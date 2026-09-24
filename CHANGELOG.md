@@ -6,6 +6,7 @@
 - Provide app-style `agent()` and `client()` handler registration, connection contexts, session builders, session update queues, and request-scoped cancellation.
 - Add HTTP with SSE and WebSocket client transports, an HTTP and WebSocket server adapter, and an in-memory affinity cookie store for Dart VM integrations.
 - Add pinned upstream JSON fixtures, connected byte-stream tests, process and HTTP/WebSocket loopback tests, and an opt-in TypeScript-to-Dart interoperability test.
+- Stress test real peers with Dart client to TypeScript server over HTTP/SSE and TypeScript client to Dart server over HTTP/SSE and WebSocket, including concurrent sessions, callbacks, errors, cancellation, and reconnects.
 
 ### Changed
 
