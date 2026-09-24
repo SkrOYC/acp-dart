@@ -1,5 +1,7 @@
 import 'dart:convert';
 
+import 'schema.dart';
+
 /// Response to an ACP `elicitation/create` request.
 ///
 /// Unknown action values and their fields are preserved for forward
@@ -335,13 +337,13 @@ class SessionUpdateV15 {
 }
 
 /// A v1.5 advisory notice session update.
-class NoticeSessionUpdateV15 {
+class NoticeSessionUpdateV15 extends SessionUpdate {
   final String severity;
   final String title;
   final String? description;
   final Map<String, dynamic>? meta;
 
-  const NoticeSessionUpdateV15({
+  NoticeSessionUpdateV15({
     required this.severity,
     required this.title,
     this.description,

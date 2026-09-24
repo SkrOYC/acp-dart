@@ -195,7 +195,7 @@ void main() {
     );
 
     test('typed notice update round-trips upstream session update shape', () {
-      const notice = NoticeSessionUpdateV15(
+      final notice = NoticeSessionUpdateV15(
         severity: 'warning',
         title: 'Attention',
         description: 'Review this',
