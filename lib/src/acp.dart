@@ -61,6 +61,9 @@ class RequestContext {
 typedef NotificationHandler =
     Future<void> Function(String method, dynamic params);
 
+bool _isValidRequestId(Object? value) =>
+    value == null || value is String || (value is num && value.isFinite);
+
 /// Optional interface for participants that handle `$/cancel_request`.
 abstract class ProtocolCancellationHandler {
   Future<void> cancelRequest(CancelRequestNotification params);
@@ -258,8 +261,13 @@ class Connection {
   }
 
   /// Sends the protocol-level cancellation notification `$/cancel_request`.
-  Future<void> sendCancelRequestNotification(CancelRequestNotification params) {
-    return sendNotification(protocolMethods['cancelRequest']!, params.toJson());
+  Future<void> sendCancelRequestNotification(
+    CancelRequestNotification params,
+  ) async {
+    if (!_isValidRequestId(params.requestId)) {
+      throw ArgumentError.value(params.requestId, 'requestId');
+    }
+    await sendNotification(protocolMethods['cancelRequest']!, params.toJson());
   }
 
   /// Cancels a pending outbound request and notifies the peer.
@@ -301,7 +309,7 @@ class Connection {
           return;
         }
         if (message.containsKey('id')) {
-          final validId = id == null || id is String || id is int;
+          final validId = _isValidRequestId(id);
           _sendMessage({
             'jsonrpc': '2.0',
             'id': validId ? id : null,
@@ -340,7 +348,7 @@ class Connection {
   bool _isValidMessage(Map<String, dynamic> message) {
     if (message['jsonrpc'] != '2.0') return false;
     final id = message['id'];
-    final validId = id == null || id is String || (id is int && id is! bool);
+    final validId = _isValidRequestId(id);
     if (message.containsKey('method')) {
       return message['method'] is String &&
           (!message.containsKey('id') || validId);
