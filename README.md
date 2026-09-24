@@ -59,6 +59,8 @@ Unknown session-update payloads retain their raw JSON. The source includes typed
 `createHttpStream` opens an ACP Streamable HTTP client with connection and session SSE streams. `createWebSocketStream` opens a WebSocket client. `AcpHttpServer.bind` hosts HTTP, SSE, and WebSocket ACP connections through `dart:io`. These transport adapters use `dart:io` and run on the Dart VM; they don't provide browser transports.
 
 `AcpCookieStore` lets client transports share affinity cookies across requests. `MemoryAcpCookieStore` stores cookie names and values in memory.
+The WebSocket client can send stored cookies, but `dart:io` does not expose
+upgrade response headers for storing a new cookie from that handshake.
 
 ## Errors and cancellation
 
