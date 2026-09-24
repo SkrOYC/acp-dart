@@ -19,6 +19,7 @@
 - ACP v2 is outside this package's scope. The TypeScript SDK v1.5.0 marks provider, NES, document, MCP-over-ACP, plan, and compaction surfaces as experimental.
 - `session/set_model` remains a Dart legacy extension and is absent from the TypeScript SDK v1.5.0 agent method inventory.
 - HTTP, SSE, and WebSocket adapters in this release use `dart:io` and do not run in a browser.
+- The WebSocket client can send stored affinity cookies, but it cannot store a cookie from an upgrade response because `dart:io` does not expose those headers.
 
 ## 0.4.0
 
