@@ -723,7 +723,7 @@ ResourceContentBlock _$ResourceContentBlockFromJson(
   annotations: json['annotations'] == null
       ? null
       : Annotations.fromJson(json['annotations'] as Map<String, dynamic>),
-  resource: EmbeddedResource.fromJson(json['resource'] as Map<String, dynamic>),
+  resource: json['resource'] as Object,
   type: json['type'] as String? ?? 'resource',
 );
 
@@ -732,7 +732,9 @@ Map<String, dynamic> _$ResourceContentBlockToJson(
 ) => <String, dynamic>{
   '_meta': ?instance.meta,
   'annotations': instance.annotations,
-  'resource': instance.resource,
+  'resource': const EmbeddedResourceResourceConverter().toJson(
+    instance.resource,
+  ),
   'type': instance.type,
 };
 
@@ -749,10 +751,11 @@ ToolCall _$ToolCallFromJson(Map<String, dynamic> json) => ToolCall(
   locations: (json['locations'] as List<dynamic>?)
       ?.map((e) => ToolCallLocation.fromJson(e as Map<String, dynamic>))
       .toList(),
-  rawInput: json['rawInput'] as Map<String, dynamic>?,
-  rawOutput: json['rawOutput'] as Map<String, dynamic>?,
+  rawInput: json['rawInput'],
+  rawOutput: json['rawOutput'],
   status: $enumDecodeNullable(_$ToolCallStatusEnumMap, json['status']),
   title: json['title'] as String,
+  name: json['name'] as String?,
   toolCallId: json['toolCallId'] as String,
 );
 
@@ -767,6 +770,7 @@ Map<String, dynamic> _$ToolCallToJson(ToolCall instance) => <String, dynamic>{
   'rawOutput': instance.rawOutput,
   'status': _$ToolCallStatusEnumMap[instance.status],
   'title': instance.title,
+  'name': ?instance.name,
   'toolCallId': instance.toolCallId,
 };
 
@@ -839,8 +843,8 @@ Map<String, dynamic> _$ReadTextFileRequestToJson(
   '_meta': ?instance.meta,
   'sessionId': instance.sessionId,
   'path': instance.path,
-  'line': instance.line,
-  'limit': instance.limit,
+  'line': ?instance.line,
+  'limit': ?instance.limit,
 };
 
 RequestPermissionRequest _$RequestPermissionRequestFromJson(
@@ -900,10 +904,11 @@ ToolCallUpdate _$ToolCallUpdateFromJson(Map<String, dynamic> json) =>
       locations: (json['locations'] as List<dynamic>?)
           ?.map((e) => ToolCallLocation.fromJson(e as Map<String, dynamic>))
           .toList(),
-      rawInput: json['rawInput'] as Map<String, dynamic>?,
-      rawOutput: json['rawOutput'] as Map<String, dynamic>?,
+      rawInput: json['rawInput'],
+      rawOutput: json['rawOutput'],
       status: $enumDecodeNullable(_$ToolCallStatusEnumMap, json['status']),
       title: json['title'] as String?,
+      name: json['name'] as String?,
       toolCallId: json['toolCallId'] as String,
     );
 
@@ -919,6 +924,7 @@ Map<String, dynamic> _$ToolCallUpdateToJson(ToolCallUpdate instance) =>
       'rawOutput': instance.rawOutput,
       'status': _$ToolCallStatusEnumMap[instance.status],
       'title': instance.title,
+      'name': ?instance.name,
       'toolCallId': instance.toolCallId,
     };
 
@@ -1652,7 +1658,7 @@ Map<String, dynamic> _$SessionConfigSelectOptionToJson(
   '_meta': ?instance.meta,
   'value': instance.value,
   'name': instance.name,
-  'description': instance.description,
+  'description': ?instance.description,
 };
 
 SessionConfigSelectGroup _$SessionConfigSelectGroupFromJson(
@@ -1672,7 +1678,7 @@ Map<String, dynamic> _$SessionConfigSelectGroupToJson(
   '_meta': ?instance.meta,
   'group': instance.group,
   'name': instance.name,
-  'options': instance.options,
+  'options': instance.options.map((e) => e.toJson()).toList(),
 };
 
 ModelInfo _$ModelInfoFromJson(Map<String, dynamic> json) => ModelInfo(
@@ -2294,6 +2300,8 @@ Map<String, dynamic> _$SessionNotificationToJson(
 UserMessageChunkSessionUpdate _$UserMessageChunkSessionUpdateFromJson(
   Map<String, dynamic> json,
 ) => UserMessageChunkSessionUpdate(
+  meta: json['_meta'] as Map<String, dynamic>?,
+  messageId: json['messageId'] as String?,
   content: const ContentBlockConverter().fromJson(
     json['content'] as Map<String, dynamic>,
   ),
@@ -2302,12 +2310,16 @@ UserMessageChunkSessionUpdate _$UserMessageChunkSessionUpdateFromJson(
 Map<String, dynamic> _$UserMessageChunkSessionUpdateToJson(
   UserMessageChunkSessionUpdate instance,
 ) => <String, dynamic>{
+  '_meta': ?instance.meta,
+  'messageId': ?instance.messageId,
   'content': const ContentBlockConverter().toJson(instance.content),
 };
 
 AgentMessageChunkSessionUpdate _$AgentMessageChunkSessionUpdateFromJson(
   Map<String, dynamic> json,
 ) => AgentMessageChunkSessionUpdate(
+  meta: json['_meta'] as Map<String, dynamic>?,
+  messageId: json['messageId'] as String?,
   content: const ContentBlockConverter().fromJson(
     json['content'] as Map<String, dynamic>,
   ),
@@ -2316,12 +2328,16 @@ AgentMessageChunkSessionUpdate _$AgentMessageChunkSessionUpdateFromJson(
 Map<String, dynamic> _$AgentMessageChunkSessionUpdateToJson(
   AgentMessageChunkSessionUpdate instance,
 ) => <String, dynamic>{
+  '_meta': ?instance.meta,
+  'messageId': ?instance.messageId,
   'content': const ContentBlockConverter().toJson(instance.content),
 };
 
 AgentThoughtChunkSessionUpdate _$AgentThoughtChunkSessionUpdateFromJson(
   Map<String, dynamic> json,
 ) => AgentThoughtChunkSessionUpdate(
+  meta: json['_meta'] as Map<String, dynamic>?,
+  messageId: json['messageId'] as String?,
   content: const ContentBlockConverter().fromJson(
     json['content'] as Map<String, dynamic>,
   ),
@@ -2330,6 +2346,8 @@ AgentThoughtChunkSessionUpdate _$AgentThoughtChunkSessionUpdateFromJson(
 Map<String, dynamic> _$AgentThoughtChunkSessionUpdateToJson(
   AgentThoughtChunkSessionUpdate instance,
 ) => <String, dynamic>{
+  '_meta': ?instance.meta,
+  'messageId': ?instance.messageId,
   'content': const ContentBlockConverter().toJson(instance.content),
 };
 
@@ -2348,10 +2366,11 @@ ToolCallSessionUpdate _$ToolCallSessionUpdateFromJson(
   locations: (json['locations'] as List<dynamic>?)
       ?.map((e) => ToolCallLocation.fromJson(e as Map<String, dynamic>))
       .toList(),
-  rawInput: json['rawInput'] as Map<String, dynamic>?,
-  rawOutput: json['rawOutput'] as Map<String, dynamic>?,
+  rawInput: json['rawInput'],
+  rawOutput: json['rawOutput'],
   status: $enumDecodeNullable(_$ToolCallStatusEnumMap, json['status']),
   title: json['title'] as String,
+  name: json['name'] as String?,
   toolCallId: json['toolCallId'] as String,
 );
 
@@ -2368,6 +2387,7 @@ Map<String, dynamic> _$ToolCallSessionUpdateToJson(
   'rawOutput': instance.rawOutput,
   'status': _$ToolCallStatusEnumMap[instance.status],
   'title': instance.title,
+  'name': ?instance.name,
   'toolCallId': instance.toolCallId,
 };
 
@@ -2386,10 +2406,11 @@ ToolCallUpdateSessionUpdate _$ToolCallUpdateSessionUpdateFromJson(
   locations: (json['locations'] as List<dynamic>?)
       ?.map((e) => ToolCallLocation.fromJson(e as Map<String, dynamic>))
       .toList(),
-  rawInput: json['rawInput'] as Map<String, dynamic>?,
-  rawOutput: json['rawOutput'] as Map<String, dynamic>?,
+  rawInput: json['rawInput'],
+  rawOutput: json['rawOutput'],
   status: $enumDecodeNullable(_$ToolCallStatusEnumMap, json['status']),
   title: json['title'] as String?,
+  name: json['name'] as String?,
   toolCallId: json['toolCallId'] as String,
 );
 
@@ -2406,6 +2427,7 @@ Map<String, dynamic> _$ToolCallUpdateSessionUpdateToJson(
   'rawOutput': instance.rawOutput,
   'status': _$ToolCallStatusEnumMap[instance.status],
   'title': instance.title,
+  'name': ?instance.name,
   'toolCallId': instance.toolCallId,
 };
 

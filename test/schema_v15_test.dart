@@ -202,4 +202,116 @@ void main() {
     final decoded = ToolCallContentConverter().fromJson(content.toJson());
     expect(decoded, isA<ContentToolCallContent>());
   });
+
+  test('tool calls retain name and non-object raw JSON input/output', () {
+    final payload = {
+      'toolCallId': 'call-1',
+      'title': 'Run command',
+      'name': 'shell',
+      'rawInput': ['echo', 'hello'],
+      'rawOutput': 'hello',
+    };
+    final toolCall = ToolCall.fromJson(payload);
+    expect(toolCall.toJson(), containsPair('name', 'shell'));
+    expect(toolCall.toJson(), containsPair('rawInput', ['echo', 'hello']));
+    expect(toolCall.toJson(), containsPair('rawOutput', 'hello'));
+
+    final update = ToolCallUpdate.fromJson({
+      'toolCallId': 'call-1',
+      'name': 'shell',
+      'rawInput': true,
+      'rawOutput': [1, 2],
+    });
+    expect(update.toJson(), containsPair('name', 'shell'));
+    expect(update.toJson(), containsPair('rawInput', true));
+    expect(update.toJson(), containsPair('rawOutput', [1, 2]));
+
+    for (final variant in ['tool_call', 'tool_call_update']) {
+      final notification = SessionNotification.fromJson({
+        'sessionId': 's1',
+        'update': {
+          'sessionUpdate': variant,
+          'toolCallId': 'call-1',
+          'title': 'Run command',
+          'name': 'shell',
+          'rawInput': ['echo', 'hello'],
+          'rawOutput': {'exitCode': 0},
+        },
+      });
+      final wireUpdate =
+          roundTrip(notification.toJson())['update'] as Map<String, dynamic>;
+      expect(wireUpdate, containsPair('name', 'shell'));
+      expect(wireUpdate, containsPair('rawInput', ['echo', 'hello']));
+      expect(wireUpdate, containsPair('rawOutput', {'exitCode': 0}));
+    }
+  });
+
+  test('content chunks preserve message ids and metadata for each role', () {
+    for (final kind in [
+      'user_message_chunk',
+      'agent_message_chunk',
+      'agent_thought_chunk',
+    ]) {
+      final notification = SessionNotification.fromJson({
+        'sessionId': 's1',
+        'update': {
+          'sessionUpdate': kind,
+          'content': {'type': 'text', 'text': 'part'},
+          'messageId': 'message-1',
+          '_meta': {'trace': 1},
+        },
+      });
+      final encoded =
+          roundTrip(notification.toJson())['update'] as Map<String, dynamic>;
+      expect(encoded, containsPair('messageId', 'message-1'));
+      expect(encoded, containsPair('_meta', {'trace': 1}));
+    }
+  });
+
+  test(
+    'upstream numeric bounds and read-file default-on-error are applied',
+    () {
+      expect(
+        () => InitializeRequest.fromJson({'protocolVersion': 65536}),
+        throwsArgumentError,
+      );
+      expect(
+        () => InitializeRequest.fromJson({'protocolVersion': -1}),
+        throwsArgumentError,
+      );
+      final normalized = ReadTextFileRequest.fromJson({
+        'sessionId': 's1',
+        'path': '/file',
+        'line': -1,
+        'limit': 4294967296,
+      });
+      expect(normalized.line, isNull);
+      expect(normalized.limit, isNull);
+      final valid = ReadTextFileRequest.fromJson({
+        'sessionId': 's1',
+        'path': '/file',
+        'line': 0,
+        'limit': 4294967295,
+      });
+      expect(valid.line, 0);
+      expect(valid.limit, 4294967295);
+      expect(
+        ReadTextFileRequest.fromJson({
+          'sessionId': 's1',
+          'path': '/file',
+          'line': 2.0,
+          'limit': 3.25,
+        }).line,
+        2,
+      );
+      expect(
+        ReadTextFileRequest.fromJson({
+          'sessionId': 's1',
+          'path': '/file',
+          'limit': 3.25,
+        }).limit,
+        isNull,
+      );
+    },
+  );
 }

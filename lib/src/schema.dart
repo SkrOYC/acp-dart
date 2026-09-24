@@ -181,7 +181,7 @@ class InitializeRequest {
   });
 
   factory InitializeRequest.fromJson(Map<String, dynamic> json) =>
-      _$InitializeRequestFromJson(json);
+      _initializeRequestFromJson(json);
 
   Map<String, dynamic> toJson() => _$InitializeRequestToJson(this);
 }
@@ -1048,16 +1048,17 @@ class ResourceContentBlock extends ContentBlock {
   @JsonKey(name: '_meta', includeIfNull: false)
   final Map<String, dynamic>? meta;
   final Annotations? annotations;
-  final EmbeddedResource resource;
+  @EmbeddedResourceResourceConverter()
+  final EmbeddedResourceResource resource;
   @JsonKey(name: 'type')
   final String type;
 
   ResourceContentBlock({
     this.meta,
     this.annotations,
-    required this.resource,
+    required Object resource,
     this.type = 'resource',
-  });
+  }) : resource = _embeddedResourceContent(resource);
 
   factory ResourceContentBlock.fromJson(Map<String, dynamic> json) =>
       _$ResourceContentBlockFromJson(json);
@@ -1073,10 +1074,12 @@ class ToolCall {
   final List<ToolCallContent>? content;
   final ToolKind? kind;
   final List<ToolCallLocation>? locations;
-  final Map<String, dynamic>? rawInput;
-  final Map<String, dynamic>? rawOutput;
+  final Object? rawInput;
+  final Object? rawOutput;
   final ToolCallStatus? status;
   final String title;
+  @JsonKey(includeIfNull: false)
+  final String? name;
   final String toolCallId;
 
   ToolCall({
@@ -1088,6 +1091,7 @@ class ToolCall {
     this.rawOutput,
     this.status,
     required this.title,
+    this.name,
     required this.toolCallId,
   });
 
@@ -1144,7 +1148,9 @@ class ReadTextFileRequest {
   final Map<String, dynamic>? meta;
   final String sessionId;
   final String path;
+  @JsonKey(includeIfNull: false)
   final int? line;
+  @JsonKey(includeIfNull: false)
   final int? limit;
 
   ReadTextFileRequest({
@@ -1156,7 +1162,7 @@ class ReadTextFileRequest {
   });
 
   factory ReadTextFileRequest.fromJson(Map<String, dynamic> json) =>
-      _$ReadTextFileRequestFromJson(json);
+      _readTextFileRequestFromJson(json);
 
   Map<String, dynamic> toJson() => _$ReadTextFileRequestToJson(this);
 }
@@ -1223,10 +1229,12 @@ class ToolCallUpdate {
   final List<ToolCallContent>? content;
   final ToolKind? kind;
   final List<ToolCallLocation>? locations;
-  final Map<String, dynamic>? rawInput;
-  final Map<String, dynamic>? rawOutput;
+  final Object? rawInput;
+  final Object? rawOutput;
   final ToolCallStatus? status;
   final String? title;
+  @JsonKey(includeIfNull: false)
+  final String? name;
   final String toolCallId;
 
   ToolCallUpdate({
@@ -1238,6 +1246,7 @@ class ToolCallUpdate {
     this.rawOutput,
     this.status,
     this.title,
+    this.name,
     required this.toolCallId,
   });
 
@@ -1389,7 +1398,7 @@ class InitializeResponse {
   }) : authMethods = authMethods ?? const [];
 
   factory InitializeResponse.fromJson(Map<String, dynamic> json) =>
-      _$InitializeResponseFromJson(json);
+      _initializeResponseFromJson(json);
 
   Map<String, dynamic> toJson() => _$InitializeResponseToJson(this);
 }
@@ -1997,6 +2006,7 @@ class SessionConfigSelectOption {
   final Map<String, dynamic>? meta;
   final SessionConfigValueId value;
   final String name;
+  @JsonKey(includeIfNull: false)
   final String? description;
 
   SessionConfigSelectOption({
@@ -2012,7 +2022,7 @@ class SessionConfigSelectOption {
   Map<String, dynamic> toJson() => _$SessionConfigSelectOptionToJson(this);
 }
 
-@JsonSerializable()
+@JsonSerializable(explicitToJson: true)
 class SessionConfigSelectGroup {
   @JsonKey(name: '_meta', includeIfNull: false)
   final Map<String, dynamic>? meta;
@@ -2818,10 +2828,18 @@ class SessionNotification {
 
 @JsonSerializable()
 class UserMessageChunkSessionUpdate extends SessionUpdate {
+  @JsonKey(name: '_meta', includeIfNull: false)
+  final Map<String, dynamic>? meta;
+  @JsonKey(includeIfNull: false)
+  final String? messageId;
   @ContentBlockConverter()
   final ContentBlock content;
 
-  UserMessageChunkSessionUpdate({required this.content});
+  UserMessageChunkSessionUpdate({
+    this.meta,
+    this.messageId,
+    required this.content,
+  });
 
   factory UserMessageChunkSessionUpdate.fromJson(Map<String, dynamic> json) =>
       _$UserMessageChunkSessionUpdateFromJson(json);
@@ -2831,10 +2849,18 @@ class UserMessageChunkSessionUpdate extends SessionUpdate {
 
 @JsonSerializable()
 class AgentMessageChunkSessionUpdate extends SessionUpdate {
+  @JsonKey(name: '_meta', includeIfNull: false)
+  final Map<String, dynamic>? meta;
+  @JsonKey(includeIfNull: false)
+  final String? messageId;
   @ContentBlockConverter()
   final ContentBlock content;
 
-  AgentMessageChunkSessionUpdate({required this.content});
+  AgentMessageChunkSessionUpdate({
+    this.meta,
+    this.messageId,
+    required this.content,
+  });
 
   factory AgentMessageChunkSessionUpdate.fromJson(Map<String, dynamic> json) =>
       _$AgentMessageChunkSessionUpdateFromJson(json);
@@ -2844,10 +2870,18 @@ class AgentMessageChunkSessionUpdate extends SessionUpdate {
 
 @JsonSerializable()
 class AgentThoughtChunkSessionUpdate extends SessionUpdate {
+  @JsonKey(name: '_meta', includeIfNull: false)
+  final Map<String, dynamic>? meta;
+  @JsonKey(includeIfNull: false)
+  final String? messageId;
   @ContentBlockConverter()
   final ContentBlock content;
 
-  AgentThoughtChunkSessionUpdate({required this.content});
+  AgentThoughtChunkSessionUpdate({
+    this.meta,
+    this.messageId,
+    required this.content,
+  });
 
   factory AgentThoughtChunkSessionUpdate.fromJson(Map<String, dynamic> json) =>
       _$AgentThoughtChunkSessionUpdateFromJson(json);
@@ -2865,10 +2899,12 @@ class ToolCallSessionUpdate extends SessionUpdate {
   final List<ToolCallContent>? content;
   final ToolKind? kind;
   final List<ToolCallLocation>? locations;
-  final Map<String, dynamic>? rawInput;
-  final Map<String, dynamic>? rawOutput;
+  final Object? rawInput;
+  final Object? rawOutput;
   final ToolCallStatus? status;
   final String title;
+  @JsonKey(includeIfNull: false)
+  final String? name;
   final String toolCallId;
 
   ToolCallSessionUpdate({
@@ -2880,6 +2916,7 @@ class ToolCallSessionUpdate extends SessionUpdate {
     this.rawOutput,
     this.status,
     required this.title,
+    this.name,
     required this.toolCallId,
   });
 
@@ -2897,10 +2934,12 @@ class ToolCallUpdateSessionUpdate extends SessionUpdate {
   final List<ToolCallContent>? content;
   final ToolKind? kind;
   final List<ToolCallLocation>? locations;
-  final Map<String, dynamic>? rawInput;
-  final Map<String, dynamic>? rawOutput;
+  final Object? rawInput;
+  final Object? rawOutput;
   final ToolCallStatus? status;
   final String? title;
+  @JsonKey(includeIfNull: false)
+  final String? name;
   final String toolCallId;
 
   ToolCallUpdateSessionUpdate({
@@ -2912,6 +2951,7 @@ class ToolCallUpdateSessionUpdate extends SessionUpdate {
     this.rawOutput,
     this.status,
     this.title,
+    this.name,
     required this.toolCallId,
   });
 
@@ -3021,6 +3061,63 @@ class UnknownSessionUpdate extends SessionUpdate {
       _$UnknownSessionUpdateFromJson(json);
   Map<String, dynamic> toJson() => _$UnknownSessionUpdateToJson(this);
 }
+
+EmbeddedResourceResource _embeddedResourceContent(Object resource) {
+  if (resource is EmbeddedResource) return resource.resource;
+  if (resource is EmbeddedResourceResource) return resource;
+  if (resource is Map) {
+    return const EmbeddedResourceResourceConverter().fromJson(
+      Map<String, dynamic>.from(resource),
+    );
+  }
+  throw ArgumentError.value(resource, 'resource', 'Expected resource contents');
+}
+
+int _requiredUInt16(Object? value, String field) {
+  if (value is num && value.isFinite && value == value.truncateToDouble()) {
+    final parsed = value.toInt();
+    if (parsed >= 0 && parsed <= 65535) return parsed;
+  }
+  throw ArgumentError.value(
+    value,
+    field,
+    'Expected an unsigned 16-bit integer',
+  );
+}
+
+int? _optionalUInt32(Object? value) {
+  if (value == null) return null;
+  if (value is num && value.isFinite && value == value.truncateToDouble()) {
+    final parsed = value.toInt();
+    if (parsed >= 0 && parsed <= 4294967295) return parsed;
+  }
+  return null;
+}
+
+InitializeRequest _initializeRequestFromJson(Map<String, dynamic> json) =>
+    _$InitializeRequestFromJson({
+      ...json,
+      'protocolVersion': _requiredUInt16(
+        json['protocolVersion'],
+        'protocolVersion',
+      ),
+    });
+
+InitializeResponse _initializeResponseFromJson(Map<String, dynamic> json) =>
+    _$InitializeResponseFromJson({
+      ...json,
+      'protocolVersion': _requiredUInt16(
+        json['protocolVersion'],
+        'protocolVersion',
+      ),
+    });
+
+ReadTextFileRequest _readTextFileRequestFromJson(Map<String, dynamic> json) =>
+    _$ReadTextFileRequestFromJson({
+      ...json,
+      'line': _optionalUInt32(json['line']),
+      'limit': _optionalUInt32(json['limit']),
+    });
 
 /// Protocol method constants for agent-side requests
 const agentMethods = {
