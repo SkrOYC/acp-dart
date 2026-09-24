@@ -31,6 +31,31 @@ class ErrorResponse {
 /// Type alias for request handler function
 typedef RequestHandler =
     Future<dynamic> Function(String method, dynamic params);
+typedef RequestContextHandler =
+    Future<dynamic> Function(
+      String method,
+      dynamic params,
+      RequestContext context,
+    );
+
+/// Cancellation state associated with one incoming JSON-RPC request.
+class RequestContext {
+  final Object? requestId;
+  final Completer<void> _cancelled = Completer<void>();
+  Object? _reason;
+
+  RequestContext({required this.requestId});
+
+  bool get isCancelled => _cancelled.isCompleted;
+  Future<void> get cancelled => _cancelled.future;
+  Object? get cancelReason => _reason;
+
+  void cancel([Object? reason]) {
+    if (_cancelled.isCompleted) return;
+    _reason = reason ?? RequestError.requestCancelled();
+    _cancelled.complete();
+  }
+}
 
 /// Type alias for notification handler function
 typedef NotificationHandler =
@@ -117,19 +142,77 @@ class RequestError implements Exception {
 /// Base connection class for managing JSON-RPC communication over ACP streams
 class Connection {
   final Map<dynamic, _PendingResponse> _pendingResponses = {};
-  final Set<dynamic> _locallyCancelledRequests = {};
+  final Map<dynamic, RequestContext> _incomingRequests = {};
   int _nextRequestId = 0;
   final RequestHandler _requestHandler;
+  final RequestContextHandler? _requestContextHandler;
   final NotificationHandler _notificationHandler;
   final AcpStream _stream;
   Future<void> _writeQueue = Future.value();
+  final Completer<void> _closedCompleter = Completer<void>();
+  StreamSubscription<Map<String, dynamic>>? _subscription;
+  bool _isClosed = false;
+  Object? _closeReason;
 
-  Connection(this._requestHandler, this._notificationHandler, this._stream) {
+  Connection(
+    this._requestHandler,
+    this._notificationHandler,
+    this._stream, {
+    RequestContextHandler? requestContextHandler,
+  }) : _requestContextHandler = requestContextHandler {
     _receive();
+  }
+
+  /// Completes when the underlying stream ends or [close] is called.
+  Future<void> get closed => _closedCompleter.future;
+
+  /// Whether this connection has stopped accepting messages.
+  bool get isClosed => _isClosed;
+
+  /// The reason the connection closed, if it closed with an error.
+  Object? get closeReason => _closeReason;
+
+  /// Closes the connection and rejects every pending request.
+  void close([Object? error]) {
+    if (_isClosed) return;
+    _isClosed = true;
+    _closeReason = error ?? StateError('ACP connection closed');
+    for (final pending in _pendingResponses.values) {
+      pending.reject(_closeReason);
+    }
+    _pendingResponses.clear();
+    for (final context in _incomingRequests.values) {
+      context.cancel(_closeReason);
+    }
+    _incomingRequests.clear();
+    final subscription = _subscription;
+    if (subscription != null) {
+      scheduleMicrotask(subscription.cancel);
+    }
+    if (!_closedCompleter.isCompleted) _closedCompleter.complete();
   }
 
   /// Sends a request and returns a future that completes with the response
   Future<T> sendRequest<T>(String method, [dynamic params]) {
+    return _sendRequest<T>(method, params);
+  }
+
+  /// Sends a request and notifies the peer when [cancellation] completes.
+  /// The response future remains pending until the peer responds or closes.
+  Future<T> sendRequestWithCancellation<T>(
+    String method, {
+    required Future<void> cancellation,
+    dynamic params,
+  }) {
+    return _sendRequest<T>(method, params, cancellation: cancellation);
+  }
+
+  Future<T> _sendRequest<T>(
+    String method,
+    dynamic params, {
+    Future<void>? cancellation,
+  }) {
+    if (_isClosed) return Future<T>.error(_closeReason!);
     final id = _nextRequestId++;
     final completer = Completer<T>();
     _pendingResponses[id] = _PendingResponse(
@@ -141,12 +224,32 @@ class Connection {
       'id': id,
       'method': method,
       if (params != null) 'params': params,
+    }).catchError((Object error) {
+      final pending = _pendingResponses.remove(id);
+      pending?.reject(error);
+      close(error);
     });
+    if (cancellation != null) {
+      unawaited(
+        cancellation
+            .then<void>((_) async {
+              if (_pendingResponses.containsKey(id) && !_isClosed) {
+                await sendCancelRequestNotification(
+                  CancelRequestNotification(requestId: id),
+                );
+              }
+            })
+            .catchError((Object error) async {
+              close(error);
+            }),
+      );
+    }
     return completer.future;
   }
 
   /// Sends a notification (no response expected)
   Future<void> sendNotification(String method, [dynamic params]) {
+    if (_isClosed) return Future<void>.error(_closeReason!);
     return _sendMessage({
       'jsonrpc': '2.0',
       'method': method,
@@ -166,40 +269,52 @@ class Connection {
     RequestId requestId, {
     Map<String, dynamic>? meta,
   }) async {
-    final pending = _pendingResponses.remove(requestId);
-    if (pending != null) {
-      pending.reject(
-        RequestError.requestCancelled({
-          'requestId': requestId,
-        }).toErrorResponse().toJson(),
-      );
-    }
-    _locallyCancelledRequests.add(requestId);
+    final pending = _pendingResponses.containsKey(requestId);
     await sendCancelRequestNotification(
       CancelRequestNotification(meta: meta, requestId: requestId),
     );
-    return pending != null;
+    return pending;
   }
 
   /// Starts receiving messages from the stream
   void _receive() {
-    _stream.readable.listen(
+    _subscription = _stream.readable.listen(
       _processMessage,
       onError: (error) {
-        print('Error receiving message: $error');
+        close(error as Object);
       },
       onDone: () {
-        // Stream closed
+        close();
       },
     );
   }
 
   /// Processes an incoming message
   void _processMessage(Map<String, dynamic> message) {
+    if (_isClosed) return;
     try {
+      if (!_isValidMessage(message)) {
+        final id = message['id'];
+        if (!message.containsKey('method') && message.containsKey('id')) {
+          final pending = _pendingResponses.remove(id);
+          pending?.reject(RequestError.invalidRequest(message));
+          return;
+        }
+        if (message.containsKey('id')) {
+          final validId = id == null || id is String || id is int;
+          _sendMessage({
+            'jsonrpc': '2.0',
+            'id': validId ? id : null,
+            'error': RequestError.invalidRequest(
+              message,
+            ).toErrorResponse().toJson(),
+          }).catchError((Object error) => close(error));
+        }
+        return;
+      }
       if (message.containsKey('method') && message.containsKey('id')) {
         // It's a request
-        _handleRequest(message);
+        unawaited(_handleRequest(message));
       } else if (message.containsKey('method')) {
         // It's a notification
         _handleNotification(message);
@@ -207,33 +322,70 @@ class Connection {
         // It's a response
         _handleResponse(message);
       } else {
-        print('Invalid message: $message');
+        return;
       }
     } catch (error) {
-      print('Error processing message $message: $error');
-      // Send error response if it was a request
       if (message.containsKey('id')) {
         _sendMessage({
           'jsonrpc': '2.0',
           'id': message['id'],
-          'error': {'code': -32700, 'message': 'Parse error'},
-        });
+          'error': RequestError.internalError().toErrorResponse().toJson(),
+        }).catchError((Object writeError) => close(writeError));
+      } else {
+        close(error);
       }
     }
   }
 
+  bool _isValidMessage(Map<String, dynamic> message) {
+    if (message['jsonrpc'] != '2.0') return false;
+    final id = message['id'];
+    final validId = id == null || id is String || (id is int && id is! bool);
+    if (message.containsKey('method')) {
+      return message['method'] is String &&
+          (!message.containsKey('id') || validId);
+    }
+    if (!message.containsKey('id') || !validId) return false;
+    final hasResult = message.containsKey('result');
+    final hasError = message.containsKey('error');
+    if (hasResult == hasError) return false;
+    if (!hasError) return true;
+    final error = message['error'];
+    return error is Map && error['code'] is int && error['message'] is String;
+  }
+
   /// Handles incoming request
-  void _handleRequest(Map<String, dynamic> message) async {
+  Future<void> _handleRequest(Map<String, dynamic> message) async {
     final method = message['method'] as String;
     final params = message['params'];
     final id = message['id'];
 
+    final context = RequestContext(requestId: id);
+    _incomingRequests[id] = context;
     try {
-      final result = await _requestHandler(method, params);
-      _sendMessage({'jsonrpc': '2.0', 'id': id, 'result': result});
+      dynamic result;
+      try {
+        result = _requestContextHandler == null
+            ? await _requestHandler(method, params)
+            : await _requestContextHandler(method, params, context);
+      } catch (error) {
+        final errorResponse = _mapRequestError(
+          error,
+        ).toErrorResponse().toJson();
+        await _sendMessage({
+          'jsonrpc': '2.0',
+          'id': id,
+          'error': errorResponse,
+        });
+        return;
+      }
+      await _sendMessage({'jsonrpc': '2.0', 'id': id, 'result': result});
     } catch (error) {
-      final errorResponse = _mapRequestError(error).toErrorResponse().toJson();
-      _sendMessage({'jsonrpc': '2.0', 'id': id, 'error': errorResponse});
+      close(error);
+    } finally {
+      if (identical(_incomingRequests[id], context)) {
+        _incomingRequests.remove(id);
+      }
     }
   }
 
@@ -269,6 +421,12 @@ class Connection {
     final method = message['method'] as String;
     final params = message['params'];
 
+    if (method == r'$/cancel_request' && params is Map) {
+      final requestId = params['requestId'];
+      final context = _incomingRequests[requestId];
+      context?.cancel(RequestError.requestCancelled({'requestId': requestId}));
+    }
+
     try {
       await _notificationHandler(method, params);
     } catch (error) {
@@ -279,16 +437,20 @@ class Connection {
   /// Handles incoming response
   void _handleResponse(Map<String, dynamic> message) {
     final id = message['id'];
-    if (_locallyCancelledRequests.remove(id)) {
-      return;
-    }
     final pending = _pendingResponses.remove(id);
 
     if (pending != null) {
       if (message.containsKey('result')) {
         pending.resolve(message['result']);
       } else if (message.containsKey('error')) {
-        pending.reject(message['error']);
+        final error = message['error'] as Map<String, dynamic>;
+        pending.reject(
+          RequestError(
+            error['code'] as int,
+            error['message'] as String,
+            error['data'],
+          ),
+        );
       }
     } else {
       print('Received response for unknown request id: $id');
@@ -297,14 +459,15 @@ class Connection {
 
   /// Sends a message through the stream with queuing
   Future<void> _sendMessage(Map<String, dynamic> message) {
-    _writeQueue = _writeQueue.then((_) async {
-      try {
-        _stream.writable.add(message);
-      } catch (error) {
-        print('Error sending message: $error');
-      }
+    if (_isClosed) return Future<void>.error(_closeReason!);
+    final write = _writeQueue.then<void>((_) async {
+      if (_isClosed) throw _closeReason!;
+      _stream.writable.add(message);
     });
-    return _writeQueue;
+    _writeQueue = write.catchError((Object error) async {
+      close(error);
+    });
+    return write;
   }
 }
 
@@ -626,7 +789,9 @@ class AgentSideConnection implements Client {
       clientMethods['terminalOutput']!,
       params.toJson(),
     );
-    return TerminalOutputResponse.fromJson(result as Map<String, dynamic>);
+    return result is TerminalOutputResponse
+        ? result
+        : TerminalOutputResponse.fromJson(result as Map<String, dynamic>);
   }
 
   @override
@@ -648,7 +813,9 @@ class AgentSideConnection implements Client {
       clientMethods['terminalWaitForExit']!,
       params.toJson(),
     );
-    return WaitForTerminalExitResponse.fromJson(result as Map<String, dynamic>);
+    return result is WaitForTerminalExitResponse
+        ? result
+        : WaitForTerminalExitResponse.fromJson(result as Map<String, dynamic>);
   }
 
   @override
@@ -659,7 +826,9 @@ class AgentSideConnection implements Client {
       clientMethods['terminalKill']!,
       params.toJson(),
     );
-    return KillTerminalCommandResponse.fromJson(result as Map<String, dynamic>);
+    return result is KillTerminalCommandResponse
+        ? result
+        : KillTerminalCommandResponse.fromJson(result as Map<String, dynamic>);
   }
 
   @override
@@ -1153,10 +1322,12 @@ class TerminalHandle implements AsyncDisposable {
   /// Returns the current stdout, stderr, and exit status if the command
   /// has already completed.
   Future<TerminalOutputResponse> currentOutput() async {
-    return await _connection.sendRequest(clientMethods['terminalOutput']!, {
-      'sessionId': _sessionId,
-      'terminalId': id,
-    });
+    final result = await _connection.sendRequest<dynamic>(
+      clientMethods['terminalOutput']!,
+      {'sessionId': _sessionId, 'terminalId': id},
+    );
+    if (result is TerminalOutputResponse) return result;
+    return TerminalOutputResponse.fromJson(result as Map<String, dynamic>);
   }
 
   /// Waits for the terminal command to complete and returns its exit status.
@@ -1164,10 +1335,12 @@ class TerminalHandle implements AsyncDisposable {
   /// This method blocks until the command finishes execution, then returns
   /// the exit code that indicates the command's success or failure.
   Future<WaitForTerminalExitResponse> waitForExit() async {
-    return await _connection.sendRequest(
+    final result = await _connection.sendRequest<dynamic>(
       clientMethods['terminalWaitForExit']!,
       {'sessionId': _sessionId, 'terminalId': id},
     );
+    if (result is WaitForTerminalExitResponse) return result;
+    return WaitForTerminalExitResponse.fromJson(result as Map<String, dynamic>);
   }
 
   /// Kills the terminal command without releasing the terminal.
@@ -1179,10 +1352,12 @@ class TerminalHandle implements AsyncDisposable {
   ///
   /// Useful for implementing timeouts or cancellation.
   Future<KillTerminalCommandResponse> kill() async {
-    return await _connection.sendRequest(clientMethods['terminalKill']!, {
-      'sessionId': _sessionId,
-      'terminalId': id,
-    });
+    final result = await _connection.sendRequest<dynamic>(
+      clientMethods['terminalKill']!,
+      {'sessionId': _sessionId, 'terminalId': id},
+    );
+    if (result is KillTerminalCommandResponse) return result;
+    return KillTerminalCommandResponse.fromJson(result as Map<String, dynamic>);
   }
 
   /// Releases the terminal and frees all associated resources.
@@ -1196,10 +1371,13 @@ class TerminalHandle implements AsyncDisposable {
   ///
   /// **Important:** Always call this method when done with the terminal.
   Future<ReleaseTerminalResponse> release() async {
-    return await _connection.sendRequest(clientMethods['terminalRelease']!, {
-      'sessionId': _sessionId,
-      'terminalId': id,
-    });
+    final result = await _connection.sendRequest<dynamic>(
+      clientMethods['terminalRelease']!,
+      {'sessionId': _sessionId, 'terminalId': id},
+    );
+    return result is ReleaseTerminalResponse
+        ? result
+        : ReleaseTerminalResponse.fromJson(result as Map<String, dynamic>);
   }
 
   /// Disposes of the terminal handle and releases resources.

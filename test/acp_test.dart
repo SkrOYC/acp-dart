@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:acp_dart/src/acp.dart';
 import 'package:acp_dart/src/schema.dart';
@@ -173,6 +174,207 @@ void main() {
       await writableController.close();
     });
 
+    test('EOF rejects pending requests and future sends', () async {
+      final readable = StreamController<Map<String, dynamic>>();
+      final writable = StreamController<Map<String, dynamic>>();
+      final connection = Connection(
+        (_, _) async => null,
+        (_, _) async {},
+        AcpStream(readable: readable.stream, writable: writable.sink),
+      );
+      final writableSubscription = writable.stream.listen((_) {});
+      final pending = connection.sendRequest<Object?>('pending');
+      final error = expectLater(pending, throwsA(isA<StateError>()));
+      await readable.close();
+      await error;
+      await expectLater(
+        connection.sendRequest<Object?>('after-close'),
+        throwsA(isA<StateError>()),
+      );
+      await writable.close();
+      await writableSubscription.cancel();
+    });
+
+    test(
+      'write failure rejects pending request and closes connection',
+      () async {
+        final readable = StreamController<Map<String, dynamic>>();
+        final writable = StreamController<Map<String, dynamic>>();
+        final writableSubscription = writable.stream.listen((_) {});
+        await writable.close();
+        final connection = Connection(
+          (_, _) async => null,
+          (_, _) async {},
+          AcpStream(readable: readable.stream, writable: writable.sink),
+        );
+        await expectLater(
+          connection.sendRequest<Object?>('cannot-write'),
+          throwsA(isA<StateError>()),
+        );
+        expect(connection.isClosed, isTrue);
+        await readable.close();
+        await writableSubscription.cancel();
+      },
+    );
+
+    test('malformed requests receive invalid-request response', () async {
+      final readable = StreamController<Map<String, dynamic>>();
+      final writable = StreamController<Map<String, dynamic>>();
+      final connection = Connection(
+        (_, _) async => null,
+        (_, _) async {},
+        AcpStream(readable: readable.stream, writable: writable.sink),
+      );
+      readable.add({'id': 42, 'method': 'missing.version'});
+      final response = await writable.stream.first;
+      expect(response['id'], 42);
+      expect(response['error']['code'], -32600);
+      expect(connection.isClosed, isFalse);
+      await readable.close();
+      await writable.close();
+    });
+
+    test('stable NDJSON connections close on JSON-RPC batches', () async {
+      final input = StreamController<List<int>>();
+      final output = StreamController<List<int>>();
+      final outputSubscription = output.stream.listen((_) {});
+      var calls = 0;
+      final connection = Connection(
+        (_, _) async {
+          calls++;
+          return null;
+        },
+        (_, _) async {},
+        ndJsonStream(input.stream, output.sink),
+      );
+      input.add(utf8.encode('[{"jsonrpc":"2.0","id":1,"method":"x"}]\n'));
+      await connection.closed;
+      expect(connection.closeReason, isA<TypeError>());
+      expect(calls, 0);
+      await input.close();
+      await output.close();
+      await outputSubscription.cancel();
+    });
+
+    test('remote JSON-RPC errors become RequestError', () async {
+      final readable = StreamController<Map<String, dynamic>>();
+      final writable = StreamController<Map<String, dynamic>>();
+      final writableSubscription = writable.stream.listen((_) {});
+      final connection = Connection(
+        (_, _) async => null,
+        (_, _) async {},
+        AcpStream(readable: readable.stream, writable: writable.sink),
+      );
+      final pending = connection.sendRequest<Object?>('fails');
+      readable.add({
+        'jsonrpc': '2.0',
+        'id': 0,
+        'error': {
+          'code': -32000,
+          'message': 'denied',
+          'data': {'x': 1},
+        },
+      });
+      await expectLater(
+        pending,
+        throwsA(
+          isA<RequestError>().having((e) => e.code, 'code', -32000).having(
+            (e) => e.data,
+            'data',
+            {'x': 1},
+          ),
+        ),
+      );
+      await readable.close();
+      await writable.close();
+      await writableSubscription.cancel();
+    });
+
+    test('malformed response rejects its matching request', () async {
+      final readable = StreamController<Map<String, dynamic>>();
+      final writable = StreamController<Map<String, dynamic>>();
+      final writableSubscription = writable.stream.listen((_) {});
+      final connection = Connection(
+        (_, _) async => null,
+        (_, _) async {},
+        AcpStream(readable: readable.stream, writable: writable.sink),
+      );
+      final pending = connection.sendRequest<Object?>('waiting');
+      readable.add({'jsonrpc': '2.0', 'id': 0, 'result': null, 'error': {}});
+      await expectLater(pending, throwsA(isA<RequestError>()));
+      expect(connection.isClosed, isFalse);
+      await readable.close();
+      await writable.close();
+      await writableSubscription.cancel();
+    });
+
+    test('cancel notification preserves the pending response future', () async {
+      final readable = StreamController<Map<String, dynamic>>();
+      final writable = StreamController<Map<String, dynamic>>();
+      final sent = <Map<String, dynamic>>[];
+      final subscription = writable.stream.listen(sent.add);
+      final connection = Connection(
+        (_, _) async => null,
+        (_, _) async {},
+        AcpStream(readable: readable.stream, writable: writable.sink),
+      );
+      final pending = connection.sendRequest<String>('cooperative');
+      await Future<void>.delayed(Duration.zero);
+      expect(await connection.cancelPendingRequest(0), isTrue);
+      readable.add({'jsonrpc': '2.0', 'id': 0, 'result': 'completed'});
+      expect(await pending, 'completed');
+      expect(sent.map((m) => m['method']), [
+        'cooperative',
+        r'$/cancel_request',
+      ]);
+      await readable.close();
+      await writable.close();
+      await subscription.cancel();
+    });
+
+    test(
+      r'$/cancel_request reaches an active handler over NDJSON streams',
+      () async {
+        final aToB = StreamController<List<int>>();
+        final bToA = StreamController<List<int>>();
+        final streamA = ndJsonStream(bToA.stream, aToB.sink);
+        final streamB = ndJsonStream(aToB.stream, bToA.sink);
+        final started = Completer<void>();
+        final connectionA = Connection(
+          (_, _) async => null,
+          (_, _) async {},
+          streamA,
+        );
+        final connectionB = Connection(
+          (_, _) async => null,
+          (_, _) async {},
+          streamB,
+          requestContextHandler: (method, params, context) async {
+            started.complete();
+            await context.cancelled;
+            return {'cancelled': context.isCancelled};
+          },
+        );
+
+        final cancelSignal = Completer<void>();
+        final response = connectionA
+            .sendRequestWithCancellation<Map<String, dynamic>>(
+              'wait',
+              cancellation: cancelSignal.future,
+            );
+        await started.future;
+        cancelSignal.complete();
+        expect(await response, {'cancelled': true});
+
+        connectionA.close();
+        connectionB.close();
+        await streamA.writable.close();
+        await streamB.writable.close();
+        await aToB.close();
+        await bToA.close();
+      },
+    );
+
     test('sendNotification sends correct message', () async {
       final readableController = StreamController<Map<String, dynamic>>();
       final writableController = StreamController<Map<String, dynamic>>();
@@ -236,7 +438,7 @@ void main() {
     );
 
     test(
-      'cancelPendingRequest rejects local future and ignores late response',
+      'cancelPendingRequest notifies peer and preserves local future',
       () async {
         final readableController = StreamController<Map<String, dynamic>>();
         final writableController = StreamController<Map<String, dynamic>>();
@@ -255,17 +457,6 @@ void main() {
         final subscription = writableController.stream.listen(sentMessages.add);
 
         final responseFuture = connection.sendRequest<String>('long.running');
-        final responseErrorExpectation = expectLater(
-          responseFuture,
-          throwsA(
-            predicate(
-              (error) =>
-                  error is Map<String, dynamic> &&
-                  error['code'] == -32800 &&
-                  error['message'] == 'Cancelled',
-            ),
-          ),
-        );
         await Future.delayed(Duration.zero);
 
         final requestMessage = sentMessages.first;
@@ -279,14 +470,12 @@ void main() {
         expect(sentMessages[1]['method'], equals(r'$/cancel_request'));
         expect(sentMessages[1]['params'], {'requestId': requestId});
 
-        await responseErrorExpectation;
-
         readableController.add({
           'jsonrpc': '2.0',
           'id': requestId,
           'result': 'late response',
         });
-        await Future.delayed(Duration(milliseconds: 20));
+        expect(await responseFuture, 'late response');
 
         await subscription.cancel();
         await readableController.close();
@@ -1535,6 +1724,39 @@ void main() {
       expect(result, isA<ReleaseTerminalResponse>());
     });
 
+    test('decodes response from a real NDJSON connection', () async {
+      final input = StreamController<List<int>>();
+      final output = StreamController<List<int>>();
+      final ndjson = ndJsonStream(input.stream, output.sink);
+      final written = output.stream.listen((bytes) {
+        final request = jsonDecode(utf8.decode(bytes)) as Map<String, dynamic>;
+        input.add(
+          utf8.encode(
+            '${jsonEncode({
+              'jsonrpc': '2.0',
+              'id': request['id'],
+              'result': {'output': 'ready', 'truncated': false},
+            })}\n',
+          ),
+        );
+      });
+      final connection = Connection(
+        (_, _) async => null,
+        (_, _) async {},
+        ndjson,
+      );
+      final result = await TerminalHandle(
+        't1',
+        's1',
+        connection,
+      ).currentOutput();
+      expect(result, isA<TerminalOutputResponse>());
+      expect(result.output, 'ready');
+      await written.cancel();
+      await input.close();
+      await output.close();
+    });
+
     test('dispose completes without error', () async {
       mockConnection.mockResponse = ReleaseTerminalResponse();
       await expectLater(terminalHandle.dispose(), completes);
@@ -1887,11 +2109,30 @@ class MockConnection implements Connection {
   dynamic lastParams;
 
   @override
+  Future<void> get closed => Future<void>.value();
+
+  @override
+  bool get isClosed => false;
+
+  @override
+  Object? get closeReason => null;
+
+  @override
+  void close([Object? error]) {}
+
+  @override
   Future<T> sendRequest<T>(String method, [dynamic params]) async {
     lastMethod = method;
     lastParams = params;
     return mockResponse as T;
   }
+
+  @override
+  Future<T> sendRequestWithCancellation<T>(
+    String method, {
+    required Future<void> cancellation,
+    dynamic params,
+  }) => sendRequest<T>(method, params);
 
   @override
   Future<void> sendNotification(String method, [dynamic params]) async {
