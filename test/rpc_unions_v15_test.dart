@@ -1,5 +1,5 @@
 import 'package:acp_dart/src/rpc_unions.dart';
-import 'package:acp_dart/src/acp.dart' show LogoutResponse;
+import 'package:acp_dart/src/acp.dart' show LogoutRequest, LogoutResponse;
 import 'package:acp_dart/src/schema.dart';
 import 'package:acp_dart/src/schema_v15_client.dart';
 import 'package:acp_dart/src/schema_v15_experimental.dart';
@@ -138,6 +138,34 @@ void main() {
     expect(response.result, isA<V15MessageMcpResponse>());
   });
 
+  test('logout and NES requests decode to available models', () {
+    final cases = <(String, Map<String, dynamic>, Type)>[
+      ('logout', {}, LogoutRequest),
+      ('nes/start', {}, V15StartNesRequest),
+      (
+        'nes/suggest',
+        {
+          'sessionId': 's1',
+          'uri': 'file:///a.dart',
+          'version': 1,
+          'position': {'line': 2, 'character': 4},
+          'triggerKind': 'automatic',
+        },
+        V15SuggestNesRequest,
+      ),
+      ('nes/close', {'sessionId': 's1'}, V15CloseNesRequest),
+    ];
+    for (final (method, params, expectedType) in cases) {
+      final request = V15ClientRequest.fromJson({
+        'id': 1,
+        'method': method,
+        'params': params,
+      });
+      expect(request.params.runtimeType, expectedType, reason: method);
+      expect(request.toJson()['params'], params, reason: method);
+    }
+  });
+
   test('stable response methods decode to existing response models', () {
     final cases = <(bool, String, Map<String, dynamic>, Type)>[
       (false, 'authenticate', {}, AuthenticateResponse),
@@ -203,16 +231,17 @@ void main() {
     }
   });
 
-  test('unsupported complex known method uses explicit raw JSON payload', () {
+  test('future method payload uses explicit raw JSON variant', () {
     final request = V15ClientRequest.fromJson({
       'id': 2,
-      'method': 'nes/suggest',
+      'method': 'vendor/suggest',
       'params': {
         'sessionId': 's',
         'document': {'uri': 'file:///a'},
       },
     });
     expect(request.params, isA<V15RawJsonPayload>());
+    expect(request.isKnownMethod, isFalse);
     expect(request.toJson()['params'], {
       'sessionId': 's',
       'document': {'uri': 'file:///a'},

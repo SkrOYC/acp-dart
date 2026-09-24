@@ -45,7 +45,7 @@ library;
 
 import 'package:collection/collection.dart';
 
-import 'acp.dart' show LogoutResponse;
+import 'acp.dart' show LogoutRequest, LogoutResponse;
 import 'schema.dart';
 import 'schema_v15_client.dart';
 import 'schema_v15_experimental.dart';
@@ -917,6 +917,8 @@ Object? _decode(String method, Object? value) {
       return InitializeRequest.fromJson(json);
     case 'authenticate':
       return AuthenticateRequest.fromJson(json);
+    case 'logout':
+      return LogoutRequest.fromJson(json);
     case 'session/request_permission':
       return RequestPermissionRequest.fromJson(json);
     case 'fs/write_text_file':
@@ -955,6 +957,12 @@ Object? _decode(String method, Object? value) {
       return V15AcceptNesNotification.fromJson(json);
     case 'nes/reject':
       return V15RejectNesNotification.fromJson(json);
+    case 'nes/start':
+      return V15StartNesRequest.fromJson(json);
+    case 'nes/suggest':
+      return V15SuggestNesRequest.fromJson(json);
+    case 'nes/close':
+      return V15CloseNesRequest.fromJson(json);
     case 'session/new':
       return NewSessionRequest.fromJson(json);
     case 'session/load':
