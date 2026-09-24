@@ -51,6 +51,10 @@ const _clientMethods = <String>{
 };
 
 void main() {
+  test('protocol version matches upstream v1.5.0', () {
+    expect(acpProtocolVersion, 1);
+  });
+
   test('agent method inventory covers upstream v1.5.0', () {
     expect(agentMethods.values.toSet(), containsAll(_agentMethods));
   });
