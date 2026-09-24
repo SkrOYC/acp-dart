@@ -34,7 +34,7 @@ Future<dynamic> _wireRequest(
     (method, params) async {},
     ndJsonStream(bToA.stream, aToB.sink),
   );
-  final b = Connection(
+  Connection(
     (receivedMethod, receivedParams) async {
       expect(receivedMethod, method);
       expect(receivedParams, params);
