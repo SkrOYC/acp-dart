@@ -1,5 +1,6 @@
 // Experimental payloads from the TypeScript SDK v1.5 schema.
 import 'schema.dart';
+import 'content_block_converter.dart';
 
 typedef V15Json = Map<String, dynamic>;
 
@@ -605,18 +606,20 @@ class V15RejectNesNotification extends V15AcceptNesNotification {
     super.extras,
     this.reason,
   });
-  factory V15RejectNesNotification.fromJson(V15Json json) =>
-      V15RejectNesNotification(
-        sessionId: json['sessionId'] as String,
-        id: json['id'] as String,
-        reason: json['reason'] as String?,
-        meta: _metaValue(json),
-        extras: _extras(
-          json,
-          {'sessionId', 'id', 'reason', '_meta'},
-          {'reason'},
-        ),
-      );
+  factory V15RejectNesNotification.fromJson(V15Json json) {
+    final reason = json['reason'] as String?;
+    if (reason != null &&
+        !{'rejected', 'ignored', 'replaced', 'cancelled'}.contains(reason)) {
+      throw FormatException('Invalid NES rejection reason: $reason');
+    }
+    return V15RejectNesNotification(
+      sessionId: json['sessionId'] as String,
+      id: json['id'] as String,
+      reason: reason,
+      meta: _metaValue(json),
+      extras: _extras(json, {'sessionId', 'id', 'reason', '_meta'}, {'reason'}),
+    );
+  }
   @override
   V15Json toJson() => _encode(extras, {
     'sessionId': sessionId,
@@ -1114,7 +1117,8 @@ class V15PlanUpdate {
 class V15CompactionUpdate {
   final String compactionId;
   final String status;
-  final List<V15Json>? summary;
+  final List<ContentBlock>? summary;
+  final List<V15Json>? originalSummary;
   final String? error;
   final Object? meta;
   final V15Json extras;
@@ -1122,6 +1126,7 @@ class V15CompactionUpdate {
     required this.compactionId,
     required this.status,
     this.summary,
+    this.originalSummary,
     this.error,
     this.meta,
     V15Json? extras,
@@ -1130,6 +1135,12 @@ class V15CompactionUpdate {
     compactionId: json['compactionId'] as String,
     status: json['status'] as String,
     summary: json['summary'] == null
+        ? null
+        : _objectList(
+            json['summary'],
+            'summary',
+          ).map(const ContentBlockConverter().fromJson).toList(),
+    originalSummary: json['summary'] == null
         ? null
         : _objectList(json['summary'], 'summary'),
     error: json['error'] as String?,
@@ -1143,7 +1154,10 @@ class V15CompactionUpdate {
   V15Json toJson() => _encode(extras, {
     'compactionId': compactionId,
     'status': status,
-    if (summary != null || extras.containsKey('summary')) 'summary': summary,
+    if (summary != null || extras.containsKey('summary'))
+      'summary':
+          originalSummary ??
+          summary?.map(const ContentBlockConverter().toJson).toList(),
     if (error != null || extras.containsKey('error')) 'error': error,
     if (meta != null || extras.containsKey('_meta')) '_meta': meta,
   });
@@ -1151,25 +1165,30 @@ class V15CompactionUpdate {
 
 class V15CompactionSummaryChunk {
   final String compactionId;
-  final V15Json content;
+  final ContentBlock content;
+  final V15Json? originalContent;
   final Object? meta;
   final V15Json extras;
   V15CompactionSummaryChunk({
     required this.compactionId,
     required this.content,
+    this.originalContent,
     this.meta,
     V15Json? extras,
   }) : extras = extras ?? {};
   factory V15CompactionSummaryChunk.fromJson(V15Json json) =>
       V15CompactionSummaryChunk(
         compactionId: json['compactionId'] as String,
-        content: _map(json['content'], 'content'),
+        content: const ContentBlockConverter().fromJson(
+          _map(json['content'], 'content'),
+        ),
+        originalContent: _map(json['content'], 'content'),
         meta: _metaValue(json),
         extras: _extras(json, {'compactionId', 'content', '_meta'}),
       );
   V15Json toJson() => _encode(extras, {
     'compactionId': compactionId,
-    'content': content,
+    'content': originalContent ?? const ContentBlockConverter().toJson(content),
     if (meta != null || extras.containsKey('_meta')) '_meta': meta,
   });
 }
