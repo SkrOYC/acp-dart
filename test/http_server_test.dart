@@ -200,6 +200,41 @@ void main() {
   });
 
   test(
+    'returns an initialize JSON-RPC error when agent construction throws',
+    () async {
+      final server = await AcpHttpServer.bind(
+        InternetAddress.loopbackIPv4,
+        0,
+        agentFactory: (_) => throw StateError('factory failed'),
+      );
+      addTearDown(server.close);
+      final client = HttpClient();
+      addTearDown(client.close);
+      final request = await client.postUrl(
+        Uri.parse('http://${server.address.address}:${server.port}'),
+      );
+      request.headers.contentType = ContentType.json;
+      request.write(
+        jsonEncode({
+          'jsonrpc': '2.0',
+          'id': 7,
+          'method': 'initialize',
+          'params': {'protocolVersion': 1, 'clientCapabilities': {}},
+        }),
+      );
+
+      final response = await request.close();
+      expect(response.statusCode, 500);
+      expect(response.headers.contentType?.mimeType, 'application/json');
+      final body = jsonDecode(await utf8.decoder.bind(response).join());
+      expect(body['id'], 7);
+      expect(body['error']['code'], -32603);
+      expect(body['error']['message'], 'Initialize failed');
+      expect(body['error']['data'], contains('factory failed'));
+    },
+  );
+
+  test(
     'releases the SSE receiver lease after a client closes the stream',
     () async {
       final server = await AcpHttpServer.bind(

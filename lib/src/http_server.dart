@@ -159,10 +159,11 @@ class AcpHttpServer {
       );
       return;
     }
-    late final _HttpConnection connection;
+    _HttpConnection? connection;
     try {
-      connection = _HttpConnection(_newConnectionId(), _agentFactory);
+      connection = _HttpConnection(_newConnectionId());
       _connections[connection.id] = connection;
+      connection.start(_agentFactory);
       connection.expectInitial(id);
       connection.inbound.add(message);
       final response = await Future.any([
@@ -177,9 +178,10 @@ class AcpHttpServer {
       request.response.write(jsonEncode(response));
       await request.response.close();
     } catch (error) {
-      if (_connections[connection.id] != null) {
-        _connections.remove(connection.id);
-        await connection.close();
+      final activeConnection = connection;
+      if (activeConnection != null) {
+        _connections.remove(activeConnection.id);
+        await activeConnection.close();
       }
       if (error is _ClientDisconnected) return;
       request.response.statusCode = 500;
@@ -290,8 +292,16 @@ class AcpHttpServer {
       await _text(request.response, 400, 'Invalid WebSocket upgrade');
       return;
     }
-    final connection = _HttpConnection(_newConnectionId(), _agentFactory);
+    final connection = _HttpConnection(_newConnectionId());
     _connections[connection.id] = connection;
+    try {
+      connection.start(_agentFactory);
+    } catch (_) {
+      _connections.remove(connection.id);
+      await connection.close();
+      await _text(request.response, 500, 'WebSocket agent creation failed');
+      return;
+    }
     request.response.headers.set(_connectionHeader, connection.id);
     try {
       final socket = await WebSocketTransformer.upgrade(request);
@@ -383,15 +393,13 @@ bool _requiresSession(String method) => const {
 }.contains(method);
 
 class _HttpConnection {
-  _HttpConnection(this.id, AcpAgentFactory factory) {
-    final outgoing = StreamController<Map<String, dynamic>>();
+  _HttpConnection(this.id) {
     outgoing.stream.listen(_handleOutgoing);
-    final stream = AcpStream(readable: inbound.stream, writable: outgoing.sink);
-    AgentSideConnection(factory, stream);
   }
 
   final String id;
   final inbound = StreamController<Map<String, dynamic>>();
+  final outgoing = StreamController<Map<String, dynamic>>();
   final connectionQueue = _MessageQueue();
   final Map<String, _MessageQueue> _sessionQueues = {};
   final Map<dynamic, String?> responseRoutes = {};
@@ -402,9 +410,16 @@ class _HttpConnection {
   Future<void> _webSocketChain = Future.value();
   bool _webSocketInitialized = false;
   bool _closed = false;
+  bool _started = false;
   void Function()? _onWebSocketClosed;
 
   void expectInitial(dynamic id) => _initialId = id;
+
+  void start(AcpAgentFactory factory) {
+    final stream = AcpStream(readable: inbound.stream, writable: outgoing.sink);
+    AgentSideConnection(factory, stream);
+    _started = true;
+  }
 
   _MessageQueue sessionQueue(String id) =>
       _sessionQueues.putIfAbsent(id, _MessageQueue.new);
@@ -448,7 +463,13 @@ class _HttpConnection {
     if (webSocket != null && webSocket.readyState == WebSocket.open) {
       await webSocket.close(WebSocketStatus.goingAway, 'Server shutting down');
     }
-    await inbound.close();
+    final inboundClose = inbound.close();
+    if (_started) {
+      await inboundClose;
+    } else {
+      unawaited(inboundClose);
+    }
+    await outgoing.close();
     connectionQueue.close();
     for (final queue in _sessionQueues.values) {
       queue.close();
