@@ -119,6 +119,9 @@ class _HttpAcpStream {
       throw HttpException('ACP POST failed: ${response.statusCode} $text');
     }
     await response.drain<void>();
+    if (responseId != null && !message.containsKey('method')) {
+      _pendingServerRequestSessions.remove(responseId);
+    }
   }
 
   Future<HttpClientResponse> _post(Map<String, dynamic> message) async {

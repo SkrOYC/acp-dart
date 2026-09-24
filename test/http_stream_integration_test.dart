@@ -42,6 +42,7 @@ void main() {
       final events = <String, HttpResponse>{};
       final observedCookies = <String>[];
       final routedResponseSeen = Completer<void>();
+      final routedSessionHeaders = <String?>[];
       server.listen((request) async {
         final sessionId = request.headers.value('Acp-Session-Id') ?? '';
         if (request.method == 'POST') {
@@ -86,10 +87,10 @@ void main() {
               await eventStream.flush();
               await eventStream.close();
             } else {
-              if (sessionId != 's-1') {
-                throw StateError('Missing routed session header');
+              routedSessionHeaders.add(request.headers.value('Acp-Session-Id'));
+              if (routedSessionHeaders.length == 2) {
+                routedResponseSeen.complete();
               }
-              routedResponseSeen.complete();
             }
             request.response.statusCode = HttpStatus.accepted;
           }
@@ -166,8 +167,15 @@ void main() {
         'id': 'server-1',
         'result': {'outcome': 'selected'},
       });
+      stream.writable.add({
+        'jsonrpc': '2.0',
+        'id': 'server-1',
+        'result': {'outcome': 'duplicate'},
+      });
       await routedResponseSeen.future.timeout(const Duration(seconds: 3));
+      expect(routedSessionHeaders, ['s-1', null]);
       expect(observedCookies, [
+        'sid=caller; caller=c',
         'sid=caller; caller=c',
         'sid=caller; caller=c',
         'sid=caller; caller=c',

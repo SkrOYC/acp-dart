@@ -65,20 +65,59 @@ void main() {
     await server.close(force: true);
   });
 
-  test('WebSocket stream reports malformed JSON as a readable error', () async {
-    final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
-    WebSocket? peer;
-    server.listen((request) async {
-      final socket = await WebSocketTransformer.upgrade(request);
-      peer = socket;
-      socket.add('{');
-    });
-    final stream = createWebSocketStream(
-      'ws://${server.address.address}:${server.port}/acp',
-    );
-    await expectLater(stream.readable.first, throwsA(isA<FormatException>()));
-    await stream.writable.close();
-    await peer?.close();
-    await server.close(force: true);
-  });
+  test(
+    'WebSocket stream responds to invalid frames and remains live',
+    () async {
+      final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
+      final accepted = Completer<WebSocket>();
+      final peerMessages = StreamController<Map<String, dynamic>>();
+      server.listen((request) async {
+        final socket = await WebSocketTransformer.upgrade(request);
+        accepted.complete(socket);
+        socket.listen((frame) {
+          peerMessages.add(jsonDecode(frame as String) as Map<String, dynamic>);
+        });
+      });
+      final stream = createWebSocketStream(
+        'ws://${server.address.address}:${server.port}/acp',
+      );
+      final incoming = StreamIterator(stream.readable);
+      final peer = await accepted.future.timeout(const Duration(seconds: 3));
+      final responses = StreamIterator(peerMessages.stream);
+
+      peer.add('{');
+      expect(
+        await responses.moveNext().timeout(const Duration(seconds: 3)),
+        isTrue,
+      );
+      expect(responses.current['id'], isNull);
+      expect(responses.current['error']['code'], -32700);
+      expect(responses.current['error']['message'], 'Parse error');
+      peer.add('null');
+      expect(
+        await responses.moveNext().timeout(const Duration(seconds: 3)),
+        isTrue,
+      );
+      expect(responses.current['id'], isNull);
+      expect(responses.current['error']['code'], -32600);
+      expect(responses.current['error']['message'], 'Invalid request');
+      expect(responses.current['error']['data'], isNull);
+
+      peer.add('{"jsonrpc":"2.0","method":"test/notification"}');
+      expect(
+        await incoming.moveNext().timeout(const Duration(seconds: 3)),
+        isTrue,
+      );
+      expect(incoming.current, {
+        'jsonrpc': '2.0',
+        'method': 'test/notification',
+      });
+      await incoming.cancel();
+      await responses.cancel();
+      await peer.close();
+      await stream.writable.close();
+      await peerMessages.close();
+      await server.close(force: true);
+    },
+  );
 }
