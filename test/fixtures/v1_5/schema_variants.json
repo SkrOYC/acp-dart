@@ -1,0 +1,57 @@
+{
+  "contentBlocks": [
+    {"type":"text","text":"plain text","unknown":"drop me","_meta":{"vendor":"keep me"}},
+    {"type":"image","data":"aGVsbG8=","mimeType":"image/png"},
+    {"type":"audio","data":"aGVsbG8=","mimeType":"audio/wav"},
+    {"type":"resource_link","name":"notes","uri":"file:///notes.txt","size":5},
+    {"type":"resource","resource":{"uri":"file:///notes.txt","mimeType":"text/plain","text":"notes"}}
+  ],
+  "toolCallContent": [
+    {"type":"content","content":{"type":"text","text":"tool output"}},
+    {"type":"diff","path":"/workspace/a.txt","oldText":"old","newText":"new"},
+    {"type":"terminal","terminalId":"term-1"}
+  ],
+  "permissionOutcomes": [
+    {"outcome":"selected","optionId":"allow_once","_meta":{"vendor":"preserved"}},
+    {"outcome":"cancelled"}
+  ],
+  "authMethods": [
+    {"id":"oauth","name":"Sign in","description":"Agent handles sign-in"},
+    {"type":"terminal","id":"terminal-login","name":"Sign in in terminal","args":["--login"],"env":{"LOGIN_MODE":"interactive"}}
+  ],
+  "configOptions": [
+    {"id":"thinking","name":"Thinking","type":"boolean","currentValue":true},
+    {"id":"model","name":"Model","type":"select","currentValue":"model-a","options":[{"value":"model-a","name":"Model A"}]},
+    {"id":"engine","name":"Engine","type":"select","currentValue":"fast","options":[{"group":"local","name":"Local","options":[{"value":"fast","name":"Fast"}]}]}
+  ],
+  "sessionUpdates": [
+    {"sessionUpdate":"user_message_chunk","content":{"type":"text","text":"user"}},
+    {"sessionUpdate":"agent_message_chunk","content":{"type":"text","text":"agent"}},
+    {"sessionUpdate":"agent_thought_chunk","content":{"type":"text","text":"thought"}},
+    {"sessionUpdate":"tool_call","toolCallId":"tool-1","title":"Read"},
+    {"sessionUpdate":"tool_call_update","toolCallId":"tool-1"},
+    {"sessionUpdate":"plan","entries":[]},
+    {"sessionUpdate":"plan_update","plan":{"type":"markdown","planId":"plan-1","content":"# Plan"}},
+    {"sessionUpdate":"plan_removed","planId":"plan-1"},
+    {"sessionUpdate":"available_commands_update","availableCommands":[]},
+    {"sessionUpdate":"current_mode_update","currentModeId":"ask"},
+    {"sessionUpdate":"config_option_update","configOptions":[]},
+    {"sessionUpdate":"session_info_update","title":"Updated"},
+    {"sessionUpdate":"usage_update","used":3,"size":100},
+    {"sessionUpdate":"notice","severity":"info","title":"Heads up"},
+    {"sessionUpdate":"compaction_update","compactionId":"compact-1","status":"in_progress"},
+    {"sessionUpdate":"compaction_summary_chunk","compactionId":"compact-1","content":{"type":"text","text":"summary"}}
+  ],
+  "requiredFieldInvalid": {
+    "promptWithoutContent": {"sessionId":"sess-1"},
+    "textWithoutText": {"type":"text"},
+    "selectedPermissionWithoutOptionId": {"outcome":"selected"}
+  },
+  "unknownFields": {
+    "knownContentBlock": {"type":"text","text":"known","extra":"strip","_meta":{"vendorKey":"keep"}}
+  },
+  "customElicitation": {
+    "request": {"mode":"_vendor_form","message":"Custom form","sessionId":"sess-1","vendorPayload":{"field":"x"}},
+    "response": {"action":"_vendor_accept","vendorPayload":{"accepted":true}}
+  }
+}
