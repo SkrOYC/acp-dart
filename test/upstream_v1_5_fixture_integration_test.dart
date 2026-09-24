@@ -135,7 +135,8 @@ void main() {
       for (final file in files.where((file) => file.path.endsWith('.json'))) {
         final decoded = jsonDecode(await file.readAsString());
         expect(decoded, isA<Map<String, dynamic>>(), reason: file.path);
-        if (!file.uri.pathSegments.last.startsWith('config_')) {
+        final name = file.uri.pathSegments.last;
+        if (!name.startsWith('config_') && name != 'schema_variants.json') {
           expect(decoded['jsonrpc'], '2.0', reason: file.path);
         }
       }
