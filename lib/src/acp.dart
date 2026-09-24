@@ -82,11 +82,15 @@ typedef NotificationHandler =
 bool _isValidRequestId(Object? value) =>
     value == null || value is String || (value is num && value.isFinite);
 
+typedef _RawResponseDecoder<T> = T Function(Object? value);
+
 T _decodeTypedResponse<T>(
   Object? value,
-  T Function(Map<String, dynamic>) fromJson,
-) {
+  T Function(Map<String, dynamic>) fromJson, {
+  _RawResponseDecoder<T>? fromRawJson,
+}) {
   if (value is T) return value;
+  if (fromRawJson != null) return fromRawJson(value);
   if (value is Map) return fromJson(Map<String, dynamic>.from(value));
   throw FormatException('Expected ${T.toString()} response object');
 }
@@ -1019,6 +1023,7 @@ class AgentSideConnection implements Client {
   ) async => _decodeTypedResponse(
     await _connection.sendRequest('mcp/message', params.toJson()),
     V15MessageMcpResponse.fromJson,
+    fromRawJson: V15MessageMcpResponse.fromJson,
   );
 
   Future<V15DisconnectMcpResponse> unstableDisconnectMcp(
@@ -1457,6 +1462,7 @@ class ClientSideConnection implements Agent {
   ) async => _decodeTypedResponse(
     await _connection.sendRequest('mcp/message', params.toJson()),
     V15MessageMcpResponse.fromJson,
+    fromRawJson: V15MessageMcpResponse.fromJson,
   );
 
   Future<void> unstableNotifyMcpMessage(V15MessageMcpNotification params) =>

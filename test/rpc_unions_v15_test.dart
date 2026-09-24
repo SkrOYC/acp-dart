@@ -273,6 +273,36 @@ void main() {
     }
   });
 
+  test('response unions require a valid ID and complete error object', () {
+    final invalidResponses = [
+      {'result': {}},
+      {'id': true, 'result': {}},
+      {'id': double.infinity, 'result': {}},
+      {'id': 1, 'error': {}},
+      {
+        'id': 1,
+        'error': {'code': -32601},
+      },
+      {
+        'id': 1,
+        'error': {'code': 'bad', 'message': 'bad'},
+      },
+      {
+        'id': 1,
+        'error': {'code': -32601.5, 'message': 'bad'},
+      },
+      {
+        'id': 1,
+        'error': {'code': -32601, 'message': 1},
+      },
+    ];
+    for (final response in invalidResponses) {
+      expect(() => V15AgentResponse.fromJson(response), throwsFormatException);
+      expect(() => V15ClientResponse.fromJson(response), throwsFormatException);
+    }
+    expect(V15AgentResponse.fromJson({'id': null, 'result': {}}).id, isNull);
+  });
+
   test('future method payload uses explicit raw JSON variant', () {
     final request = V15ClientRequest.fromJson({
       'id': 2,
@@ -304,6 +334,11 @@ void main() {
       'params': {'connectionId': 'c1', 'method': 'notifications/changed'},
     });
     expect(notification.params, isA<V15MessageMcpNotification>());
+    final clientNotification = V15ClientNotification.fromJson({
+      'method': 'mcp/message',
+      'params': {'connectionId': 'c1', 'method': 'notifications/changed'},
+    });
+    expect(clientNotification.params, isA<V15MessageMcpNotification>());
   });
 
   test('unknown extension methods are preserved as raw payloads', () {
