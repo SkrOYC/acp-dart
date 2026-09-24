@@ -46,6 +46,8 @@ library;
 import 'package:collection/collection.dart';
 
 import 'schema.dart';
+import 'schema_v15_client.dart';
+import 'schema_v15_experimental.dart';
 
 /// Base class for notifications sent by the agent.
 ///
@@ -843,4 +845,401 @@ class ClientExtensionNotification extends ClientNotificationUnion {
 extension AgentRequestLookup on Iterable<AgentRequestUnion> {
   AgentRequestUnion? findByMethod(String method) =>
       firstWhereOrNull((element) => element.method == method);
+}
+
+const _agentMethods = <String>{
+  'initialize',
+  'authenticate',
+  'providers/list',
+  'providers/set',
+  'providers/disable',
+  'session/new',
+  'session/load',
+  'session/set_mode',
+  'session/set_config_option',
+  'session/prompt',
+  'session/cancel',
+  'mcp/message',
+  'session/list',
+  'session/delete',
+  'session/fork',
+  'session/resume',
+  'session/close',
+  'logout',
+  'nes/start',
+  'nes/suggest',
+  'nes/accept',
+  'nes/reject',
+  'nes/close',
+  'document/didOpen',
+  'document/didChange',
+  'document/didClose',
+  'document/didSave',
+  'document/didFocus',
+};
+
+const _clientMethods = <String>{
+  'session/request_permission',
+  'session/update',
+  'fs/write_text_file',
+  'fs/read_text_file',
+  'terminal/create',
+  'terminal/output',
+  'terminal/release',
+  'terminal/wait_for_exit',
+  'terminal/kill',
+  'mcp/connect',
+  'mcp/message',
+  'mcp/disconnect',
+  'elicitation/create',
+  'elicitation/complete',
+};
+
+class V15AgentMethods {
+  static const Set<String> all = _agentMethods;
+}
+
+class V15ClientMethods {
+  static const Set<String> all = _clientMethods;
+}
+
+class V15RawJsonPayload {
+  final Object? value;
+  const V15RawJsonPayload(this.value);
+}
+
+Object? _decode(String method, Object? value) {
+  if (value is! Map) return V15RawJsonPayload(value);
+  final json = Map<String, dynamic>.from(value);
+  switch (method) {
+    case 'initialize':
+      return InitializeRequest.fromJson(json);
+    case 'authenticate':
+      return AuthenticateRequest.fromJson(json);
+    case 'session/request_permission':
+      return RequestPermissionRequest.fromJson(json);
+    case 'fs/write_text_file':
+      return WriteTextFileRequest.fromJson(json);
+    case 'fs/read_text_file':
+      return ReadTextFileRequest.fromJson(json);
+    case 'terminal/create':
+      return CreateTerminalRequest.fromJson(json);
+    case 'terminal/output':
+      return TerminalOutputRequest.fromJson(json);
+    case 'terminal/release':
+      return ReleaseTerminalRequest.fromJson(json);
+    case 'terminal/wait_for_exit':
+      return WaitForTerminalExitRequest.fromJson(json);
+    case 'terminal/kill':
+      return KillTerminalCommandRequest.fromJson(json);
+    case 'session/update':
+      return SessionNotification.fromJson(json);
+    case 'elicitation/create':
+      return CreateElicitationRequest.fromJson(json);
+    case 'mcp/connect':
+      return V15ConnectMcpRequest.fromJson(json);
+    case 'mcp/disconnect':
+      return V15DisconnectMcpRequest.fromJson(json);
+    case 'document/didOpen':
+      return V15DidOpenDocumentNotification.fromJson(json);
+    case 'document/didChange':
+      return V15DidChangeDocumentNotification.fromJson(json);
+    case 'document/didClose':
+      return V15DidCloseDocumentNotification.fromJson(json);
+    case 'document/didSave':
+      return V15DidSaveDocumentNotification.fromJson(json);
+    case 'document/didFocus':
+      return V15DidFocusDocumentNotification.fromJson(json);
+    case 'nes/accept':
+      return V15AcceptNesNotification.fromJson(json);
+    case 'nes/reject':
+      return V15RejectNesNotification.fromJson(json);
+    case 'session/new':
+      return NewSessionRequest.fromJson(json);
+    case 'session/load':
+      return LoadSessionRequest.fromJson(json);
+    case 'session/list':
+      return ListSessionsRequest.fromJson(json);
+    case 'session/delete':
+      return DeleteSessionRequest.fromJson(json);
+    case 'session/fork':
+      return ForkSessionRequest.fromJson(json);
+    case 'session/resume':
+      return ResumeSessionRequest.fromJson(json);
+    case 'session/close':
+      return CloseSessionRequest.fromJson(json);
+    case 'session/set_mode':
+      return SetSessionModeRequest.fromJson(json);
+    case 'session/set_config_option':
+      return SetSessionConfigOptionRequest.fromJson(json);
+    case 'session/prompt':
+      return PromptRequest.fromJson(json);
+    case 'session/cancel':
+      return CancelNotification.fromJson(json);
+    case 'providers/list':
+      return V15ListProvidersRequest.fromJson(json);
+    case 'providers/set':
+      return V15SetProviderRequest.fromJson(json);
+    case 'providers/disable':
+      return V15DisableProviderRequest.fromJson(json);
+    case 'mcp/message':
+      return V15MessageMcpRequest.fromJson(json);
+    case 'elicitation/complete':
+      return CompleteElicitationNotification.fromJson(json);
+    default:
+      return V15RawJsonPayload(json);
+  }
+}
+
+Object? _encode(Object? value) => switch (value) {
+  V15RawJsonPayload(:final value) => value,
+  _ => (value as dynamic).toJson(),
+};
+
+Map<String, dynamic> _map(Object? value, String name) {
+  if (value is Map<String, dynamic>) return value;
+  throw FormatException('Expected $name object');
+}
+
+class _Request {
+  final Object? id;
+  final String method;
+  final Object? params;
+  final bool isKnownMethod;
+  final bool isExperimental;
+  const _Request(
+    this.id,
+    this.method,
+    this.params,
+    this.isKnownMethod,
+    this.isExperimental,
+  );
+  Map<String, dynamic> toJson() => {
+    if (id != null) 'id': id,
+    'method': method,
+    if (params != null) 'params': _encode(params),
+  };
+}
+
+class V15AgentRequest extends _Request {
+  V15AgentRequest._(
+    super.id,
+    super.method,
+    super.params,
+    super.isKnownMethod,
+    super.isExperimental,
+  );
+  factory V15AgentRequest.fromJson(Map<String, dynamic> json) {
+    final method = json['method'];
+    if (method is! String) {
+      throw FormatException('Expected method string');
+    }
+    if (const {
+              'session/request_permission',
+              'fs/write_text_file',
+              'fs/read_text_file',
+              'terminal/create',
+              'terminal/output',
+              'terminal/release',
+              'terminal/wait_for_exit',
+              'terminal/kill',
+              'mcp/connect',
+              'mcp/message',
+              'mcp/disconnect',
+              'elicitation/create',
+            }.contains(method) ==
+            false &&
+        _clientMethods.contains(method)) {
+      throw FormatException('Expected request method');
+    }
+    return V15AgentRequest._(
+      json['id'],
+      method,
+      _decode(method, json['params']),
+      _clientMethods.contains(method),
+      false,
+    );
+  }
+}
+
+class V15ClientRequest extends _Request {
+  V15ClientRequest._(
+    super.id,
+    super.method,
+    super.params,
+    super.isKnownMethod,
+    super.isExperimental,
+  );
+  factory V15ClientRequest.fromJson(Map<String, dynamic> json) {
+    final method = json['method'];
+    if (method is! String) {
+      throw FormatException('Expected method string');
+    }
+    if (const {
+              'initialize',
+              'authenticate',
+              'providers/list',
+              'providers/set',
+              'providers/disable',
+              'session/new',
+              'session/load',
+              'session/set_mode',
+              'session/set_config_option',
+              'session/prompt',
+              'mcp/message',
+              'session/list',
+              'session/delete',
+              'session/fork',
+              'session/resume',
+              'session/close',
+              'logout',
+              'nes/start',
+              'nes/suggest',
+              'nes/close',
+            }.contains(method) ==
+            false &&
+        _agentMethods.contains(method)) {
+      throw FormatException('Expected request method');
+    }
+    return V15ClientRequest._(
+      json['id'],
+      method,
+      _decode(method, json['params']),
+      _agentMethods.contains(method),
+      const {
+        'providers/list',
+        'providers/set',
+        'providers/disable',
+        'mcp/message',
+        'nes/start',
+        'nes/suggest',
+        'nes/close',
+        'session/fork',
+      }.contains(method),
+    );
+  }
+}
+
+class _Notification {
+  final String method;
+  final Object? params;
+  final bool isKnownMethod;
+  const _Notification(this.method, this.params, this.isKnownMethod);
+  Map<String, dynamic> toJson() => {
+    'method': method,
+    if (params != null) 'params': _encode(params),
+  };
+}
+
+class V15AgentNotification extends _Notification {
+  V15AgentNotification._(super.method, super.params, super.isKnownMethod);
+  factory V15AgentNotification.fromJson(Map<String, dynamic> json) {
+    final method = json['method'];
+    if (method is! String) {
+      throw FormatException('Expected method string');
+    }
+    if (json.containsKey('id')) {
+      throw FormatException('Expected notification');
+    }
+    if (!const {
+      'session/update',
+      'elicitation/complete',
+      'mcp/message',
+    }.contains(method)) {
+      throw FormatException('Expected notification method');
+    }
+    return V15AgentNotification._(
+      method,
+      _decode(method, json['params']),
+      _clientMethods.contains(method),
+    );
+  }
+}
+
+class V15ClientNotification extends _Notification {
+  V15ClientNotification._(super.method, super.params, super.isKnownMethod);
+  factory V15ClientNotification.fromJson(Map<String, dynamic> json) {
+    final method = json['method'];
+    if (method is! String) {
+      throw FormatException('Expected method string');
+    }
+    if (!const {
+      'session/cancel',
+      'document/didOpen',
+      'document/didChange',
+      'document/didClose',
+      'document/didSave',
+      'document/didFocus',
+      'nes/accept',
+      'nes/reject',
+    }.contains(method)) {
+      throw FormatException('Expected notification method');
+    }
+    return V15ClientNotification._(
+      method,
+      _decode(method, json['params']),
+      _agentMethods.contains(method),
+    );
+  }
+}
+
+class _Response {
+  final Object? id;
+  final Object? result;
+  final V15RawJsonPayload? error;
+  final Object? _wireResult;
+  const _Response(this.id, this.result, this.error, [this._wireResult]);
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    if (error != null)
+      'error': error!.value
+    else
+      'result': _wireResult ?? _encode(result),
+  };
+}
+
+Object? _response(Object? value) {
+  if (value is! Map<String, dynamic>) return V15RawJsonPayload(value);
+  if (value.containsKey('protocolVersion')) {
+    return InitializeResponse.fromJson(value);
+  }
+  return V15RawJsonPayload(Map<String, dynamic>.from(value));
+}
+
+class V15AgentResponse extends _Response {
+  V15AgentResponse._(super.id, super.result, super.error, [super._wireResult]);
+  factory V15AgentResponse.fromJson(Map<String, dynamic> json) {
+    if (json.containsKey('error')) {
+      return V15AgentResponse._(
+        json['id'],
+        null,
+        V15RawJsonPayload(_map(json['error'], 'error')),
+      );
+    }
+    return V15AgentResponse._(
+      json['id'],
+      _response(json['result']),
+      null,
+      json['result'],
+    );
+  }
+}
+
+class V15ClientResponse extends _Response {
+  V15ClientResponse._(super.id, super.result, super.error, [super._wireResult]);
+  factory V15ClientResponse.fromJson(Map<String, dynamic> json) {
+    if (json.containsKey('error')) {
+      return V15ClientResponse._(
+        json['id'],
+        null,
+        V15RawJsonPayload(_map(json['error'], 'error')),
+      );
+    }
+    return V15ClientResponse._(
+      json['id'],
+      _response(json['result']),
+      null,
+      json['result'],
+    );
+  }
 }
