@@ -119,16 +119,18 @@ void main() {
     final agentToClient = StreamController<Map<String, dynamic>>();
     Map<String, dynamic>? newSessionParams;
     Map<String, dynamic>? promptParams;
-    final agentContext = Completer<AppContext>();
     final updatesDone = Completer<void>();
     final agent = AgentApp()
-      ..onConnect((context) => agentContext.complete(context))
       ..onRequest(agentMethods['sessionNew']!, (params, context) async {
         newSessionParams = params as Map<String, dynamic>;
         return NewSessionResponse(sessionId: 's1');
       })
       ..onRequest(agentMethods['sessionPrompt']!, (params, context) async {
         promptParams = params as Map<String, dynamic>;
+        await context.notify(clientMethods['sessionUpdate']!, {
+          'sessionId': 's1',
+          'update': {'sessionUpdate': 'session_info_update', 'title': 'Hello'},
+        });
         return PromptResponse(stopReason: StopReason.endTurn);
       });
     agent.connect(
@@ -142,21 +144,22 @@ void main() {
     final session = await ClientApp().connectWith(clientStream, (
       context,
     ) async {
-      final activeSession = await context.buildSession('/workspace').start();
+      final activeSession = await context
+          .buildSession('/workspace')
+          .withAdditionalDirectories(['/workspace/shared'])
+          .withMcpServer(
+            StdioMcpServer(args: [], command: 'mcp', env: [], name: 'local'),
+          )
+          .start();
       final update = activeSession.updates.first;
       activeSession.updates.listen((_) {}, onDone: updatesDone.complete);
       final response = await activeSession.prompt([
         TextContentBlock(text: 'hello'),
         ResourceLinkContentBlock(name: 'README', uri: 'file:///README.md'),
       ]);
-      await (await agentContext.future).notify(
-        clientMethods['sessionUpdate']!,
-        {
-          'sessionId': 's1',
-          'update': {'sessionUpdate': 'session_info_update', 'title': 'Hello'},
-        },
-      );
-      return (activeSession, response, await update);
+      final sessionUpdate = await activeSession.nextUpdate();
+      final stop = await activeSession.nextUpdate();
+      return (activeSession, response, sessionUpdate, stop, await update);
     });
 
     expect(session.$1.sessionId, 's1');
@@ -166,8 +169,24 @@ void main() {
       {'type': 'text', 'text': 'hello'},
       {'type': 'resource_link', 'name': 'README', 'uri': 'file:///README.md'},
     ]);
-    expect(session.$3.update, isA<SessionInfoUpdate>());
-    expect((session.$3.update as SessionInfoUpdate).title, 'Hello');
+    expect(newSessionParams?['additionalDirectories'], ['/workspace/shared']);
+    expect(newSessionParams?['mcpServers'], [
+      {'command': 'mcp', 'args': [], 'env': [], 'name': 'local'},
+    ]);
+    expect(session.$3.kind, 'session_update');
+    expect(session.$3, isA<ActiveSessionUpdate>());
+    expect(
+      (session.$3 as ActiveSessionUpdate).update,
+      isA<SessionInfoUpdate>(),
+    );
+    expect(
+      ((session.$3 as ActiveSessionUpdate).update as SessionInfoUpdate).title,
+      'Hello',
+    );
+    expect(session.$4.kind, 'stop');
+    expect(session.$4, isA<ActiveSessionStop>());
+    expect((session.$4 as ActiveSessionStop).stopReason, StopReason.endTurn);
+    expect(session.$5.update, isA<SessionInfoUpdate>());
     await session.$1.dispose();
     await session.$1.dispose();
     await updatesDone.future;
@@ -175,6 +194,48 @@ void main() {
     await clientToAgent.close();
     await agentToClient.close();
   });
+
+  test(
+    'session builder withSession disposes update routing on completion',
+    () async {
+      final pair = _streamPair();
+      final agentConnection = AgentApp()
+          .onRequest(agentMethods['sessionNew']!, (params, context) async {
+            return NewSessionResponse(sessionId: 'scoped-session');
+          })
+          .connect(pair.$1);
+      final clientConnection = ClientApp().connect(pair.$2);
+      final updatesDone = Completer<void>();
+      ActiveSession? activeSession;
+
+      final sessionId = await clientConnection
+          .buildSession('/workspace')
+          .withSession((session) async {
+            activeSession = session;
+            session.updates.listen((_) {}, onDone: updatesDone.complete);
+            return session.sessionId;
+          });
+
+      expect(sessionId, 'scoped-session');
+      await updatesDone.future;
+      await activeSession!.dispose();
+
+      final failedSessionDone = Completer<void>();
+      await expectLater(
+        clientConnection.buildSession('/workspace').withSession((session) {
+          session.updates.listen((_) {}, onDone: failedSessionDone.complete);
+          throw StateError('operation failed');
+        }),
+        throwsA(isA<StateError>()),
+      );
+      await failedSessionDone.future;
+
+      clientConnection.close();
+      agentConnection.close();
+      await pair.$3.close();
+      await pair.$4.close();
+    },
+  );
 
   test('sessions with the same ID stay scoped to their connection', () async {
     final clientApp = ClientApp();
