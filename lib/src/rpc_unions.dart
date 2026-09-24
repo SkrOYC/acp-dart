@@ -912,8 +912,14 @@ class V15RawJsonPayload {
 bool _isValidV15RequestId(Object? value) =>
     value == null || value is String || (value is num && value.isFinite);
 
-bool _isValidV15ErrorResponse(Object? value) =>
-    value is Map && value['code'] is int && value['message'] is String;
+bool _isValidV15ErrorResponse(Object? value) {
+  if (value is! Map) return false;
+  final code = value['code'];
+  return code is int &&
+      code >= -2147483648 &&
+      code <= 2147483647 &&
+      value['message'] is String;
+}
 
 void _validateV15Response(Map<String, dynamic> json) {
   if (!json.containsKey('id') || !_isValidV15RequestId(json['id'])) {

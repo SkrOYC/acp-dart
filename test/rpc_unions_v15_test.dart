@@ -303,6 +303,30 @@ void main() {
     expect(V15AgentResponse.fromJson({'id': null, 'result': {}}).id, isNull);
   });
 
+  test('response unions require signed 32-bit error codes', () {
+    for (final code in [-2147483648, 2147483647]) {
+      final json = {
+        'id': 1,
+        'error': {
+          'code': code,
+          'message': 'bad',
+          'data': {'details': 'retained'},
+        },
+      };
+      expect(V15AgentResponse.fromJson(json).toJson()['error'], json['error']);
+      expect(V15ClientResponse.fromJson(json).toJson()['error'], json['error']);
+    }
+
+    for (final code in [-2147483649, 2147483648]) {
+      final json = {
+        'id': 1,
+        'error': {'code': code, 'message': 'bad'},
+      };
+      expect(() => V15AgentResponse.fromJson(json), throwsFormatException);
+      expect(() => V15ClientResponse.fromJson(json), throwsFormatException);
+    }
+  });
+
   test('future method payload uses explicit raw JSON variant', () {
     final request = V15ClientRequest.fromJson({
       'id': 2,
