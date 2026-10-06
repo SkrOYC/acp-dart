@@ -9,7 +9,6 @@ devenv.local.nix
 devenv.local.yaml
 
 # direnv
-.envrc
 .direnv
 
 # pre-commit
